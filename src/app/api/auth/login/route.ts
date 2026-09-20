@@ -15,18 +15,7 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
-    
     const user = await User.findOne({ email });
-
-const passwordMatch = user
-  ? await bcrypt.compare(password, user.passwordHash)
-  : false;
-
-console.log("LOGIN DEBUG:", {
-  email,
-  userFound: !!user,
-  passwordMatch,
-});
 
 if (!user) {
   return NextResponse.json(
@@ -35,7 +24,9 @@ if (!user) {
   );
 }
 
-if (!passwordMatch) {
+const ok = await bcrypt.compare(password, user.passwordHash);
+
+if (!ok) {
   return NextResponse.json(
     { error: "Invalid email or password." },
     { status: 401 }
