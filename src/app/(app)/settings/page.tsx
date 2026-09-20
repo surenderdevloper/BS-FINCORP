@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
@@ -75,20 +75,56 @@ export default function SettingsPage() {
     }
   };
 
-  const onLogoFile = (file: File | undefined) => {
+  const onLogoFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+
+    const isSvg =
+      file.type.includes("svg") || file.name.toLowerCase().endsWith(".svg");
+    if (!isSvg && !file.type.startsWith("image/")) {
       setLogoError("Please choose an image file (PNG, JPG, SVG).");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setLogoError("Logo image must be under 2 MB.");
-      return;
-    }
+
     setLogoError(null);
     const reader = new FileReader();
     reader.onload = () => {
-      setCompany((c) => ({ ...c, logo: String(reader.result ?? "") }));
+      const dataUrl = String(reader.result ?? "");
+      if (isSvg) {
+        if (file.size > 2 * 1024 * 1024) {
+          setLogoError("SVG logo must be under 2 MB.");
+          return;
+        }
+        setCompany((c) => ({ ...c, logo: dataUrl }));
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 512;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setCompany((c) => ({ ...c, logo: dataUrl }));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            setCompany((c) => ({ ...c, logo: dataUrl }));
+            return;
+          }
+          const fr = new FileReader();
+          fr.onload = () => setCompany((c) => ({ ...c, logo: String(fr.result ?? dataUrl) }));
+          fr.readAsDataURL(blob);
+        }, "image/png");
+      };
+      img.onerror = () => setLogoError("Could not read this image. Try a PNG or JPG.");
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -138,14 +174,16 @@ export default function SettingsPage() {
                       </Button>
                     )}
                   </div>
-                  <p className="text-[11px] text-zinc-400">PNG / JPG / SVG, under 2 MB. Shows on NOC & receipts.</p>
+                  <p className="text-[11px] text-zinc-400">
+                    PNG / JPG / SVG. Photos are resized automatically so receipts &amp; NOC letters stay fast.
+                  </p>
                 </div>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => onLogoFile(e.target.files?.[0])}
+                  onChange={onLogoFile}
                 />
               </div>
               {logoError && <p className="mt-1 text-xs text-red-600">{logoError}</p>}
