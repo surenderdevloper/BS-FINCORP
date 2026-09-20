@@ -14,6 +14,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
+    await dbConnect();
+    
     const user = await User.findOne({ email });
 
 const passwordMatch = user
