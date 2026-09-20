@@ -14,15 +14,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    await dbConnect();
     const user = await User.findOne({ email });
-    if (!user) {
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
-    }
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
-    }
+
+const passwordMatch = user
+  ? await bcrypt.compare(password, user.passwordHash)
+  : false;
+
+console.log("LOGIN DEBUG:", {
+  email,
+  userFound: !!user,
+  passwordMatch,
+});
+
+if (!user) {
+  return NextResponse.json(
+    { error: "Invalid email or password." },
+    { status: 401 }
+  );
+}
+
+if (!passwordMatch) {
+  return NextResponse.json(
+    { error: "Invalid email or password." },
+    { status: 401 }
+  );
+}
 
     const token = await signSessionToken({
       id: user._id.toString(),
