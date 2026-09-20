@@ -47,6 +47,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
   const customerErrors = validateCustomerShape({
     name: customerData.name,
     mobile: customerData.mobile ?? "",
+    altMobile: customerData.altMobile,
     aadhaar: customerData.aadhaar,
     pan: customerData.pan,
   });
@@ -108,6 +109,9 @@ export async function PUT(req: Request, ctx: RouteContext) {
   customer.pan = customerData.pan?.trim().toUpperCase() || undefined;
   customer.dob = customerData.dob ? new Date(`${customerData.dob}T00:00:00Z`) : undefined;
   customer.address = customerData.address?.trim() ?? "";
+  customer.city = customerData.city?.trim() ?? "";
+  customer.state = customerData.state?.trim() ?? "";
+  customer.altMobile = customerData.altMobile?.trim() ?? "";
   await customer.save();
 
   // 2. Update vehicle & guarantor.
@@ -119,6 +123,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
       chassisNo: body.vehicle?.chassisNo ?? "",
       regNo: body.vehicle?.regNo ?? "",
       loanType: body.vehicle?.loanType ?? "2 Wheeler",
+      dealerName: body.vehicle?.dealerName ?? "",
     },
     guarantor: {
       name: body.guarantor?.name ?? "",

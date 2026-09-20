@@ -188,6 +188,7 @@ export interface CustomerLoanDetail {
     chassisNo?: string;
     regNo?: string;
     loanType?: string;
+    dealerName?: string;
   };
   financial: {
     vehiclePrice: number;
@@ -209,10 +210,13 @@ export interface CustomerDetail {
   name: string;
   fatherName?: string;
   mobile: string;
+  altMobile?: string;
   aadhaar?: string;
   pan?: string;
   dob?: string;
   address?: string;
+  city?: string;
+  state?: string;
   createdAt?: string;
   loans: CustomerLoanDetail[];
   totals: {
@@ -254,7 +258,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
     loanNo: string;
     status: string;
     closedAt?: Date;
-    vehicle: { name: string; model?: string; engineNo?: string; chassisNo?: string; regNo?: string; loanType?: string };
+    vehicle: { name: string; model?: string; engineNo?: string; chassisNo?: string; regNo?: string; loanType?: string; dealerName?: string };
     financial: {
       vehiclePrice: number;
       downPayment: number;
@@ -302,6 +306,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
         chassisNo: loan.vehicle.chassisNo ?? "",
         regNo: loan.vehicle.regNo ?? "",
         loanType: loan.vehicle.loanType ?? "",
+        dealerName: loan.vehicle.dealerName ?? "",
       },
       financial: {
         vehiclePrice: loan.financial.vehiclePrice,

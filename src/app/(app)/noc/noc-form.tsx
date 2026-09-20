@@ -13,6 +13,7 @@ interface Company {
   gst?: string;
   phone?: string;
   email?: string;
+  logo?: string;
 }
 
 interface LoanSummaryResult {
@@ -152,6 +153,9 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
           <Card className="mx-auto max-w-3xl p-6 sm:p-10">
             <div className="border-b border-zinc-300 pb-5 text-center">
+              {company?.logo && (
+                <img src={company.logo} alt="logo" className="mx-auto mb-3 max-h-16 w-auto object-contain" />
+              )}
               <p className="text-xl font-bold tracking-wide text-zinc-900">
                 {company?.companyName ?? "BS FINCORP"}
               </p>
@@ -196,6 +200,8 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     <dt className="text-zinc-500">Address</dt>
                     <dd className="max-w-[60%] text-right font-semibold text-zinc-900 sm:max-w-none sm:text-left">
                       {loan.customer.address || "—"}
+                      {loan.customer.city ? `, ${loan.customer.city}` : ""}
+                      {loan.customer.state ? `, ${loan.customer.state}` : ""}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4 sm:block">
@@ -225,6 +231,10 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
                   <div className="flex justify-between gap-4 sm:block">
                     <dt className="text-zinc-500">Engine No</dt>
                     <dd className="font-mono font-semibold text-zinc-900">{loan.vehicle.engineNo || "—"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4 sm:block">
+                    <dt className="text-zinc-500">Dealer Name</dt>
+                    <dd className="font-semibold text-zinc-900">{loan.vehicle.dealerName || "—"}</dd>
                   </div>
                   <div className="flex justify-between gap-4 sm:block">
                     <dt className="text-zinc-500">Loan Amount</dt>

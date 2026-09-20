@@ -8,6 +8,7 @@ const companySettingSchema = new mongoose.Schema(
     gst: { type: String, default: "" },
     phone: { type: String, default: "" },
     email: { type: String, default: "" },
+    logo: { type: String, default: "" },
     receiptPrefix: { type: String, default: "RCPT" },
     nextReceiptNo: { type: Number, default: 1 },
     loanPrefix: { type: String, default: "BF" },

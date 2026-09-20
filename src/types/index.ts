@@ -2,10 +2,13 @@ export interface CustomerFormData {
   name: string;
   fatherName: string;
   mobile: string;
+  altMobile: string;
   aadhaar: string;
   pan: string;
   dob: string;
   address: string;
+  city: string;
+  state: string;
 }
 
 export interface VehicleFormData {
@@ -15,6 +18,7 @@ export interface VehicleFormData {
   chassisNo: string;
   regNo: string;
   loanType: string;
+  dealerName: string;
 }
 
 export interface FinancialFormData {

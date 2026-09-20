@@ -20,10 +20,13 @@ interface CustomerSearchResult {
   name: string;
   fatherName: string;
   mobile: string;
+  altMobile?: string;
   aadhaar: string;
   pan: string;
   dob: string | null;
   address: string;
+  city?: string;
+  state?: string;
 }
 
 interface ApiError {
@@ -35,13 +38,16 @@ const emptyCustomer = {
   name: "",
   fatherName: "",
   mobile: "",
+  altMobile: "",
   aadhaar: "",
   pan: "",
   dob: "",
   address: "",
+  city: "",
+  state: "",
 };
 
-const emptyVehicle = { name: "", model: "", engineNo: "", chassisNo: "", regNo: "", loanType: "2 Wheeler" };
+const emptyVehicle = { name: "", model: "", engineNo: "", chassisNo: "", regNo: "", loanType: "2 Wheeler", dealerName: "" };
 const emptyGuarantor = { name: "", mobile: "", relation: "", address: "" };
 
 export function LoanForm() {
@@ -139,10 +145,13 @@ export function LoanForm() {
       name: c.name,
       fatherName: c.fatherName ?? "",
       mobile: c.mobile,
+      altMobile: c.altMobile ?? "",
       aadhaar: c.aadhaar ?? "",
       pan: c.pan ?? "",
       dob: c.dob ? c.dob.slice(0, 10) : "",
       address: c.address ?? "",
+      city: c.city ?? "",
+      state: c.state ?? "",
     });
     setSearch("");
     setSearchResults([]);
@@ -164,6 +173,8 @@ export function LoanForm() {
     if (!customerId) {
       if (!customer.name.trim()) errors.name = "Customer name is required.";
       if (!isValidMobile(customer.mobile)) errors.mobile = "Enter a valid 10-digit mobile number.";
+      if (customer.altMobile && !isValidMobile(customer.altMobile))
+        errors.altMobile = "Alternative mobile must be a valid 10-digit number.";
       if (customer.aadhaar && !isValidAadhaar(customer.aadhaar))
         errors.aadhaar = "Aadhaar must be 12 digits.";
       if (customer.pan && !isValidPan(customer.pan)) errors.pan = "Invalid PAN format.";
@@ -416,6 +427,17 @@ export function LoanForm() {
                       onChange={(e) => setField("customer", "mobile", e.target.value.replace(/\D/g, ""))}
                     />
                   </Field>
+                  <Field label="Alternative Mobile Number" error={fieldErrors.altMobile}>
+                    <Input
+                      disabled={!!selectedCustomer}
+                      value={customer.altMobile}
+                      invalid={!!fieldErrors.altMobile}
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="Alternative mobile (optional)"
+                      onChange={(e) => setField("customer", "altMobile", e.target.value.replace(/\D/g, ""))}
+                    />
+                  </Field>
                   <Field label="Aadhaar Number" error={fieldErrors.aadhaar}>
                     <Input
                       disabled={!!selectedCustomer}
@@ -451,8 +473,26 @@ export function LoanForm() {
                       <Input
                         disabled={!!selectedCustomer}
                         value={customer.address}
-                        placeholder="House no, street, area, city"
+                        placeholder="House no, street, area"
                         onChange={(e) => setField("customer", "address", e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                  <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2">
+                    <Field label="City">
+                      <Input
+                        disabled={!!selectedCustomer}
+                        value={customer.city}
+                        placeholder="e.g. Jaipur"
+                        onChange={(e) => setField("customer", "city", e.target.value)}
+                      />
+                    </Field>
+                    <Field label="State">
+                      <Input
+                        disabled={!!selectedCustomer}
+                        value={customer.state}
+                        placeholder="e.g. Rajasthan"
+                        onChange={(e) => setField("customer", "state", e.target.value)}
                       />
                     </Field>
                   </div>
@@ -503,6 +543,13 @@ export function LoanForm() {
                       className="uppercase"
                       placeholder="e.g. GJ01AB1234"
                       onChange={(e) => setField("vehicle", "regNo", e.target.value.toUpperCase())}
+                    />
+                  </Field>
+                  <Field label="Dealer Name">
+                    <Input
+                      value={vehicle.dealerName}
+                      placeholder="e.g. Sharma Auto Sales"
+                      onChange={(e) => setField("vehicle", "dealerName", e.target.value)}
                     />
                   </Field>
                   <Field label="Loan Type">

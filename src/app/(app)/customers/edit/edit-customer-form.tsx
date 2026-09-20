@@ -19,10 +19,13 @@ const emptyCustomer = (): CustomerFormData => ({
   name: "",
   fatherName: "",
   mobile: "",
+  altMobile: "",
   aadhaar: "",
   pan: "",
   dob: "",
   address: "",
+  city: "",
+  state: "",
 });
 
 const emptyVehicle = (): VehicleFormData => ({
@@ -32,6 +35,7 @@ const emptyVehicle = (): VehicleFormData => ({
   chassisNo: "",
   regNo: "",
   loanType: "2 Wheeler",
+  dealerName: "",
 });
 
 const emptyFinancial = (): FinancialFormData => ({
@@ -51,10 +55,13 @@ interface CustomerSummary {
   name: string;
   fatherName?: string;
   mobile: string;
+  altMobile?: string;
   aadhaar?: string;
   pan?: string;
   dob?: string | null;
   address?: string;
+  city?: string;
+  state?: string;
 }
 
 function fillFromLoan(l: LoanDetail) {
@@ -63,10 +70,13 @@ function fillFromLoan(l: LoanDetail) {
       name: l.customer.name,
       fatherName: l.customer.fatherName ?? "",
       mobile: l.customer.mobile,
+      altMobile: l.customer.altMobile ?? "",
       aadhaar: l.customer.aadhaar ?? "",
       pan: l.customer.pan ?? "",
       dob: l.customer.dob ? l.customer.dob.slice(0, 10) : "",
       address: l.customer.address ?? "",
+      city: l.customer.city ?? "",
+      state: l.customer.state ?? "",
     },
     vehicle: {
       name: l.vehicle.name,
@@ -75,6 +85,7 @@ function fillFromLoan(l: LoanDetail) {
       chassisNo: l.vehicle.chassisNo ?? "",
       regNo: l.vehicle.regNo ?? "",
       loanType: l.vehicle.loanType ?? "2 Wheeler",
+      dealerName: l.vehicle.dealerName ?? "",
     },
     financial: {
       vehiclePrice: l.financial.vehiclePrice,
@@ -158,10 +169,13 @@ export function EditCustomerForm({
       name: c.name,
       fatherName: c.fatherName ?? "",
       mobile: c.mobile,
+      altMobile: c.altMobile ?? "",
       aadhaar: c.aadhaar ?? "",
       pan: c.pan ?? "",
       dob: c.dob ? c.dob.slice(0, 10) : "",
       address: c.address ?? "",
+      city: c.city ?? "",
+      state: c.state ?? "",
     });
     setResults([]);
     setFieldErrors({});
@@ -229,6 +243,8 @@ export function EditCustomerForm({
     const errors: Record<string, string> = {};
     if (!personal.name.trim()) errors.name = "Customer name is required.";
     if (!isValidMobile(personal.mobile.trim())) errors.mobile = "Enter a valid 10-digit mobile number.";
+    if (personal.altMobile && !isValidMobile(personal.altMobile.trim()))
+      errors.altMobile = "Alternative mobile must be a valid 10-digit number.";
     if (personal.aadhaar && !isValidAadhaar(personal.aadhaar)) errors.aadhaar = "Aadhaar must be 12 digits.";
     if (personal.pan && !isValidPan(personal.pan)) errors.pan = "PAN must be in format ABCDE1234F.";
     if (!customerOnly) {
@@ -426,6 +442,9 @@ export function EditCustomerForm({
                   <Field label="Mobile Number" required error={fieldErrors.mobile}>
                     <Input value={personal.mobile} invalid={!!fieldErrors.mobile} inputMode="numeric" maxLength={10} onChange={(e) => setField("personal", "mobile", e.target.value.replace(/\D/g, ""))} />
                   </Field>
+                  <Field label="Alternative Mobile Number" error={fieldErrors.altMobile}>
+                    <Input value={personal.altMobile} invalid={!!fieldErrors.altMobile} inputMode="numeric" maxLength={10} onChange={(e) => setField("personal", "altMobile", e.target.value.replace(/\D/g, ""))} />
+                  </Field>
                   <Field label="Aadhaar Number" error={fieldErrors.aadhaar}>
                     <Input value={personal.aadhaar} invalid={!!fieldErrors.aadhaar} inputMode="numeric" maxLength={12} onChange={(e) => setField("personal", "aadhaar", e.target.value.replace(/\D/g, ""))} />
                   </Field>
@@ -440,6 +459,12 @@ export function EditCustomerForm({
                       <Input value={personal.address} onChange={(e) => setField("personal", "address", e.target.value)} />
                     </Field>
                   </div>
+                  <Field label="City">
+                    <Input value={personal.city} onChange={(e) => setField("personal", "city", e.target.value)} />
+                  </Field>
+                  <Field label="State">
+                    <Input value={personal.state} onChange={(e) => setField("personal", "state", e.target.value)} />
+                  </Field>
                 </div>
               </section>
             )}
@@ -462,6 +487,9 @@ export function EditCustomerForm({
                   </Field>
                   <Field label="Registration Number">
                     <Input value={vehicle.regNo} className="uppercase" onChange={(e) => setField("vehicle", "regNo", e.target.value.toUpperCase())} />
+                  </Field>
+                  <Field label="Dealer Name">
+                    <Input value={vehicle.dealerName} onChange={(e) => setField("vehicle", "dealerName", e.target.value)} />
                   </Field>
                   <Field label="Loan Type">
                     <Select value={vehicle.loanType} onChange={(e) => setField("vehicle", "loanType", e.target.value)}>

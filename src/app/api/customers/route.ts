@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     : {};
 
   const customers = await Customer.find(filter)
-    .select("name fatherName mobile aadhaar pan dob address")
+    .select("name fatherName mobile altMobile aadhaar pan dob address city state")
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
@@ -46,10 +46,13 @@ export async function GET(req: Request) {
       name: c.name,
       fatherName: c.fatherName,
       mobile: c.mobile,
+      altMobile: c.altMobile ?? "",
       aadhaar: c.aadhaar,
       pan: c.pan,
       dob: c.dob ? c.dob.toISOString() : null,
       address: c.address,
+      city: c.city,
+      state: c.state,
     })),
   });
 }

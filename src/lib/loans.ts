@@ -32,10 +32,13 @@ export interface LoanDetail {
     name: string;
     fatherName?: string;
     mobile: string;
+    altMobile?: string;
     aadhaar?: string;
     pan?: string;
     dob?: string;
     address?: string;
+    city?: string;
+    state?: string;
   };
   vehicle: {
     name: string;
@@ -44,6 +47,7 @@ export interface LoanDetail {
     chassisNo?: string;
     regNo?: string;
     loanType?: string;
+    dealerName?: string;
   };
   financial: {
     vehiclePrice: number;
@@ -127,7 +131,15 @@ interface RawLoan {
     startDate: Date;
     firstDueDate?: Date;
   };
-  vehicle: { name: string; model?: string; engineNo?: string; chassisNo?: string; regNo?: string; loanType?: string };
+  vehicle: {
+    name: string;
+    model?: string;
+    engineNo?: string;
+    chassisNo?: string;
+    regNo?: string;
+    loanType?: string;
+    dealerName?: string;
+  };
   paymentPlan: { monthlyEmi: number; totalPayable: number; totalInterest: number };
   guarantor?: { name?: string; mobile?: string; relation?: string; address?: string };
 }
@@ -192,6 +204,9 @@ export async function getLoanDetail(loanNo: string, today = new Date()): Promise
     pan?: string;
     dob?: Date;
     address?: string;
+    altMobile?: string;
+    city?: string;
+    state?: string;
   } | null;
 
   const { emis, totals } = await getLoanEmis(loan._id, today);
@@ -209,10 +224,13 @@ export async function getLoanDetail(loanNo: string, today = new Date()): Promise
       name: customer?.name ?? "",
       fatherName: customer?.fatherName ?? "",
       mobile: customer?.mobile ?? "",
+      altMobile: customer?.altMobile ?? "",
       aadhaar: customer?.aadhaar ?? "",
       pan: customer?.pan ?? "",
       dob: customer?.dob?.toISOString() ?? "",
       address: customer?.address ?? "",
+      city: customer?.city ?? "",
+      state: customer?.state ?? "",
     },
     vehicle: {
       name: loan.vehicle.name,
@@ -221,6 +239,7 @@ export async function getLoanDetail(loanNo: string, today = new Date()): Promise
       chassisNo: loan.vehicle.chassisNo ?? "",
       regNo: loan.vehicle.regNo ?? "",
       loanType: loan.vehicle.loanType ?? "",
+      dealerName: loan.vehicle.dealerName ?? "",
     },
     financial: {
       vehiclePrice: loan.financial.vehiclePrice,

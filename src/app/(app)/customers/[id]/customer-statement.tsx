@@ -65,6 +65,7 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
           {loan.closedAt && <DetailRow label="Closed On" value={formatDate(loan.closedAt)} />}
           <DetailRow label="Chassis No" value={loan.vehicle.chassisNo} />
           <DetailRow label="Engine No" value={loan.vehicle.engineNo} />
+          <DetailRow label="Dealer Name" value={loan.vehicle.dealerName} />
         </dl>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -205,10 +206,13 @@ export function CustomerStatement({
           <DetailRow label="Customer" value={customer.name} />
           <DetailRow label="Father" value={customer.fatherName} />
           <DetailRow label="Mobile" value={customer.mobile} />
+          <DetailRow label="Alt Mobile" value={customer.altMobile} />
           <DetailRow label="Aadhaar" value={customer.aadhaar} />
           <DetailRow label="PAN" value={customer.pan} />
           <DetailRow label="DOB" value={customer.dob ? formatDate(customer.dob) : undefined} />
           <DetailRow label="Address" value={customer.address} />
+          <DetailRow label="City" value={customer.city} />
+          <DetailRow label="State" value={customer.state} />
           <DetailRow label="Customer Since" value={customer.createdAt ? formatDate(customer.createdAt) : undefined} />
         </dl>
       </Card>

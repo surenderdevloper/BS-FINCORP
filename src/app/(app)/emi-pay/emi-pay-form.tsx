@@ -17,6 +17,7 @@ interface Company {
   companyName: string;
   address?: string;
   phone?: string;
+  logo?: string;
 }
 
 interface ReceiptResult {
@@ -342,6 +343,9 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
           <Card className="mx-auto max-w-md p-6 sm:p-8">
             <div className="border-b border-zinc-200 pb-4 text-center">
+              {company?.logo && (
+                <img src={company.logo} alt="logo" className="mx-auto mb-3 max-h-12 w-auto object-contain" />
+              )}
               <p className="text-lg font-bold text-zinc-900">{company?.companyName ?? "BS FINCORP"}</p>
               {company?.address && <p className="mt-1 text-xs text-zinc-500">{company.address}</p>}
               {company?.phone && <p className="mt-0.5 text-xs text-zinc-500">Ph: {company.phone}</p>}

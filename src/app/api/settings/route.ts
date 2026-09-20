@@ -20,6 +20,7 @@ export async function GET() {
       gst: company.gst,
       phone: company.phone,
       email: company.email,
+      logo: company.logo ?? "",
       receiptPrefix: company.receiptPrefix,
       nextReceiptNo: company.nextReceiptNo,
       loanPrefix: company.loanPrefix,
@@ -88,6 +89,7 @@ export async function PUT(req: Request) {
           gst: String(c.gst ?? "").trim(),
           phone: String(c.phone ?? "").trim(),
           email: String(c.email ?? "").trim(),
+          logo: typeof c.logo === "string" ? String(c.logo).slice(0, 5_000_000) : "",
         },
         $setOnInsert: { singleton: "company" },
       },
@@ -100,6 +102,7 @@ export async function PUT(req: Request) {
         gst: updated.gst,
         phone: updated.phone,
         email: updated.email,
+        logo: updated.logo ?? "",
       },
     });
   }

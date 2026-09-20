@@ -7,12 +7,15 @@ export const isValidPan = (p: string) => /^[A-Z]{5}\d{4}[A-Z]$/i.test(p);
 export function validateCustomerShape(input: {
   name: string;
   mobile: string;
+  altMobile?: string;
   aadhaar?: string;
   pan?: string;
 }): FieldErrors {
   const errors: FieldErrors = {};
   if (!input.name?.trim()) errors.name = "Customer name is required.";
   if (!isValidMobile(input.mobile ?? "")) errors.mobile = "Enter a valid 10-digit Indian mobile number.";
+  if (input.altMobile && input.altMobile.length > 0 && !isValidMobile(input.altMobile))
+    errors.altMobile = "Alternative mobile must be a valid 10-digit number.";
   if (input.aadhaar && input.aadhaar.length > 0 && !isValidAadhaar(input.aadhaar))
     errors.aadhaar = "Aadhaar must be a 12-digit number.";
   if (input.pan && input.pan.length > 0 && !isValidPan(input.pan))

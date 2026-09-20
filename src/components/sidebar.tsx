@@ -24,7 +24,15 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   { title: "Business", items: [{ href: "/reports", label: "Reports", icon: "reports" }] },
-  { title: "System", items: [{ href: "/settings", label: "Settings", icon: "settings" }] },
+  {
+    title: "System",
+    items: [
+      { href: "/settings", label: "Settings", icon: "settings" },
+      { href: "/backup", label: "Backup", icon: "backup" },
+      { href: "/login-settings", label: "Login Settings", icon: "lock" },
+      { href: "/penalty-rules", label: "Penalty Rules", icon: "rules" },
+    ],
+  },
 ];
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {

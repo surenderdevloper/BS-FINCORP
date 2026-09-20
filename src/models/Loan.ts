@@ -11,6 +11,7 @@ const loanSchema = new mongoose.Schema(
       chassisNo: { type: String, default: "" },
       regNo: { type: String, default: "" },
       loanType: { type: String, default: "2 Wheeler" },
+      dealerName: { type: String, default: "" },
     },
     financial: {
       vehiclePrice: { type: Number, required: true },

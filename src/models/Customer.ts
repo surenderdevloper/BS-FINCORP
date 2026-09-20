@@ -11,6 +11,7 @@ const customerSchema = new mongoose.Schema(
       trim: true,
       match: /^[6-9]\d{9}$/,
     },
+    altMobile: { type: String, trim: true, default: "" },
     aadhaar: {
       type: String,
       unique: true,
@@ -21,6 +22,8 @@ const customerSchema = new mongoose.Schema(
     pan: { type: String, uppercase: true, trim: true, sparse: true, match: /^[A-Z]{5}\d{4}[A-Z]$/ },
     dob: { type: Date },
     address: { type: String, trim: true, default: "" },
+    city: { type: String, trim: true, default: "" },
+    state: { type: String, trim: true, default: "" },
   },
   { timestamps: true }
 );

@@ -23,6 +23,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
   const errors = validateCustomerShape({
     name: body.name ?? "",
     mobile: body.mobile ?? "",
+    altMobile: body.altMobile,
     aadhaar: body.aadhaar,
     pan: body.pan,
   });
@@ -51,6 +52,9 @@ export async function PUT(req: Request, ctx: RouteContext) {
   customer.pan = body.pan?.trim().toUpperCase() || undefined;
   customer.dob = body.dob ? new Date(`${body.dob}T00:00:00Z`) : undefined;
   customer.address = body.address?.trim() ?? "";
+  customer.city = body.city?.trim() ?? "";
+  customer.state = body.state?.trim() ?? "";
+  customer.altMobile = body.altMobile?.trim() ?? "";
   await customer.save();
 
   return NextResponse.json({
@@ -59,10 +63,13 @@ export async function PUT(req: Request, ctx: RouteContext) {
       name: customer.name,
       fatherName: customer.fatherName,
       mobile: customer.mobile,
+      altMobile: customer.altMobile ?? "",
       aadhaar: customer.aadhaar,
       pan: customer.pan,
       dob: customer.dob ? customer.dob.toISOString() : null,
       address: customer.address,
+      city: customer.city,
+      state: customer.state,
     },
   });
 }
@@ -83,10 +90,13 @@ export async function GET(req: Request, ctx: RouteContext) {
       name: customer.name,
       fatherName: customer.fatherName,
       mobile: customer.mobile,
+      altMobile: customer.altMobile ?? "",
       aadhaar: customer.aadhaar,
       pan: customer.pan,
       dob: customer.dob ? customer.dob.toISOString() : null,
       address: customer.address,
+      city: customer.city,
+      state: customer.state,
     },
   });
 }

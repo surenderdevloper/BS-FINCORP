@@ -39,6 +39,7 @@ export async function POST(req: Request) {
   const customerErrors = validateCustomerShape({
     name: payload.customer?.name ?? "",
     mobile: payload.customer?.mobile ?? "",
+    altMobile: payload.customer?.altMobile,
     aadhaar: payload.customer?.aadhaar,
     pan: payload.customer?.pan,
   });
@@ -96,6 +97,9 @@ export async function POST(req: Request) {
         if (customer.name !== customerData.name) customer.name = customerData.name;
         if (customerData.fatherName) customer.fatherName = customerData.fatherName;
         if (customerData.address) customer.address = customerData.address;
+        if (customerData.city) customer.city = customerData.city;
+        if (customerData.state) customer.state = customerData.state;
+        if (customerData.altMobile) customer.altMobile = customerData.altMobile;
         if (customerData.pan) customer.pan = customerData.pan;
         if (customerData.aadhaar) customer.aadhaar = customerData.aadhaar;
         if (customerData.dob) customer.dob = new Date(customerData.dob);
@@ -105,10 +109,13 @@ export async function POST(req: Request) {
           name: customerData.name,
           fatherName: customerData.fatherName ?? "",
           mobile: customerData.mobile,
+          altMobile: customerData.altMobile || undefined,
           aadhaar: customerData.aadhaar || undefined,
           pan: customerData.pan || undefined,
           dob: customerData.dob ? new Date(customerData.dob) : undefined,
           address: customerData.address ?? "",
+          city: customerData.city ?? "",
+          state: customerData.state ?? "",
         });
         createdCustomerId = customer._id.toString();
       }
@@ -150,6 +157,7 @@ export async function POST(req: Request) {
         chassisNo: payload.vehicle.chassisNo ?? "",
         regNo: payload.vehicle.regNo ?? "",
         loanType: payload.vehicle.loanType ?? "2 Wheeler",
+        dealerName: payload.vehicle.dealerName ?? "",
       },
       financial: {
         vehiclePrice: payload.financial.vehiclePrice,
