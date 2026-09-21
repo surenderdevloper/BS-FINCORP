@@ -42,7 +42,7 @@ export function calcLoanSummary({
   let totalInterest: number;
 
   if (interestType === "flat") {
-    totalInterest = round((principal * interestRate * tenureMonths) / 100);
+    totalInterest = round((principal * interestRate * (tenureMonths / 12)) / 100);
     totalPayable = principal + totalInterest;
     monthlyEmi = round(totalPayable / tenureMonths);
   } else {
