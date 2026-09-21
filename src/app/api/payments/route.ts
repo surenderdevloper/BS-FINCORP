@@ -4,7 +4,7 @@ import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
-import { getCompanySetting } from "@/models/CompanySetting";
+import { nextReceiptNumber } from "@/models/CompanySetting";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { readSession } from "@/lib/auth";
 import { startOfToday } from "@/lib/dates";
@@ -77,12 +77,8 @@ export async function POST(req: Request) {
 
   const amount = emiTotal + penalty;
 
-  // Allocate receipt number.
-  const setting = await getCompanySetting();
-  const seq = setting.nextReceiptNo;
-  setting.nextReceiptNo = (setting.nextReceiptNo ?? 0) + 1;
-  await setting.save();
-  const receiptNo = `${setting.receiptPrefix}-${String(seq).padStart(4, "0")}`;
+  // Allocate receipt number (atomic increment — a genuine write only here).
+  const receiptNo = await nextReceiptNumber();
 
   const payment = await Payment.create({
     receiptNo,

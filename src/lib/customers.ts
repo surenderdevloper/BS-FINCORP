@@ -4,7 +4,7 @@ import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Payment } from "@/models/Payment";
 import { startOfToday } from "@/lib/dates";
-import { getLoanEmis, type EmiRow, type LoanDetail } from "@/lib/loans";
+import { buildEmiRows, type EmiRow, type LoanDetail, type RawEmi } from "@/lib/loans";
 
 interface RawLoanLean {
   _id: Types.ObjectId;
@@ -202,6 +202,7 @@ export interface CustomerLoanDetail {
   paymentPlan: { monthlyEmi: number; totalPayable: number; totalInterest: number };
   emis: EmiRow[];
   payments: CustomerPaymentRow[];
+  nocReprints: CustomerPaymentRow[];
   totals: LoanDetail["totals"];
 }
 
@@ -234,6 +235,7 @@ export interface CustomerDetail {
 
 interface RawPaymentLean {
   _id: Types.ObjectId;
+  loanId: Types.ObjectId;
   receiptNo: string;
   loanNo: string;
   amount: number;
@@ -242,6 +244,7 @@ interface RawPaymentLean {
   penalty: number;
   mode: string;
   notes: string;
+  type?: string;
   createdAt: Date;
 }
 
@@ -285,13 +288,50 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
     outstanding: 0,
   };
 
-  for (const loan of loans) {
-    const { emis, totals: loanTotals } = await getLoanEmis(loan._id);
+  const loanIds = loans.map((l) => l._id);
 
-    const rawPayments = (await Payment.find({ loanId: loan._id })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec()) as unknown as RawPaymentLean[];
+  const rawEmisAll = (await Emi.find({ loanId: { $in: loanIds } })
+    .sort({ loanId: 1, emiNo: 1 })
+    .lean()
+    .exec()) as unknown as RawEmi[];
+  const emisByLoan = new Map<string, RawEmi[]>();
+  for (const emi of rawEmisAll) {
+    const key = emi.loanId.toString();
+    const rows = emisByLoan.get(key);
+    if (rows) rows.push(emi);
+    else emisByLoan.set(key, [emi]);
+  }
+
+  const rawPaymentsAll = (await Payment.find({ loanId: { $in: loanIds } })
+    .select("receiptNo loanNo amount principal interest penalty mode notes type createdAt")
+    .sort({ loanId: 1, createdAt: -1 })
+    .lean()
+    .exec()) as unknown as RawPaymentLean[];
+  const paymentsByLoan = new Map<string, RawPaymentLean[]>();
+  for (const payment of rawPaymentsAll) {
+    const key = payment.loanId.toString();
+    const rows = paymentsByLoan.get(key);
+    if (rows) rows.push(payment);
+    else paymentsByLoan.set(key, [payment]);
+  }
+
+  for (const loan of loans) {
+    const { emis, totals: loanTotals } = await buildEmiRows(emisByLoan.get(loan._id.toString()) ?? []);
+    const rawPayments = paymentsByLoan.get(loan._id.toString()) ?? [];
+    const toRow = (p: RawPaymentLean): CustomerPaymentRow => ({
+      _id: p._id.toString(),
+      receiptNo: p.receiptNo,
+      loanNo: p.loanNo,
+      amount: p.amount,
+      principal: p.principal,
+      interest: p.interest,
+      penalty: p.penalty,
+      mode: p.mode,
+      notes: p.notes,
+      paidAt: p.createdAt.toISOString(),
+    });
+    const payments = rawPayments.filter((p) => p.type !== "NOC_REPRINT").map(toRow);
+    const nocReprints = rawPayments.filter((p) => p.type === "NOC_REPRINT").map(toRow);
 
     loanDetails.push({
       _id: loan._id.toString(),
@@ -323,18 +363,8 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
         totalInterest: loan.paymentPlan.totalInterest,
       },
       emis,
-      payments: rawPayments.map((p) => ({
-        _id: p._id.toString(),
-        receiptNo: p.receiptNo,
-        loanNo: p.loanNo,
-        amount: p.amount,
-        principal: p.principal,
-        interest: p.interest,
-        penalty: p.penalty,
-        mode: p.mode,
-        notes: p.notes,
-        paidAt: p.createdAt.toISOString(),
-      })),
+      payments,
+      nocReprints,
       totals: loanTotals,
     });
 

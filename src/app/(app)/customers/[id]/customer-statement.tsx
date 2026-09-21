@@ -176,6 +176,34 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
           </div>
         )}
 
+        {loan.nocReprints.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <div className="mb-2 print-break-avoid print-section-heading">NOC Reprint Charges</div>
+            <table className="w-full min-w-[480px] border-collapse text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
+                  <th className="py-2 pr-3 font-semibold">Receipt</th>
+                  <th className="py-2 pr-3 font-semibold">Date</th>
+                  <th className="py-2 pr-3 text-right font-semibold">Amount</th>
+                  <th className="py-2 pr-3 font-semibold">Mode</th>
+                  <th className="py-2 font-semibold">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loan.nocReprints.map((p) => (
+                  <tr key={p._id} className="border-b border-zinc-100 last:border-0">
+                    <td className="py-2 pr-3 font-medium text-zinc-900">{p.receiptNo}</td>
+                    <td className="py-2 pr-3 text-zinc-600">{formatDateTime(p.paidAt)}</td>
+                    <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
+                    <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
+                    <td className="py-2 text-zinc-600">{p.notes || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {loan.emis.length === 0 && loan.payments.length === 0 && (
           <p className="mt-4 text-sm text-zinc-500">No EMIs or payments yet.</p>
         )}
@@ -236,7 +264,6 @@ export function CustomerStatement({
 
       <Card className="print-doc overflow-hidden p-0">
         <div className="print-letterhead px-6 pb-5 pt-6 text-center">
-          {company?.logo && <img src={company.logo} alt="logo" className="print-logo mx-auto mb-3" />}
           <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
           {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
           <div className="print-letterhead-detail mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-xs">

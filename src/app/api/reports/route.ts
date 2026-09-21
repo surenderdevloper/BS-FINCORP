@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   await dbConnect();
 
   if (type === "collections") {
-    const payments = await Payment.find({ createdAt: { $gte: start, $lte: end } })
+    const payments = await Payment.find({ type: { $ne: "NOC_REPRINT" }, createdAt: { $gte: start, $lte: end } })
       .sort({ createdAt: -1 })
       .lean()
       .exec();

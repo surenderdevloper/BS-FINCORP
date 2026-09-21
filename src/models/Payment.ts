@@ -15,6 +15,7 @@ const paymentSchema = new mongoose.Schema(
     mode: { type: String, enum: ["cash", "online"], required: true },
     receivedBy: { type: String, default: "" },
     notes: { type: String, default: "" },
+    type: { type: String, enum: ["EMI", "NOC_REPRINT"], default: "EMI" },
   },
   { timestamps: true }
 );

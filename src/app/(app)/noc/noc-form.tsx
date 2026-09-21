@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card } from "@/components/ui";
-import { Input } from "@/components/form";
+import { Button, Card, CardHeader } from "@/components/ui";
+import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { formatDate, inr } from "@/lib/money";
 import type { LoanDetail } from "@/lib/loans";
@@ -22,6 +22,15 @@ interface LoanSummaryResult {
   customer: { name: string };
 }
 
+interface ReprintReceipt {
+  receiptNo: string;
+  loanNo: string;
+  customerName: string;
+  amount: number;
+  mode: string;
+  paidAt: string;
+}
+
 export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
   const [search, setSearch] = useState(preselectedLoan ?? "");
   const [results, setResults] = useState<LoanSummaryResult[]>([]);
@@ -29,6 +38,12 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reprintReceipt, setReprintReceipt] = useState<ReprintReceipt | null>(null);
+  const [charge, setCharge] = useState(0);
+  const [chargeMode, setChargeMode] = useState<"cash" | "online">("cash");
+  const [chargeNotes, setChargeNotes] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [chargeError, setChargeError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const loadLoan = useCallback(async (loanNo: string) => {
@@ -43,6 +58,11 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
       }
       const data = (await res.json()) as { loan: LoanDetail };
       setLoan(data.loan);
+      setReprintReceipt(null);
+      setCharge(0);
+      setChargeMode("cash");
+      setChargeNotes("");
+      setChargeError(null);
       if (data.loan.status !== "closed") {
         setError("NOC can only be generated for closed loans.");
       }
@@ -90,6 +110,37 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
         /* ignore */
       }
     }, 350);
+  };
+
+  const resetCharge = () => {
+    setReprintReceipt(null);
+    setCharge(0);
+    setChargeMode("cash");
+    setChargeNotes("");
+    setChargeError(null);
+  };
+
+  const generateReceipt = async () => {
+    if (!loan || charge <= 0) return;
+    setGenerating(true);
+    setChargeError(null);
+    try {
+      const res = await fetch("/api/noc/reprint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loanNo: loan.loanNo, charge, mode: chargeMode, notes: chargeNotes }),
+      });
+      const data = (await res.json()) as { error?: string; receipt?: ReprintReceipt };
+      if (!res.ok) {
+        setChargeError(data.error ?? "Could not record reprint charge.");
+        return;
+      }
+      if (data.receipt) setReprintReceipt(data.receipt);
+    } catch {
+      setChargeError("Network error while recording reprint charge.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -145,15 +196,60 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
       {loan && loan.status === "closed" && (
         <>
+          <Card className="no-print">
+            <CardHeader title="NOC Reprint Charge" subtitle="Record the reprint fee before issuing the NOC copy" />
+            <div className="space-y-4 p-4 sm:p-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Reprint Charge (Rs.)">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={charge === 0 ? "" : charge}
+                    onChange={(e) => setCharge(Math.max(0, Number(e.target.value)))}
+                    placeholder="Enter reprint charge"
+                  />
+                </Field>
+                <Field label="Payment Mode">
+                  <Select value={chargeMode} onChange={(e) => setChargeMode(e.target.value as "cash" | "online")}>
+                    <option value="cash">Cash</option>
+                    <option value="online">Online (UPI / Bank)</option>
+                  </Select>
+                </Field>
+              </div>
+              <Field label="Remarks (optional)">
+                <Input value={chargeNotes} onChange={(e) => setChargeNotes(e.target.value)} placeholder="Any remarks…" />
+              </Field>
+              {chargeError && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <Icon name="alert" size={16} /> {chargeError}
+                </div>
+              )}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="rounded-lg bg-zinc-50 px-4 py-3 text-sm">
+                  <p className="text-xs text-zinc-500">Total Charge</p>
+                  <p className="text-lg font-bold text-zinc-900">{inr(charge)}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => void generateReceipt()} disabled={generating || charge <= 0}>
+                    <Icon name="cash" size={16} />
+                    {generating ? "Recording…" : "Generate Receipt + NOC"}
+                  </Button>
+                  <Button variant="secondary" onClick={resetCharge}>
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <div className="no-print flex justify-end">
             <Button onClick={() => window.print()}>
-              <Icon name="print" size={16} /> Print NOC
+              <Icon name="print" size={16} /> {reprintReceipt ? "Print Receipt" : "Print NOC"}
             </Button>
           </div>
 
-          <Card className="print-doc mx-auto max-w-3xl overflow-hidden p-0 sm:p-0">
+          <Card className={`print-doc mx-auto max-w-3xl overflow-hidden p-0 sm:p-0 ${reprintReceipt ? "print:hidden" : ""}`}>
             <div className="print-letterhead px-6 pb-5 pt-6 text-center sm:px-10">
-              {company?.logo && <img src={company.logo} alt="logo" className="print-logo mx-auto mb-3" />}
               <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
               {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
               <div className="print-letterhead-detail mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-xs">
@@ -260,6 +356,69 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
             </div>
               </div>
           </Card>
+
+          {reprintReceipt && (
+            <>
+              <div className="no-print mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-900">Reprint fee recorded</h2>
+                  <p className="text-sm text-zinc-500">Receipt {reprintReceipt.receiptNo} generated. Print a copy below.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => window.print()}>
+                    <Icon name="print" size={16} /> Print Receipt
+                  </Button>
+                  <Button variant="secondary" onClick={resetCharge}>
+                    Reset
+                  </Button>
+                </div>
+              </div>
+
+              <Card className="print-doc mx-auto max-w-md overflow-hidden p-0 sm:p-0">
+                <div className="print-letterhead px-6 pb-5 pt-6 text-center">
+                  <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+                  {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
+                  {company?.phone && <p className="print-letterhead-detail mt-0.5 text-xs">Ph: {company.phone}</p>}
+                </div>
+                <div className="p-6 sm:p-8">
+                  <div className="text-center">
+                    <p className="print-title text-base">NOC Reprint Receipt</p>
+                    <p className="mt-1 font-mono text-sm text-zinc-700">{reprintReceipt.receiptNo}</p>
+                  </div>
+                  <dl className="mt-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-zinc-500">Date</dt>
+                      <dd className="font-medium text-zinc-900">{formatDate(reprintReceipt.paidAt)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-zinc-500">Customer</dt>
+                      <dd className="font-medium text-zinc-900">{reprintReceipt.customerName}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-zinc-500">Loan No</dt>
+                      <dd className="font-mono text-zinc-900">{reprintReceipt.loanNo}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-zinc-500">Mode</dt>
+                      <dd className="capitalize text-zinc-900">{reprintReceipt.mode}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-zinc-500">Purpose</dt>
+                      <dd className="text-zinc-900">NOC Reprint</dd>
+                    </div>
+                  </dl>
+                  <div className="print-total mt-4 flex items-center justify-between rounded-lg px-4 py-3">
+                    <span className="text-sm font-semibold">Amount Received</span>
+                    <span className="text-xl font-bold">{inr(reprintReceipt.amount)}</span>
+                  </div>
+                  <div className="mt-8 flex items-end justify-between text-xs text-zinc-500">
+                    <span>Received By: _______________</span>
+                    <span>Customer Sign: _______________</span>
+                  </div>
+                </div>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>

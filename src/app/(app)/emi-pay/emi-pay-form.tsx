@@ -343,7 +343,6 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
           <Card className="print-doc mx-auto max-w-md overflow-hidden p-0 sm:p-0">
             <div className="print-letterhead px-6 pb-5 pt-6 text-center">
-              {company?.logo && <img src={company.logo} alt="logo" className="print-logo mx-auto mb-3" />}
               <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
               {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
               {company?.phone && <p className="print-letterhead-detail mt-0.5 text-xs">Ph: {company.phone}</p>}

@@ -37,9 +37,12 @@ export async function getDashboardData(today = new Date()): Promise<DashboardDat
     Loan.aggregate<{ total: number }>([
       { $group: { _id: null, total: { $sum: "$financial.loanAmount" } } },
     ]),
-    Payment.aggregate<{ total: number }>([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
     Payment.aggregate<{ total: number }>([
-      { $match: { createdAt: { $gte: startToday, $lt: endToday } } },
+      { $match: { type: { $ne: "NOC_REPRINT" } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    Payment.aggregate<{ total: number }>([
+      { $match: { createdAt: { $gte: startToday, $lt: endToday }, type: { $ne: "NOC_REPRINT" } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
     Emi.find({ status: "pending" }).lean(),
@@ -129,6 +132,7 @@ export async function getDashboardData(today = new Date()): Promise<DashboardDat
   // Today's collections.
   const todayPayments = await Payment.find({
     createdAt: { $gte: startToday, $lt: endToday },
+    type: { $ne: "NOC_REPRINT" },
   })
     .sort({ createdAt: -1 })
     .limit(20)
