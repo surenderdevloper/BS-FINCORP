@@ -15,6 +15,7 @@ interface Payload {
   mode: "cash" | "online";
   receivedBy?: string;
   notes?: string;
+  discount?: number;
 }
 
 export async function POST(req: Request) {
@@ -75,7 +76,10 @@ export async function POST(req: Request) {
     emiRows.push({ emi, penalty: emiPenalty });
   }
 
-  const amount = emiTotal + penalty;
+  let discount = typeof body.discount === "number" && Number.isFinite(body.discount) ? body.discount : 0;
+  if (discount < 0) discount = 0;
+
+  const amount = Math.max(0, emiTotal + penalty - discount);
 
   // Allocate receipt number (atomic increment — a genuine write only here).
   const receiptNo = await nextReceiptNumber();
@@ -112,7 +116,9 @@ export async function POST(req: Request) {
         loanNo: loan.loanNo,
         customerName: customer?.name ?? "",
         amount,
+        emiTotal,
         penalty,
+        discount,
         paidCount: emiRows.length,
         mode: payment.mode,
         paidAt: payment.createdAt?.toISOString(),

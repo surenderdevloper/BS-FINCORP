@@ -25,7 +25,9 @@ interface ReceiptResult {
   loanNo: string;
   customerName: string;
   amount: number;
+  emiTotal: number;
   penalty: number;
+  discount: number;
   paidCount: number;
   mode: string;
   paidAt: string;
@@ -46,6 +48,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<"cash" | "online">("cash");
   const [notes, setNotes] = useState("");
+  const [discount, setDiscount] = useState("");
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptResult | null>(null);
@@ -60,6 +63,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
       const data = (await res.json()) as { loan: LoanDetail };
       setLoan(data.loan);
       setSelected(defaultDue(data.loan.emis));
+      setDiscount("");
     } catch {
       /* handled by caller */
     } finally {
@@ -122,7 +126,8 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
   const selectedRows = (loan?.emis ?? []).filter((e) => selected.includes(e._id));
   const emiTotal = selectedRows.reduce((n, e) => n + e.amount, 0);
   const penaltyTotal = selectedRows.reduce((n, e) => n + e.penalty, 0);
-  const total = emiTotal + penaltyTotal;
+  const discountValue = discount.trim() === "" ? 0 : Math.max(0, Number(discount) || 0);
+  const payable = Math.max(0, emiTotal + penaltyTotal - discountValue);
 
   const onCollect = async () => {
     if (!loan || !selected.length) return;
@@ -132,7 +137,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loanNo: loan.loanNo, emiIds: selected, mode, notes }),
+        body: JSON.stringify({ loanNo: loan.loanNo, emiIds: selected, mode, notes, discount: discountValue }),
       });
       const data = (await res.json()) as { error?: string; payment?: ReceiptResult };
       if (!res.ok) {
@@ -155,6 +160,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
     setSearch("");
     setResults([]);
     setNotes("");
+    setDiscount("");
   };
 
   return (
@@ -281,18 +287,39 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
             <CardHeader title="Collect payment" subtitle={`${selected.length} EMI${selected.length === 1 ? "" : "s"} selected`} />
             <div className="space-y-4 p-4 sm:p-5">
               {selected.length > 0 && (
-                <div className="grid grid-cols-1 gap-2 rounded-lg bg-zinc-50 p-4 text-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs text-zinc-500">EMI Total</p>
-                    <p className="font-semibold text-zinc-900">{inr(emiTotal)}</p>
+                <div className="rounded-lg bg-zinc-50 p-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                    <div>
+                      <p className="text-xs text-zinc-500">EMI Amount</p>
+                      <p className="font-semibold text-zinc-900">{inr(emiTotal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-500">Due Date</p>
+                      <p className="font-semibold text-zinc-900">
+                        {selectedRows.map((e) => formatDate(e.dueDate)).join(", ")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-500">Penalty</p>
+                      <p className="font-semibold text-red-600">{inr(penaltyTotal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-500">Discount</p>
+                      <p className="font-semibold text-zinc-900">-{inr(discountValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-500">Payment Date</p>
+                      <p className="font-medium text-zinc-900">{formatDate(new Date().toISOString())}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-zinc-500">Penalty</p>
-                    <p className="font-semibold text-red-600">{inr(penaltyTotal)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-zinc-500">Payable Now</p>
-                    <p className="text-lg font-bold text-emerald-700">{inr(total)}</p>
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-200 pt-3">
+                    <span className="text-xs text-zinc-500">
+                      {inr(emiTotal)} + {inr(penaltyTotal)} − {inr(discountValue)}
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-xs text-zinc-500">Payable Now</span>
+                      <span className="text-lg font-bold text-emerald-700">{inr(payable)}</span>
+                    </span>
                   </div>
                 </div>
               )}
@@ -303,6 +330,17 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     <option value="cash">Cash</option>
                     <option value="online">Online (UPI / Bank)</option>
                   </Select>
+                </Field>
+                <Field label="Discount (₹)" hint="Optional. Negative values are ignored.">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                  />
                 </Field>
                 <Field label="Notes (optional)">
                   <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any remarks…" />
@@ -316,7 +354,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                   disabled={collecting || !selected.length || loan.totals.pendingCount === 0}
                 >
                   <Icon name="cash" size={16} />
-                  {collecting ? "Recording…" : `Collect ${inr(total)}`}
+                  {collecting ? "Recording…" : `Collect ${inr(payable)}`}
                 </Button>
               </div>
             </div>
@@ -374,8 +412,16 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                   <dd className="capitalize text-zinc-900">{receipt.mode}</dd>
                 </div>
                 <div className="flex justify-between">
+                  <dt className="text-zinc-500">EMI Total</dt>
+                  <dd className="text-zinc-900">{inr(receipt.emiTotal)}</dd>
+                </div>
+                <div className="flex justify-between">
                   <dt className="text-zinc-500">Penalty</dt>
                   <dd className="text-zinc-800">{inr(receipt.penalty)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">Discount</dt>
+                  <dd className="text-zinc-800">{receipt.discount > 0 ? `-${inr(receipt.discount)}` : "—"}</dd>
                 </div>
               </dl>
               <div className="print-total mt-4 flex items-center justify-between rounded-lg px-4 py-3">
