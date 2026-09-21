@@ -40,6 +40,12 @@ const defaultDue = (emis: EmiRow[]) => {
   return earliest ? [earliest._id] : [];
 };
 
+const localDateStr = () => {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
 export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
   const [search, setSearch] = useState(preselectedLoan ?? "");
   const [results, setResults] = useState<LoanSummaryResult[]>([]);
@@ -49,16 +55,18 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
   const [mode, setMode] = useState<"cash" | "online">("cash");
   const [notes, setNotes] = useState("");
   const [discount, setDiscount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => localDateStr());
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadDetail = useCallback(async (loanNo: string) => {
+  const loadDetail = useCallback(async (loanNo: string, payDate?: string) => {
     setLoadingDetail(true);
     try {
-      const res = await fetch(`/api/loans/${loanNo}`, { cache: "no-store" });
+      const qs = payDate ? `?paymentDate=${encodeURIComponent(payDate)}` : "";
+      const res = await fetch(`/api/loans/${loanNo}${qs}`, { cache: "no-store" });
       if (!res.ok) throw new Error("load failed");
       const data = (await res.json()) as { loan: LoanDetail };
       setLoan(data.loan);
@@ -88,9 +96,9 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
   useEffect(() => {
     if (!preselectedLoan) return;
-    const t = setTimeout(() => void loadDetail(preselectedLoan), 0);
+    const t = setTimeout(() => void loadDetail(preselectedLoan, paymentDate), 0);
     return () => clearTimeout(t);
-  }, [preselectedLoan, loadDetail]);
+  }, [preselectedLoan, loadDetail, paymentDate]);
 
   const onSearch = (v: string) => {
     setSearch(v);
@@ -115,9 +123,9 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
     async (loanNo: string) => {
       setError(null);
       setReceipt(null);
-      await loadDetail(loanNo);
+      await loadDetail(loanNo, paymentDate);
     },
-    [loadDetail]
+    [loadDetail, paymentDate]
   );
 
   const toggle = (id: string) =>
@@ -137,7 +145,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loanNo: loan.loanNo, emiIds: selected, mode, notes, discount: discountValue }),
+        body: JSON.stringify({ loanNo: loan.loanNo, emiIds: selected, mode, notes, discount: discountValue, paymentDate }),
       });
       const data = (await res.json()) as { error?: string; payment?: ReceiptResult };
       if (!res.ok) {
@@ -145,7 +153,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
         return;
       }
       if (data.payment) setReceipt(data.payment);
-      void loadDetail(loan.loanNo);
+      void loadDetail(loan.loanNo, paymentDate);
     } catch {
       setError("Network error while saving payment.");
     } finally {
@@ -161,6 +169,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
     setResults([]);
     setNotes("");
     setDiscount("");
+    setPaymentDate(localDateStr());
   };
 
   return (
@@ -288,7 +297,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
             <div className="space-y-4 p-4 sm:p-5">
               {selected.length > 0 && (
                 <div className="rounded-lg bg-zinc-50 p-4 text-sm">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div>
                       <p className="text-xs text-zinc-500">EMI Amount</p>
                       <p className="font-semibold text-zinc-900">{inr(emiTotal)}</p>
@@ -306,10 +315,6 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     <div>
                       <p className="text-xs text-zinc-500">Discount</p>
                       <p className="font-semibold text-zinc-900">-{inr(discountValue)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-zinc-500">Payment Date</p>
-                      <p className="font-medium text-zinc-900">{formatDate(new Date().toISOString())}</p>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-200 pt-3">
@@ -330,6 +335,17 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     <option value="cash">Cash</option>
                     <option value="online">Online (UPI / Bank)</option>
                   </Select>
+                </Field>
+                <Field label="Payment Date" required hint="Penalty is calculated from this date.">
+                  <Input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setPaymentDate(v);
+                      if (loan) void loadDetail(loan.loanNo, v);
+                    }}
+                  />
                 </Field>
                 <Field label="Discount (₹)" hint="Optional. Negative values are ignored.">
                   <Input

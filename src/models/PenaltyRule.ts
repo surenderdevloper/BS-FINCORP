@@ -60,7 +60,7 @@ export async function computePenaltyForEmi(
 ): Promise<{ daysLate: number; penalty: number }> {
   const effectiveRule = rule ?? (await getPenaltyRuleObj());
   const msPerDay = 24 * 60 * 60 * 1000;
-  const startToday = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const startToday = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
   const startDue = Date.UTC(new Date(dueDate).getUTCFullYear(), new Date(dueDate).getUTCMonth(), new Date(dueDate).getUTCDate());
   const rawLate = Math.floor((startToday - startDue) / msPerDay);
   const daysLate = Math.max(0, rawLate - (effectiveRule.graceDays ?? 0));

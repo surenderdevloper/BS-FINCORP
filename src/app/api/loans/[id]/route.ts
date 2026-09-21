@@ -7,6 +7,7 @@ import { Customer } from "@/models/Customer";
 import { calcLoanSummary, generateSchedule } from "@/lib/emi";
 import { validateCustomerShape, validateFinancialShape } from "@/lib/validators";
 import { getLoanDetail } from "@/lib/loans";
+import { parseCalendarDate } from "@/lib/dates";
 import type { LoanFormPayload } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -18,7 +19,17 @@ export async function GET(_req: Request, ctx: RouteContext) {
   const { id } = await ctx.params;
   await dbConnect();
 
-  const loan = await getLoanDetail(id);
+  // Optional paymentDate (YYYY-MM-DD) lets the EMI Pay screen compute displayed
+  // penalties against the operator-selected payment date instead of server "now".
+  const paymentDateParam = new URL(_req.url).searchParams.get("paymentDate");
+  let today: Date | undefined;
+  if (paymentDateParam) {
+    const parsed = parseCalendarDate(paymentDateParam);
+    if (!parsed) return NextResponse.json({ error: "Invalid paymentDate. Use YYYY-MM-DD." }, { status: 400 });
+    today = parsed;
+  }
+
+  const loan = await getLoanDetail(id, today);
   if (!loan) return NextResponse.json({ error: "Loan not found." }, { status: 404 });
 
   return NextResponse.json({ loan });

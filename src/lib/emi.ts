@@ -136,7 +136,7 @@ export function generateSchedule(input: {
 export function computeDaysLate(dueDate: string, today: Date): number {
   const due = new Date(dueDate);
   const msPerDay = 24 * 60 * 60 * 1000;
-  const startToday = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const startToday = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
   const startDue = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
   return Math.max(0, Math.floor((startToday - startDue) / msPerDay));
 }

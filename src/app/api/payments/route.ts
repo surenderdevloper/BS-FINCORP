@@ -7,7 +7,7 @@ import { Customer } from "@/models/Customer";
 import { nextReceiptNumber } from "@/models/CompanySetting";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { readSession } from "@/lib/auth";
-import { startOfToday } from "@/lib/dates";
+import { parseCalendarDate } from "@/lib/dates";
 
 interface Payload {
   loanNo: string;
@@ -16,6 +16,8 @@ interface Payload {
   receivedBy?: string;
   notes?: string;
   discount?: number;
+  /** Calendar date (YYYY-MM-DD) on which this payment is being made. Used as the authoritative penalty date. */
+  paymentDate?: string;
 }
 
 export async function POST(req: Request) {
@@ -46,6 +48,13 @@ export async function POST(req: Request) {
   const customer = await Customer.findById(loan.customerId).lean();
   const today = new Date();
 
+  // Authoritative penalty date: the validated calendar date the operator selected.
+  // Falls back to the server's current UTC calendar date when the client omits it.
+  const paymentDate = body.paymentDate ? parseCalendarDate(body.paymentDate) : null;
+  if (body.paymentDate != null && !paymentDate) {
+    return NextResponse.json({ error: "Invalid paymentDate. Use YYYY-MM-DD." }, { status: 400 });
+  }
+
   const emis = await Emi.find({
     _id: { $in: body.emiIds },
     loanId: loan._id,
@@ -61,13 +70,13 @@ export async function POST(req: Request) {
   let emiTotal = 0;
   let penalty = 0;
   const rule = await getPenaltyRuleObj();
-  const todayStart = startOfToday(today);
+  const penaltyDate = paymentDate ?? new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
   const emiRows: Array<{ emi: (typeof emis)[number]; penalty: number }> = [];
   for (const emi of emis) {
     let emiPenalty = 0;
-    if (new Date(emi.dueDate) < todayStart) {
-      emiPenalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, today, rule)).penalty;
+    if (new Date(emi.dueDate) < penaltyDate) {
+      emiPenalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, penaltyDate, rule)).penalty;
     }
     principal += emi.principal;
     interest += emi.interest;
