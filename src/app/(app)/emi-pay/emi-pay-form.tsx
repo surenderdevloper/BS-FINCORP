@@ -341,19 +341,20 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
             </div>
           </div>
 
-          <Card className="mx-auto max-w-md p-6 sm:p-8">
-            <div className="border-b border-zinc-200 pb-4 text-center">
-              {company?.logo && (
-                <img src={company.logo} alt="logo" className="mx-auto mb-3 max-h-12 w-auto object-contain" />
-              )}
-              <p className="text-lg font-bold text-zinc-900">{company?.companyName ?? "BS FINCORP"}</p>
-              {company?.address && <p className="mt-1 text-xs text-zinc-500">{company.address}</p>}
-              {company?.phone && <p className="mt-0.5 text-xs text-zinc-500">Ph: {company.phone}</p>}
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">Payment Receipt</p>
-              <p className="mt-1 font-mono text-sm text-zinc-700">{receipt.receiptNo}</p>
+          <Card className="print-doc mx-auto max-w-md overflow-hidden p-0 sm:p-0">
+            <div className="print-letterhead px-6 pb-5 pt-6 text-center">
+              {company?.logo && <img src={company.logo} alt="logo" className="print-logo mx-auto mb-3" />}
+              <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+              {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
+              {company?.phone && <p className="print-letterhead-detail mt-0.5 text-xs">Ph: {company.phone}</p>}
             </div>
-            <dl className="mt-4 space-y-2 text-sm">
-<div className="flex justify-between">
+            <div className="p-6 sm:p-8">
+              <div className="text-center">
+                <p className="print-title text-base">Payment Receipt</p>
+                <p className="mt-1 font-mono text-sm text-zinc-700">{receipt.receiptNo}</p>
+              </div>
+              <dl className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between">
                   <dt className="text-zinc-500">Date</dt>
                   <dd className="font-medium text-zinc-900">{formatDate(receipt.paidAt)}</dd>
                 </div>
@@ -361,30 +362,31 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                   <dt className="text-zinc-500">Customer</dt>
                   <dd className="font-medium text-zinc-900">{receipt.customerName}</dd>
                 </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-500">Loan No</dt>
-                <dd className="font-mono text-zinc-900">{receipt.loanNo}</dd>
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">Loan No</dt>
+                  <dd className="font-mono text-zinc-900">{receipt.loanNo}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">EMIs</dt>
+                  <dd className="text-zinc-900">{receipt.paidCount}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">Mode</dt>
+                  <dd className="capitalize text-zinc-900">{receipt.mode}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">Penalty</dt>
+                  <dd className="text-zinc-800">{inr(receipt.penalty)}</dd>
+                </div>
+              </dl>
+              <div className="print-total mt-4 flex items-center justify-between rounded-lg px-4 py-3">
+                <span className="text-sm font-semibold">Amount Received</span>
+                <span className="text-xl font-bold">{inr(receipt.amount)}</span>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-500">EMIs</dt>
-                <dd className="text-zinc-900">{receipt.paidCount}</dd>
+              <div className="mt-8 flex items-end justify-between text-xs text-zinc-500">
+                <span>Received By: _______________</span>
+                <span>Customer Sign: _______________</span>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-500">Mode</dt>
-                <dd className="capitalize text-zinc-900">{receipt.mode}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-500">Penalty</dt>
-                <dd className="text-red-600">{inr(receipt.penalty)}</dd>
-              </div>
-            </dl>
-            <div className="mt-4 flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-3">
-              <span className="text-sm font-semibold text-emerald-800">Amount Received</span>
-              <span className="text-xl font-bold text-emerald-800">{inr(receipt.amount)}</span>
-            </div>
-            <div className="mt-8 flex items-end justify-between text-xs text-zinc-400">
-              <span>Received By: _______________</span>
-              <span>Customer Sign: _______________</span>
             </div>
           </Card>
         </div>

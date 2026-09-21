@@ -151,30 +151,25 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
             </Button>
           </div>
 
-          <Card className="mx-auto max-w-3xl p-6 sm:p-10">
-            <div className="border-b border-zinc-300 pb-5 text-center">
-              {company?.logo && (
-                <img src={company.logo} alt="logo" className="mx-auto mb-3 max-h-16 w-auto object-contain" />
-              )}
-              <p className="text-xl font-bold tracking-wide text-zinc-900">
-                {company?.companyName ?? "BS FINCORP"}
-              </p>
-              {company?.address && <p className="mt-1 text-xs text-zinc-600">{company.address}</p>}
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-xs text-zinc-600">
+          <Card className="print-doc mx-auto max-w-3xl overflow-hidden p-0 sm:p-0">
+            <div className="print-letterhead px-6 pb-5 pt-6 text-center sm:px-10">
+              {company?.logo && <img src={company.logo} alt="logo" className="print-logo mx-auto mb-3" />}
+              <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+              {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
+              <div className="print-letterhead-detail mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-xs">
                 {company?.phone && <span>Ph: {company.phone}</span>}
                 {company?.email && <span>{company.email}</span>}
                 {company?.gst && <span>GST: {company.gst}</span>}
               </div>
             </div>
 
-            <div className="mt-8 text-center">
-              <p className="text-sm font-semibold uppercase tracking-widest text-zinc-800">
-                No Objection Certificate
-              </p>
-              <p className="mt-1 font-mono text-xs text-zinc-500">Ref: NOC / {loan.loanNo}</p>
-            </div>
+            <div className="p-6 sm:p-10">
+              <div className="text-center">
+                <p className="print-title text-sm uppercase tracking-widest">No Objection Certificate</p>
+                <p className="mt-1 font-mono text-xs text-zinc-500">Ref: NOC / {loan.loanNo}</p>
+              </div>
 
-            <div className="mt-8 space-y-4 text-sm leading-relaxed text-zinc-800">
+              <div className="mt-6 space-y-4 text-sm leading-relaxed text-zinc-800">
               <p>
                 <span className="font-semibold">{company?.companyName ?? "BS FINCORP"}</span> hereby
                 declares that the loan availed by the borrower under the following details has been
@@ -183,11 +178,9 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
                 to the transfer / sale / hypothecation release of the financed asset.
               </p>
 
-              <div className="mt-6 rounded-lg border border-zinc-200 p-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                  Borrower & Loan Details
-                </p>
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              <div className="print-break-avoid mt-6 overflow-hidden rounded-lg border border-zinc-200">
+                <p className="print-section-heading">Borrower &amp; Loan Details</p>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-2 p-5 text-sm sm:grid-cols-2">
                   <div className="flex justify-between gap-4 sm:block">
                     <dt className="text-zinc-500">Customer</dt>
                     <dd className="font-semibold text-zinc-900">{loan.customer.name}</dd>
@@ -260,11 +253,12 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
               </div>
               <div className="text-right">
                 <p className="font-semibold">Authorised Signatory</p>
-                <p className="mt-8 inline-block border-t border-zinc-400 px-6 pt-1 text-xs text-zinc-500">
+                <p className="mt-8 inline-block border-t border-zinc-300 px-6 pt-1 text-xs text-zinc-500">
                   {company?.companyName ?? "BS FINCORP"}
                 </p>
               </div>
             </div>
+              </div>
           </Card>
         </>
       )}
