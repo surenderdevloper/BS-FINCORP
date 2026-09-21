@@ -100,7 +100,7 @@ export interface LoanSummary {
   overduePenalty: number;
 }
 
-interface RawEmi {
+export interface RawEmi {
   _id: Types.ObjectId;
   loanId: Types.ObjectId;
   loanNo: string;
@@ -144,8 +144,7 @@ interface RawLoan {
   guarantor?: { name?: string; mobile?: string; relation?: string; address?: string };
 }
 
-export async function getLoanEmis(loanId: string | Types.ObjectId, today = new Date()): Promise<{ emis: EmiRow[]; totals: LoanDetail["totals"] }> {
-  const rawEmis = (await Emi.find({ loanId }).sort({ emiNo: 1 }).lean().exec()) as unknown as RawEmi[];
+export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promise<{ emis: EmiRow[]; totals: LoanDetail["totals"] }> {
   const todayStart = startOfToday(today);
   const emis: EmiRow[] = [];
   const totals: LoanDetail["totals"] = {
@@ -188,6 +187,11 @@ export async function getLoanEmis(loanId: string | Types.ObjectId, today = new D
   }
   totals.outstandingAmount = totals.pendingAmount + totals.totalPenalty;
   return { emis, totals };
+}
+
+export async function getLoanEmis(loanId: string | Types.ObjectId, today = new Date()): Promise<{ emis: EmiRow[]; totals: LoanDetail["totals"] }> {
+  const rawEmis = (await Emi.find({ loanId }).sort({ emiNo: 1 }).lean().exec()) as unknown as RawEmi[];
+  return buildEmiRows(rawEmis, today);
 }
 
 export async function getLoanDetail(loanNo: string, today = new Date()): Promise<LoanDetail | null> {
