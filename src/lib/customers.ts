@@ -303,7 +303,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
   }
 
   const rawPaymentsAll = (await Payment.find({ loanId: { $in: loanIds } })
-    .select("receiptNo loanNo amount principal interest penalty mode notes type createdAt")
+    .select("receiptNo loanNo amount principal interest penalty loanId mode notes type createdAt")
     .sort({ loanId: 1, createdAt: -1 })
     .lean()
     .exec()) as unknown as RawPaymentLean[];
