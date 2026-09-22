@@ -23,28 +23,67 @@ export const CompanySetting =
   (mongoose.models.CompanySetting as mongoose.Model<CompanySettingType>) ??
   mongoose.model<CompanySettingType>("CompanySetting", companySettingSchema);
 
-export async function getCompanySetting() {
-  return CompanySetting.findOneAndUpdate(
-    { singleton: "company" },
-    { $setOnInsert: { singleton: "company" } },
-    { upsert: true, setDefaultsOnInsert: true, returnDocument: "after" }
-  );
+let cache: Invalidatable<CompanySettingType> | null = null;
+const CACHE_TTL_MS = 10_000;
+
+type Invalidatable<T> = { value: T; at: number };
+
+/**
+ * Read-only company settings lookup. Never writes to MongoDB by itself.
+ *
+ * - Short in-memory cache (10s) so repeated reads (sidebar, receipts, branding)
+ *   do not hit the database every time.
+ * - If no document exists, a schema-defaulted document is returned so callers
+ *   can safely read default values. The default is only persisted when someone
+ *   actually saves it (e.g. when allocating a receipt/loan number).
+ */
+export async function getCompanySetting(): Promise<InstanceType<typeof CompanySetting>> {
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    const doc: InstanceType<typeof CompanySetting> = new CompanySetting(
+      cache.value as CompanySettingType
+    ) as InstanceType<typeof CompanySetting>;
+    doc.isNew = false;
+    return doc;
+  }
+
+  const doc = (await CompanySetting.findOne({ singleton: "company" }).exec()) as unknown as
+    | InstanceType<typeof CompanySetting>
+    | null;
+
+  if (doc) {
+    cache = { value: doc.toObject() as CompanySettingType, at: Date.now() };
+    return doc;
+  }
+
+  const fresh = new CompanySetting({} as CompanySettingType) as InstanceType<typeof CompanySetting>;
+  cache = { value: fresh.toObject() as CompanySettingType, at: Date.now() };
+  return fresh;
+}
+
+export function invalidateCompanySettingCache(): void {
+  cache = null;
 }
 
 export async function nextLoanNumber(): Promise<{ loanNo: string }> {
-  const setting = await getCompanySetting();
+  const setting = (await CompanySetting.findOneAndUpdate(
+    { singleton: "company" },
+    { $inc: { nextLoanNo: 1 } },
+    { upsert: true, setDefaultsOnInsert: true, returnDocument: "after" }
+  )) as unknown as InstanceType<typeof CompanySetting>;
   const seq = setting.nextLoanNo;
-  setting.nextLoanNo = (setting.nextLoanNo ?? 0) + 1;
-  await setting.save();
+  invalidateCompanySettingCache();
   return {
-    loanNo: `${setting.loanPrefix}-${String(seq).padStart(4, "0")}`,
+    loanNo: `${setting.loanPrefix}-${String(seq - 1).padStart(4, "0")}`,
   };
 }
 
 export async function nextReceiptNumber(): Promise<string> {
-  const setting = await getCompanySetting();
+  const setting = (await CompanySetting.findOneAndUpdate(
+    { singleton: "company" },
+    { $inc: { nextReceiptNo: 1 } },
+    { upsert: true, setDefaultsOnInsert: true, returnDocument: "after" }
+  )) as unknown as InstanceType<typeof CompanySetting>;
   const seq = setting.nextReceiptNo;
-  setting.nextReceiptNo = (setting.nextReceiptNo ?? 0) + 1;
-  await setting.save();
-  return `${setting.receiptPrefix}-${String(seq).padStart(4, "0")}`;
+  invalidateCompanySettingCache();
+  return `${setting.receiptPrefix}-${String(seq - 1).padStart(4, "0")}`;
 }
