@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select, SectionHeading } from "@/components/form";
@@ -13,6 +13,7 @@ import {
   validateFinancialShape,
 } from "@/lib/validators";
 import { inr } from "@/lib/money";
+import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
 import type { LoanFormPayload } from "@/types";
 
 interface CustomerSearchResult {
@@ -116,8 +117,17 @@ export function LoanForm() {
 
   const sections = ["Customer", "Vehicle", "Financial", "Guarantor"];
 
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeq = useRef(0);
+
+  function handleSearchChange(v: string) {
+    setSearch(v);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => void runSearch(v), 300);
+  }
+
   async function runSearch(q: string) {
-    setSearch(q);
+    const seq = ++searchSeq.current;
     setSelectedCustomer(null);
     setCustomerId(undefined);
     setCustomer(emptyCustomer);
@@ -131,10 +141,12 @@ export function LoanForm() {
     setSearchBusy(true);
     try {
       const res = await fetch(`/api/customers?search=${encodeURIComponent(q)}&limit=8`);
+      if (seq !== searchSeq.current) return;
       const data = await res.json();
+      if (seq !== searchSeq.current) return;
       setSearchResults(data.customers ?? []);
     } finally {
-      setSearchBusy(false);
+      if (seq === searchSeq.current) setSearchBusy(false);
     }
   }
 
@@ -227,6 +239,7 @@ export function LoanForm() {
         }
         return;
       }
+      invalidateCached(CUSTOMERS_LIST_CACHE_KEY);
       setCreatedLoan({
         loanNo: data.loan.loanNo,
         monthlyEmi: data.loan.monthlyEmi,
@@ -343,7 +356,7 @@ export function LoanForm() {
                           className="pl-9"
                           placeholder="e.g. Ramesh Kumar or 98xxxxxx21"
                           value={search}
-                          onChange={(e) => runSearch(e.target.value)}
+                          onChange={(e) => handleSearchChange(e.target.value)}
                         />
                       </div>
                     </Field>

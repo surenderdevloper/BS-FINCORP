@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card } from "@/components/ui";
 import { Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
+import { cachedGet, peekCached } from "@/lib/client-fetch";
 import { formatDate, inr } from "@/lib/money";
 import type { CustomerWithLoans } from "@/lib/customers";
+
+const FULL_LIST_URL = "/api/customers?all=1";
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -17,40 +20,53 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async (q: string) => {
-    setLoading(true);
+  const load = useCallback(async () => {
+    // Full list: reuse previously loaded data instantly, then refresh quietly
+    // in the background. No loading indicator when cached data is available.
+    const cached = peekCached<{ customers: CustomerWithLoans[] }>(FULL_LIST_URL);
+    if (cached) {
+      setCustomers(cached.data.customers);
+      setError(null);
+      setLoading(false);
+    }
+
     try {
-      const res = await fetch(`/api/customers?all=1&search=${encodeURIComponent(q)}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load customers.");
-      const data = (await res.json()) as { customers: CustomerWithLoans[] };
+      const { data } = await cachedGet<{ customers: CustomerWithLoans[] }>(FULL_LIST_URL);
       setCustomers(data.customers);
       setError(null);
+      setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load customers.");
-    } finally {
+      if (!cached) setError(err instanceof Error ? err.message : "Failed to load customers.");
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     document.title = "All Customers";
-    const t = setTimeout(() => void load(""), 0);
+    const t = setTimeout(() => void load(), 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSearchChange = (v: string) => {
-    setSearch(v);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => load(v), 350);
-  };
+  const onSearchChange = (v: string) => setSearch(v);
+
+  const visibleCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter(
+      (c) =>
+        String(c.name ?? "").toLowerCase().includes(q) ||
+        String(c.mobile ?? "").toLowerCase().includes(q) ||
+        String(c.aadhaar ?? "").toLowerCase().includes(q) ||
+        String(c.pan ?? "").toLowerCase().includes(q)
+    );
+  }, [customers, search]);
 
   const onExport = async () => {
     setExporting(true);
     try {
-      const rows = customers.flatMap((c) =>
+      const rows = visibleCustomers.flatMap((c) =>
         c.loans.length
           ? c.loans.map((l) => ({
               "Customer": c.name,
@@ -102,7 +118,7 @@ export default function CustomersPage() {
           <h1 className="text-xl font-bold text-zinc-900">All Customers</h1>
           <p className="text-sm text-zinc-500">Search, review loan status and export to Excel.</p>
         </div>
-        <Button variant="secondary" onClick={onExport} disabled={exporting || customers.length === 0}>
+        <Button variant="secondary" onClick={onExport} disabled={exporting || visibleCustomers.length === 0}>
           <Icon name="print" size={16} />
           {exporting ? "Exporting…" : "Export to Excel"}
         </Button>
@@ -135,7 +151,7 @@ export default function CustomersPage() {
       )}
 
       <Card>
-        {customers.length === 0 && !loading ? (
+        {visibleCustomers.length === 0 && !loading ? (
           <p className="px-5 py-12 text-center text-sm text-zinc-500">
             {search ? "No customers match your search." : "No customers yet. Register the first loan in New Loan."}
           </p>
@@ -156,7 +172,7 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {customers.map((c) => {
+                {visibleCustomers.map((c) => {
                   const latest = c.loans[0];
                   return (
                     <tr
