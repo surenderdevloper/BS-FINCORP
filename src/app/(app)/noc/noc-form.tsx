@@ -357,6 +357,25 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
               </div>
           </Card>
 
+          {!reprintReceipt && (
+            <>
+              <div className="break-before-page hidden w-full print:block">
+                <img
+                  src="/loan-forms/FORM-35.png"
+                  alt="Government Form 35 - Notice of Termination of Agreement of Hire-Purchase / Lease / Hypothecation"
+                  className="h-auto w-full"
+                />
+              </div>
+              <div className="break-before-page hidden w-full print:block">
+                <img
+                  src="/loan-forms/HP_Nirast.png"
+                  alt="HP Nirast - Hypothecation cancellation letter"
+                  className="h-auto w-full"
+                />
+              </div>
+            </>
+          )}
+
           {reprintReceipt && (
             <>
               <div className="no-print mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
