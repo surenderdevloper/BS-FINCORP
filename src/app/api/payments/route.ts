@@ -8,6 +8,7 @@ import { nextReceiptNumber } from "@/models/CompanySetting";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { readSession } from "@/lib/auth";
 import { parseCalendarDate } from "@/lib/dates";
+import { invalidateCustomersListCache } from "@/lib/customers";
 
 interface Payload {
   loanNo: string;
@@ -117,6 +118,8 @@ export async function POST(req: Request) {
       )
     )
   );
+
+  invalidateCustomersListCache();
 
   return NextResponse.json(
     {

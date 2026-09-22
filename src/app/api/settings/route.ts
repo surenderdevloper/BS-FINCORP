@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { CompanySetting } from "@/models/CompanySetting";
-import { PenaltyRule, invalidatePenaltyRuleCache } from "@/models/PenaltyRule";
-import { getCompanySetting } from "@/models/CompanySetting";
+import { PenaltyRule, invalidatePenaltyRuleCache, getPenaltyRuleObj } from "@/models/PenaltyRule";
+import { getCompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
 import { readSession } from "@/lib/auth";
 
 export async function GET() {
@@ -11,7 +11,7 @@ export async function GET() {
 
   await dbConnect();
   const company = await getCompanySetting();
-  const penalty = await PenaltyRule.findOne({ singleton: "penalty" });
+  const penalty = await getPenaltyRuleObj();
 
   return NextResponse.json({
     company: {
@@ -95,6 +95,7 @@ export async function PUT(req: Request) {
       },
       { upsert: true, returnDocument: "after" }
     );
+    invalidateCompanySettingCache();
     return NextResponse.json({
       company: {
         companyName: updated.companyName,

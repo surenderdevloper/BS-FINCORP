@@ -4,10 +4,11 @@ import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
-import { getCompanySetting } from "@/models/CompanySetting";
+import { nextReceiptNumber } from "@/models/CompanySetting";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { readSession } from "@/lib/auth";
 import { startOfToday } from "@/lib/dates";
+import { invalidateCustomersListCache } from "@/lib/customers";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -62,11 +63,7 @@ export async function POST(req: Request, ctx: RouteContext) {
   const emiTotal = principal + interest;
   const amount = emiTotal + penalty;
 
-  const setting = await getCompanySetting();
-  const seq = setting.nextReceiptNo;
-  setting.nextReceiptNo = (setting.nextReceiptNo ?? 0) + 1;
-  await setting.save();
-  const receiptNo = `${setting.receiptPrefix}-${String(seq).padStart(4, "0")}`;
+  const receiptNo = await nextReceiptNumber();
 
   const payment = await Payment.create({
     receiptNo,
@@ -92,6 +89,8 @@ export async function POST(req: Request, ctx: RouteContext) {
   loan.status = "closed";
   loan.closedAt = today;
   await loan.save();
+
+  invalidateCustomersListCache();
 
   return NextResponse.json({
     loanNo: loan.loanNo,

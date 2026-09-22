@@ -316,10 +316,20 @@ export async function listLoans(input: {
     rawCustomers.map((c) => [c._id.toString(), c as unknown as { name: string; mobile: string; aadhaar?: string }])
   );
 
+  const loanIds = loans.map((l) => l._id);
+  const rawEmis = (await Emi.find({ loanId: { $in: loanIds } }).lean().exec()) as unknown as RawEmi[];
+  const emisByLoan = new Map<string, RawEmi[]>();
+  for (const emi of rawEmis) {
+    const key = emi.loanId.toString();
+    const rows = emisByLoan.get(key);
+    if (rows) rows.push(emi);
+    else emisByLoan.set(key, [emi]);
+  }
+
   const summaries: LoanSummary[] = [];
   for (const loan of loans) {
     const customer = customerMap.get(loan.customerId.toString());
-    const { emis } = await getLoanEmis(loan._id, today);
+    const { emis } = await buildEmiRows(emisByLoan.get(loan._id.toString()) ?? [], today);
     let paidCount = 0;
     let pendingCount = 0;
     let overdueCount = 0;

@@ -41,6 +41,9 @@ const loanSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+loanSchema.index({ customerId: 1 });
+loanSchema.index({ status: 1, createdAt: -1 });
+
 export type LoanType = InferSchemaType<typeof loanSchema>;
 export type LoanDocument = mongoose.HydratedDocument<LoanType>;
 

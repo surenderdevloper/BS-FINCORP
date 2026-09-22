@@ -8,6 +8,7 @@ import { readSession } from "@/lib/auth";
 import { calcLoanSummary, generateSchedule } from "@/lib/emi";
 import { validateCustomerShape, validateFinancialShape } from "@/lib/validators";
 import { listLoans } from "@/lib/loans";
+import { invalidateCustomersListCache } from "@/lib/customers";
 import type { LoanFormPayload } from "@/types";
 
 export async function GET(req: Request) {
@@ -120,6 +121,8 @@ export async function POST(req: Request) {
         createdCustomerId = customer._id.toString();
       }
     }
+
+    invalidateCustomersListCache();
 
     // 2. Allocate the next loan number.
     const setting = await CompanySetting.findOneAndUpdate(

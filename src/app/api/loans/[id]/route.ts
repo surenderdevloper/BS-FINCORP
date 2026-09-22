@@ -8,6 +8,7 @@ import { calcLoanSummary, generateSchedule } from "@/lib/emi";
 import { validateCustomerShape, validateFinancialShape } from "@/lib/validators";
 import { getLoanDetail } from "@/lib/loans";
 import { parseCalendarDate } from "@/lib/dates";
+import { invalidateCustomersListCache } from "@/lib/customers";
 import type { LoanFormPayload } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -124,6 +125,8 @@ export async function PUT(req: Request, ctx: RouteContext) {
   customer.state = customerData.state?.trim() ?? "";
   customer.altMobile = customerData.altMobile?.trim() ?? "";
   await customer.save();
+
+  invalidateCustomersListCache();
 
   // 2. Update vehicle & guarantor.
   loan.set({

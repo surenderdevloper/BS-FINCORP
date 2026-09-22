@@ -3,6 +3,7 @@ import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
 import { readSession } from "@/lib/auth";
 import { validateCustomerShape } from "@/lib/validators";
+import { invalidateCustomersListCache } from "@/lib/customers";
 import type { CustomerFormData } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -56,6 +57,8 @@ export async function PUT(req: Request, ctx: RouteContext) {
   customer.state = body.state?.trim() ?? "";
   customer.altMobile = body.altMobile?.trim() ?? "";
   await customer.save();
+
+  invalidateCustomersListCache();
 
   return NextResponse.json({
     customer: {

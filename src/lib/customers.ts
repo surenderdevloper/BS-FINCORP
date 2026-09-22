@@ -75,91 +75,132 @@ export function calcLoanFromEmis(emis: { status: string; amount: number; dueDate
   return calcs;
 }
 
+// In-memory cache for the expensive full customer list (no search). The full
+// list can reach the 2,000 customer cap and pulls in every loan and EMI, so it
+// is cached for a short TTL to make the Customers tab re-visits cheap while
+// never caching mutations (callers invalidate on create/update). Searches and
+// detail lookups bypass the cache entirely.
+const CUSTOMERS_LIST_CACHE_TTL_MS = 60_000;
+
+let customersListCache: { key: string; value: CustomerWithLoans[]; at: number } | null = null;
+let customersListInFlight: Promise<CustomerWithLoans[]> | null = null;
+
+export function invalidateCustomersListCache(): void {
+  customersListCache = null;
+}
+
 export async function listCustomers(input: { search?: string; limit?: number; today?: Date }): Promise<CustomerWithLoans[]> {
   const { search, today = new Date() } = input;
   const limit = input.limit ?? 200;
 
-  const filter = search?.trim()
-    ? {
-        $or: [
-          { name: { $regex: search.trim(), $options: "i" } },
-          { mobile: { $regex: search.trim(), $options: "i" } },
-          { aadhaar: { $regex: search.trim(), $options: "i" } },
-          { pan: { $regex: search.trim(), $options: "i" } },
-        ],
-      }
-    : {};
+  const q = search?.trim();
+  const cacheKey = JSON.stringify({ limit });
 
-  const rawCustomers = await Customer.find(filter).sort({ createdAt: -1 }).limit(limit).lean().exec();
-  const customers = rawCustomers as unknown as Array<{
-    _id: Types.ObjectId;
-    name: string;
-    fatherName?: string;
-    mobile: string;
-    aadhaar?: string;
-    pan?: string;
-    dob?: Date;
-    address?: string;
-    createdAt?: Date;
-  }>;
-  if (!customers.length) return [];
-
-  const rawLoans = await Loan.find({ customerId: { $in: customers.map((c) => c._id) } })
-    .sort({ createdAt: -1 })
-    .lean()
-    .exec();
-  const loans = rawLoans as unknown as RawLoanLean[];
-  const loansByCustomer = new Map<string, RawLoanLean[]>();
-  for (const loan of loans) {
-    const key = loan.customerId.toString();
-    if (!loansByCustomer.has(key)) loansByCustomer.set(key, []);
-    loansByCustomer.get(key)!.push(loan);
+  // Only the unsorted full list (no search / no query) is cacheable.
+  const cacheable = !q;
+  if (cacheable && customersListCache && customersListCache.key === cacheKey && Date.now() - customersListCache.at < CUSTOMERS_LIST_CACHE_TTL_MS) {
+    return customersListCache.value;
   }
 
-  const loanIds = loans.map((l) => l._id);
-  const rawEmis = await Emi.find({ loanId: { $in: loanIds } }).lean().exec();
-  const emis = rawEmis as unknown as RawEmiLean[];
-  const emisByLoan = new Map<string, RawEmiLean[]>();
-  for (const emi of emis) {
-    const key = emi.loanId.toString();
-    if (!emisByLoan.has(key)) emisByLoan.set(key, []);
-    emisByLoan.get(key)!.push(emi);
-  }
+  const load = async (): Promise<CustomerWithLoans[]> => {
+    const filter = q
+      ? {
+          $or: [
+            { name: { $regex: q, $options: "i" } },
+            { mobile: { $regex: q, $options: "i" } },
+            { aadhaar: { $regex: q, $options: "i" } },
+            { pan: { $regex: q, $options: "i" } },
+          ],
+        }
+      : {};
 
-  return customers.map((c) => {
-    const loansForCustomer = loansByCustomer.get(c._id.toString()) ?? [];
-    const rows = loansForCustomer.map((loan): CustomerLoanStat => {
-      const emiRows = emisByLoan.get(loan._id.toString()) ?? [];
-      const calcs = calcLoanFromEmis(emiRows, today);
+    const rawCustomers = await Customer.find(filter).sort({ createdAt: -1 }).limit(limit).lean().exec();
+    const customers = rawCustomers as unknown as Array<{
+      _id: Types.ObjectId;
+      name: string;
+      fatherName?: string;
+      mobile: string;
+      aadhaar?: string;
+      pan?: string;
+      dob?: Date;
+      address?: string;
+      createdAt?: Date;
+    }>;
+    if (!customers.length) return [];
+
+    const rawLoans = await Loan.find({ customerId: { $in: customers.map((c) => c._id) } })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+    const loans = rawLoans as unknown as RawLoanLean[];
+    const loansByCustomer = new Map<string, RawLoanLean[]>();
+    for (const loan of loans) {
+      const key = loan.customerId.toString();
+      if (!loansByCustomer.has(key)) loansByCustomer.set(key, []);
+      loansByCustomer.get(key)!.push(loan);
+    }
+
+    const loanIds = loans.map((l) => l._id);
+    const rawEmis = await Emi.find({ loanId: { $in: loanIds } }).lean().exec();
+    const emis = rawEmis as unknown as RawEmiLean[];
+    const emisByLoan = new Map<string, RawEmiLean[]>();
+    for (const emi of emis) {
+      const key = emi.loanId.toString();
+      if (!emisByLoan.has(key)) emisByLoan.set(key, []);
+      emisByLoan.get(key)!.push(emi);
+    }
+
+    return customers.map((c) => {
+      const loansForCustomer = loansByCustomer.get(c._id.toString()) ?? [];
+      const rows = loansForCustomer.map((loan): CustomerLoanStat => {
+        const emiRows = emisByLoan.get(loan._id.toString()) ?? [];
+        const calcs = calcLoanFromEmis(emiRows, today);
+        return {
+          loanNo: loan.loanNo,
+          status: loan.status,
+          startDate: loan.financial.startDate.toISOString(),
+          vehicle: loan.vehicle.name,
+          loanAmount: loan.financial.loanAmount,
+          monthlyEmi: loan.paymentPlan.monthlyEmi,
+          totalPayable: loan.paymentPlan.totalPayable,
+          totalPaid: calcs.totalPaid,
+          paidCount: calcs.paidCount,
+          pendingCount: calcs.pendingCount,
+          overdueCount: calcs.overdueCount,
+          outstandingAmount: calcs.pendingAmount,
+        };
+      });
+
       return {
-        loanNo: loan.loanNo,
-        status: loan.status,
-        startDate: loan.financial.startDate.toISOString(),
-        vehicle: loan.vehicle.name,
-        loanAmount: loan.financial.loanAmount,
-        monthlyEmi: loan.paymentPlan.monthlyEmi,
-        totalPayable: loan.paymentPlan.totalPayable,
-        totalPaid: calcs.totalPaid,
-        paidCount: calcs.paidCount,
-        pendingCount: calcs.pendingCount,
-        overdueCount: calcs.overdueCount,
-        outstandingAmount: calcs.pendingAmount,
+        _id: c._id.toString(),
+        name: c.name,
+        fatherName: c.fatherName,
+        mobile: c.mobile,
+        aadhaar: c.aadhaar,
+        pan: c.pan,
+        dob: c.dob ? c.dob.toISOString() : undefined,
+        address: c.address,
+        createdAt: c.createdAt?.toISOString(),
+        loans: rows,
       };
     });
+  };
 
-    return {
-      _id: c._id.toString(),
-      name: c.name,
-      fatherName: c.fatherName,
-      mobile: c.mobile,
-      aadhaar: c.aadhaar,
-      pan: c.pan,
-      dob: c.dob ? c.dob.toISOString() : undefined,
-      address: c.address,
-      createdAt: c.createdAt?.toISOString(),
-      loans: rows,
-    };
-  });
+  if (!cacheable) return load();
+
+  // Coalesce simultaneous cache misses so the full list is only computed once.
+  if (customersListInFlight) return customersListInFlight;
+  customersListInFlight = load()
+    .then((value) => {
+      customersListCache = { key: cacheKey, value, at: Date.now() };
+      customersListInFlight = null;
+      return value;
+    })
+    .catch((err) => {
+      customersListInFlight = null;
+      throw err;
+    });
+  return customersListInFlight;
 }
 
 export interface CustomerPaymentRow {
