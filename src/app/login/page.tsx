@@ -1,17 +1,17 @@
 import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 import { dbConnect } from "@/lib/db";
-import { CompanySetting } from "@/models/CompanySetting";
+import { getCompanySetting } from "@/models/CompanySetting";
 
 export const dynamic = "force-dynamic";
 
 async function getBranding() {
   try {
     await dbConnect();
-    const doc = await CompanySetting.findOne({ singleton: "company" }).lean();
+    const company = await getCompanySetting();
     return {
-      logo: doc?.logo ?? "",
-      companyName: doc?.companyName ?? "BS FINCORP",
+      logo: company.logo ?? "",
+      companyName: company.companyName ?? "BS FINCORP",
     };
   } catch {
     return { logo: "", companyName: "BS FINCORP" };

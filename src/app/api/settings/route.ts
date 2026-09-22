@@ -10,8 +10,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await dbConnect();
-  const company = await getCompanySetting();
-  const penalty = await getPenaltyRuleObj();
+  const [company, penalty] = await Promise.all([getCompanySetting(), getPenaltyRuleObj()]);
 
   return NextResponse.json({
     company: {

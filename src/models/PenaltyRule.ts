@@ -29,13 +29,14 @@ export async function getPenaltyRule(): Promise<InstanceType<typeof PenaltyRule>
     doc.isNew = false;
     return doc;
   }
-  const doc = (await PenaltyRule.findOneAndUpdate(
-    { singleton: "penalty" },
-    { $setOnInsert: { singleton: "penalty" } },
-    { upsert: true, setDefaultsOnInsert: true, returnDocument: "after" }
-  )) as unknown as InstanceType<typeof PenaltyRule>;
-  cache = { value: doc.toObject() as PenaltyRuleType, at: Date.now() };
-  return doc;
+  const existing = (await PenaltyRule.findOne({ singleton: "penalty" }).exec()) as unknown as InstanceType<typeof PenaltyRule> | null;
+  if (existing) {
+    cache = { value: existing.toObject() as PenaltyRuleType, at: Date.now() };
+    return existing;
+  }
+  const fresh = new PenaltyRule({} as PenaltyRuleType) as InstanceType<typeof PenaltyRule>;
+  cache = { value: fresh.toObject() as PenaltyRuleType, at: Date.now() };
+  return fresh;
 }
 
 export function invalidatePenaltyRuleCache(): void {

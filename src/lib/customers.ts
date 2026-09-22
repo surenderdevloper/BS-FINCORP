@@ -15,14 +15,6 @@ interface RawLoanLean {
   financial: { loanAmount: number; startDate: Date };
   paymentPlan: { monthlyEmi: number; totalPayable: number };
 }
-interface RawEmiLean {
-  loanId: Types.ObjectId;
-  emiNo: number;
-  status: string;
-  amount: number;
-  dueDate: Date;
-}
-
 export interface CustomerLoanStat {
   loanNo: string;
   status: string;
@@ -114,7 +106,12 @@ export async function listCustomers(input: { search?: string; limit?: number; to
         }
       : {};
 
-    const rawCustomers = await Customer.find(filter).sort({ createdAt: -1 }).limit(limit).lean().exec();
+    const rawCustomers = await Customer.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select("_id name fatherName mobile aadhaar pan dob address createdAt")
+      .lean()
+      .exec();
     const customers = rawCustomers as unknown as Array<{
       _id: Types.ObjectId;
       name: string;
@@ -130,6 +127,7 @@ export async function listCustomers(input: { search?: string; limit?: number; to
 
     const rawLoans = await Loan.find({ customerId: { $in: customers.map((c) => c._id) } })
       .sort({ createdAt: -1 })
+      .select("_id loanNo status customerId vehicle.name financial.loanAmount financial.startDate paymentPlan.monthlyEmi paymentPlan.totalPayable")
       .lean()
       .exec();
     const loans = rawLoans as unknown as RawLoanLean[];
@@ -141,20 +139,43 @@ export async function listCustomers(input: { search?: string; limit?: number; to
     }
 
     const loanIds = loans.map((l) => l._id);
-    const rawEmis = await Emi.find({ loanId: { $in: loanIds } }).lean().exec();
-    const emis = rawEmis as unknown as RawEmiLean[];
-    const emisByLoan = new Map<string, RawEmiLean[]>();
-    for (const emi of emis) {
-      const key = emi.loanId.toString();
-      if (!emisByLoan.has(key)) emisByLoan.set(key, []);
-      emisByLoan.get(key)!.push(emi);
-    }
+    const todayStart = startOfToday(today);
+    const emiStatsRows = await Emi.aggregate<{
+      _id: Types.ObjectId;
+      paidCount: number;
+      pendingCount: number;
+      overdueCount: number;
+      totalPaid: number;
+      pendingAmount: number;
+    }>([
+      { $match: { loanId: { $in: loanIds } } },
+      {
+        $group: {
+          _id: "$loanId",
+          paidCount: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
+          pendingCount: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+          overdueCount: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ["$status", "pending"] }, { $lt: ["$dueDate", todayStart] }] },
+                1,
+                0,
+              ],
+            },
+          },
+          totalPaid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0] } },
+          pendingAmount: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0] } },
+        },
+      },
+    ]).exec();
+    const statsByLoan = new Map<string, (typeof emiStatsRows)[number]>();
+    for (const row of emiStatsRows) statsByLoan.set(row._id.toString(), row);
 
     return customers.map((c) => {
       const loansForCustomer = loansByCustomer.get(c._id.toString()) ?? [];
       const rows = loansForCustomer.map((loan): CustomerLoanStat => {
-        const emiRows = emisByLoan.get(loan._id.toString()) ?? [];
-        const calcs = calcLoanFromEmis(emiRows, today);
+        const stats = statsByLoan.get(loan._id.toString());
+        const calcs = stats ?? { totalPaid: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, pendingAmount: 0 };
         return {
           loanNo: loan.loanNo,
           status: loan.status,
