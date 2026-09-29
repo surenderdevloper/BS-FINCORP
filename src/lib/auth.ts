@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/money";
+import { User } from "@/models/User";
 
 export { SESSION_COOKIE };
 
@@ -8,6 +9,7 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string;
+  tokenVersion?: number;
 }
 
 function getSecret(): Uint8Array {
@@ -20,6 +22,7 @@ export async function signSessionToken(user: SessionUser): Promise<string> {
   return new SignJWT({
     name: user.name,
     email: user.email,
+    v: user.tokenVersion ?? 0,
   } as JWTPayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -39,6 +42,7 @@ export async function verifySessionToken(
       id: payload.sub,
       name: (payload.name as string) ?? "",
       email: (payload.email as string) ?? "",
+      tokenVersion: (payload.v as number | undefined) ?? 0,
     };
   } catch {
     return null;
@@ -47,7 +51,16 @@ export async function verifySessionToken(
 
 export async function readSession(): Promise<SessionUser | null> {
   const store = await cookies();
-  return verifySessionToken(store.get(SESSION_COOKIE)?.value);
+  const user = await verifySessionToken(store.get(SESSION_COOKIE)?.value);
+  if (!user) return null;
+  try {
+    const current = await User.findById(user.id).select("tokenVersion").lean();
+    if (!current) return null;
+    if ((current.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) return null;
+  } catch {
+    return null;
+  }
+  return user;
 }
 
 export async function destroySession(): Promise<void> {

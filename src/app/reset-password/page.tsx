@@ -1,8 +1,6 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
-import { LoginForm } from "./login-form";
+import { ResetPasswordForm } from "./reset-password-form";
 import { dbConnect } from "@/lib/db";
-import { readSession } from "@/lib/auth";
 import { getCompanySetting } from "@/models/CompanySetting";
 
 export const dynamic = "force-dynamic";
@@ -20,18 +18,13 @@ async function getBranding() {
   }
 }
 
-export default async function LoginPage() {
-  const session = await readSession();
-  if (session) {
-    redirect("/dashboard");
-  }
-
+export default async function ResetPasswordPage() {
   const { logo, companyName } = await getBranding();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-4">
       <Suspense fallback={<div className="text-sm text-zinc-500">Loading…</div>}>
-        <LoginForm logo={logo || undefined} companyName={companyName} />
+        <ResetPasswordForm logo={logo || undefined} companyName={companyName} />
       </Suspense>
     </div>
   );

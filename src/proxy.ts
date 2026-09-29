@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/money";
 
+const PUBLIC_PATHS = ["/forgot-password", "/reset-password"];
+
 async function isAuthed(request: NextRequest): Promise<boolean> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return false;
@@ -26,9 +28,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(authed ? "/dashboard" : "/login", request.url));
   }
 
-  // Login page → already signed-in users are sent to the dashboard.
+  // Login page → let the page validate the session against the DB. Redirecting
+  // here based on a signature-valid JWT would loop for stale sessions whose
+  // tokenVersion no longer matches (e.g. after a password reset in this browser).
   if (pathname === "/login") {
-    if (authed) return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.next();
+  }
+
+  // Password recovery pages are public (usable even while signed in).
+  if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next();
   }
 

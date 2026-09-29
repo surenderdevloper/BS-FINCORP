@@ -37,6 +37,7 @@ if (!ok) {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
+      tokenVersion: user.tokenVersion ?? 0,
     });
 
     const res = NextResponse.json({ name: user.name, email: user.email });

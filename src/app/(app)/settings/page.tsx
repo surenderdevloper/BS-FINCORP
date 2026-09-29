@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
+import { cachedGet, invalidateCached, peekCached } from "@/lib/client-fetch";
+
+const SETTINGS_URL = "/api/settings";
 
 interface CompanyData {
   companyName: string;
@@ -39,14 +42,19 @@ export default function SettingsPage() {
   useEffect(() => {
     document.title = "Settings";
     void (async () => {
+      // Reuse previously loaded settings instantly whenever cached, letting a
+      // background refresh (if any) quietly update the cache afterwards.
+      const cached = peekCached<{ company: CompanyData }>(SETTINGS_URL);
+      if (cached) {
+        setCompany({ ...emptyCompany, ...cached.data.company });
+        setLoaded(true);
+      }
       try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        if (!res.ok) throw new Error();
-        const data = (await res.json()) as { company: CompanyData };
+        const { data } = await cachedGet<{ company: CompanyData }>(SETTINGS_URL);
         setCompany({ ...emptyCompany, ...data.company });
+        setLoaded(true);
       } catch {
-        setError("Could not load settings.");
-      } finally {
+        if (!cached) setError("Could not load settings.");
         setLoaded(true);
       }
     })();
@@ -67,6 +75,7 @@ export default function SettingsPage() {
         setError(data.error ?? "Could not save settings.");
         return;
       }
+      invalidateCached(SETTINGS_URL);
       setMessage("Company details saved.");
     } catch {
       setError("Network error while saving.");

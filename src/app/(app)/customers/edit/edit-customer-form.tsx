@@ -12,6 +12,7 @@ import {
 } from "@/lib/validators";
 import { calcLoanSummary, type InterestType } from "@/lib/emi";
 import { formatDate, inr } from "@/lib/money";
+import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
 import type { CustomerFormData, FinancialFormData, GuarantorFormData, VehicleFormData } from "@/types";
 import type { LoanDetail, LoanSummary } from "@/lib/loans";
 
@@ -311,6 +312,7 @@ export function EditCustomerForm({
         setError(data.error ?? "Could not save changes.");
         return;
       }
+      invalidateCached(CUSTOMERS_LIST_CACHE_KEY);
       if (data.loan) applyLoan(data.loan, search || (loan?.loanNo ?? ""));
       setSavedMsg(customerOnly ? "Customer details saved." : `Changes saved${financialLocked ? "" : " and schedule updated"} for ${loan?.loanNo ?? ""}.`);
       setSaved(true);

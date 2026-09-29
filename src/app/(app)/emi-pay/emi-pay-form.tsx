@@ -5,6 +5,7 @@ import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { formatDate, inr } from "@/lib/money";
+import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
 import type { EmiRow, LoanDetail } from "@/lib/loans";
 
 interface LoanSummaryResult {
@@ -152,6 +153,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
         setError(data.error ?? "Could not record payment.");
         return;
       }
+      invalidateCached(CUSTOMERS_LIST_CACHE_KEY);
       if (data.payment) setReceipt(data.payment);
       void loadDetail(loan.loanNo, paymentDate);
     } catch {

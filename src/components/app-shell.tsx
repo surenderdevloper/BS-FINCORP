@@ -3,12 +3,20 @@
 import { useState, type ReactNode } from "react";
 import { SidebarContent } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { SessionTimeout } from "@/components/session-timeout";
+
+export interface CompanyBranding {
+  logo: string;
+  companyName: string;
+}
 
 export function AppShell({
   userName,
+  branding,
   children,
 }: {
   userName: string;
+  branding: CompanyBranding;
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -17,7 +25,7 @@ export function AppShell({
     <div className="flex min-h-screen bg-zinc-100">
       {/* Desktop sidebar */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-zinc-200 bg-white md:block">
-        <SidebarContent />
+        <SidebarContent branding={branding} />
       </aside>
 
       {/* Mobile drawer */}
@@ -28,7 +36,7 @@ export function AppShell({
             onClick={() => setDrawerOpen(false)}
           />
           <aside className="absolute inset-y-0 left-0 w-64 animate-in bg-white shadow-xl">
-            <SidebarContent onNavigate={() => setDrawerOpen(false)} />
+            <SidebarContent branding={branding} onNavigate={() => setDrawerOpen(false)} />
           </aside>
         </div>
       )}
@@ -39,6 +47,8 @@ export function AppShell({
           {children}
         </main>
       </div>
+
+      <SessionTimeout />
     </div>
   );
 }

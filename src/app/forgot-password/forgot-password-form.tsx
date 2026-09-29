@@ -2,47 +2,41 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Card } from "@/components/ui";
 import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 
-export function LoginForm({
+export function ForgotPasswordForm({
   logo,
   companyName,
 }: {
   logo?: string;
   companyName: string;
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/dashboard";
-
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
     setBusy(true);
+    setMessage(null);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Login failed. Please try again.");
-        setBusy(false);
-        return;
-      }
-      router.push(next);
-      router.refresh();
+      const data = (await res.json()) as { message?: string };
+      setMessage(
+        data.message ??
+          "If an account exists with this information, you will receive password reset instructions."
+      );
     } catch {
-      setError("Could not reach the server.");
+      setMessage(
+        "If an account exists with this information, you will receive password reset instructions."
+      );
+    } finally {
       setBusy(false);
     }
   }
@@ -61,8 +55,10 @@ export function LoginForm({
             BF
           </span>
         )}
-        <h1 className="text-lg font-bold text-zinc-900">{companyName}</h1>
-        <p className="text-sm text-zinc-500">Sign in to the Loan Management System</p>
+        <h1 className="text-lg font-bold text-zinc-900">Forgot Password</h1>
+        <p className="text-sm text-zinc-500">
+          Enter your account email to receive reset instructions.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,35 +72,22 @@ export function LoginForm({
             required
           />
         </Field>
-        <Field label="Password" required>
-          <Input
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </Field>
-
-        {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-            <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
 
         <Button type="submit" className="w-full" size="md" disabled={busy}>
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? "Sending…" : "Send Reset Instructions"}
         </Button>
       </form>
 
+      {message && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
+          <Icon name="check" size={16} className="mt-0.5 shrink-0" />
+          <span>{message}</span>
+        </div>
+      )}
+
       <p className="mt-4 text-center text-sm">
-        <Link
-          href="/forgot-password"
-          className="font-medium text-emerald-600 hover:underline"
-        >
-          Forgot Password?
+        <Link href="/login" className="font-medium text-emerald-600 hover:underline">
+          Back to login
         </Link>
       </p>
     </Card>

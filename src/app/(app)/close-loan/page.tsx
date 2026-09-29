@@ -6,6 +6,7 @@ import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { formatDate, inr } from "@/lib/money";
+import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
 import type { LoanDetail } from "@/lib/loans";
 
 interface LoanSummaryResult {
@@ -86,6 +87,7 @@ export default function CloseLoanPage() {
         setError(data.error ?? "Could not close the loan.");
         return;
       }
+      invalidateCached(CUSTOMERS_LIST_CACHE_KEY);
       setResult(data as { loanNo: string; closedAt: string; settledAmount: number; penalty: number; receiptNo: string });
       setLoan(null);
       setSearch("");

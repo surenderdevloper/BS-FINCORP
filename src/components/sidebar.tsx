@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
+import type { CompanyBranding } from "@/components/app-shell";
 
 export interface NavItem {
   href: string;
@@ -36,22 +36,16 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarContent({
+  onNavigate,
+  branding,
+}: {
+  onNavigate?: () => void;
+  branding?: CompanyBranding;
+}) {
   const pathname = usePathname();
-  const [logo, setLogo] = useState("");
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { company: { logo?: string } };
-        setLogo(data.company?.logo ?? "");
-      } catch {
-        // keep fallback box
-      }
-    })();
-  }, [pathname]);
+  const logo = branding?.logo ?? "";
+  const companyName = branding?.companyName || "BS FINCORP";
 
   return (
     <div className="flex h-full flex-col">
@@ -68,7 +62,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </span>
         )}
         <div>
-          <p className="text-sm font-bold text-zinc-900">BS FINCORP</p>
+          <p className="text-sm font-bold text-zinc-900">{companyName}</p>
           <p className="text-[11px] text-zinc-500">Loan Management</p>
         </div>
       </div>
