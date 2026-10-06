@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/money";
+import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 
 export { SESSION_COOKIE };
@@ -58,6 +59,10 @@ export async function readSession(): Promise<SessionUser | null> {
   const user = await verifySessionToken(store.get(SESSION_COOKIE)?.value);
   if (!user) return null;
   try {
+    // Establish the connection before querying. Without this, a cold serverless
+    // instance buffers the query (mongoose bufferTimeoutMS) until it throws,
+    // which turns a slow start into a bogus 401 / forced logout.
+    await dbConnect();
     const current = await User.findById(user.id).select("tokenVersion").lean();
     if (!current) return null;
     if ((current.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) return null;
