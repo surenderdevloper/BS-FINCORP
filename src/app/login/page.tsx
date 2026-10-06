@@ -8,15 +8,17 @@ import { getCompanySetting } from "@/models/CompanySetting";
 export const dynamic = "force-dynamic";
 
 async function getBranding() {
+  const envLogo = process.env.CLIENT_LOGO_URL ?? "";
+  const envName = process.env.NEXT_PUBLIC_APP_NAME ?? "";
   try {
     await dbConnect();
     const company = await getCompanySetting();
     return {
-      logo: company.logo ?? "",
-      companyName: company.companyName ?? "BS FINCORP",
+      logo: envLogo || (company.logo ?? ""),
+      companyName: envName || company.companyName || "BS FINCORP",
     };
   } catch {
-    return { logo: "", companyName: "BS FINCORP" };
+    return { logo: envLogo, companyName: envName || "BS FINCORP" };
   }
 }
 

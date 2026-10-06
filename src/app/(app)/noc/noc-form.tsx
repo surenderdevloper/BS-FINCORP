@@ -6,6 +6,7 @@ import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { formatDate, inr } from "@/lib/money";
 import type { LoanDetail } from "@/lib/loans";
+import { cachedGet } from "@/lib/client-fetch";
 
 interface Company {
   companyName: string;
@@ -74,17 +75,11 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
   }, []);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        if (res.ok) {
-          const data = (await res.json()) as { company: Company };
-          setCompany(data.company);
-        }
-      } catch {
+    void cachedGet<{ company: Company }>("/api/settings")
+      .then(({ data }) => setCompany(data.company))
+      .catch(() => {
         /* optional */
-      }
-    })();
+      });
   }, []);
 
   useEffect(() => {

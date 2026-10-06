@@ -7,6 +7,7 @@ import { Payment } from "@/models/Payment";
 import { User } from "@/models/User";
 import { CompanySetting } from "@/models/CompanySetting";
 import { PenaltyRule } from "@/models/PenaltyRule";
+import { CustomerDocument } from "@/models/CustomerDocument";
 import { readSession } from "@/lib/auth";
 
 export async function GET() {
@@ -15,15 +16,17 @@ export async function GET() {
 
   await dbConnect();
 
-  const [customers, loans, emis, payments, users, companySettings, penaltyRules] = await Promise.all([
-    Customer.find({}).lean(),
-    Loan.find({}).lean(),
-    Emi.find({}).lean(),
-    Payment.find({}).lean(),
-    User.find({}).lean(),
-    CompanySetting.find({}).lean(),
-    PenaltyRule.find({}).lean(),
-  ]);
+  const [customers, loans, emis, payments, users, companySettings, penaltyRules, customerDocuments] =
+    await Promise.all([
+      Customer.find({}).lean(),
+      Loan.find({}).lean(),
+      Emi.find({}).lean(),
+      Payment.find({}).lean(),
+      User.find({}).lean(),
+      CompanySetting.find({}).lean(),
+      PenaltyRule.find({}).lean(),
+      CustomerDocument.find({}).lean(),
+    ]);
 
   // JSON.stringify converts ObjectId -> string and Date -> ISO string automatically,
   // so the download is plain JSON safe to import anywhere.
@@ -35,20 +38,32 @@ export async function GET() {
     users: JSON.parse(JSON.stringify(users)),
     companySettings: JSON.parse(JSON.stringify(companySettings)),
     penaltyRules: JSON.parse(JSON.stringify(penaltyRules)),
+    customerDocuments: JSON.parse(JSON.stringify(customerDocuments)),
   };
 
-  return NextResponse.json({
-    exportedAt: new Date().toISOString(),
-    app: "bs-fincorp",
-    counts: {
-      customers: customers.length,
-      loans: loans.length,
-      emis: emis.length,
-      payments: payments.length,
-      users: users.length,
-      companySettings: companySettings.length,
-      penaltyRules: penaltyRules.length,
+  const app = process.env.CLIENT_NAME ?? "bs-fincorp";
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  return NextResponse.json(
+    {
+      exportedAt: new Date().toISOString(),
+      app,
+      counts: {
+        customers: customers.length,
+        loans: loans.length,
+        emis: emis.length,
+        payments: payments.length,
+        users: users.length,
+        companySettings: companySettings.length,
+        penaltyRules: penaltyRules.length,
+        customerDocuments: customerDocuments.length,
+      },
+      collections,
     },
-    collections,
-  });
+    {
+      headers: {
+        "Content-Disposition": `attachment; filename="${app}-backup-${stamp}.json"`,
+      },
+    }
+  );
 }

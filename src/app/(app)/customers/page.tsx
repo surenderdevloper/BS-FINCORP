@@ -12,11 +12,13 @@ import { formatDate, inr } from "@/lib/money";
 import type { CustomerWithLoans } from "@/lib/customers";
 
 const FULL_LIST_URL = "/api/customers?all=1";
+const PAGE_SIZE = 50;
 
 export default function CustomersPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState<CustomerWithLoans[]>([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -49,7 +51,10 @@ export default function CustomersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSearchChange = (v: string) => setSearch(v);
+  const onSearchChange = (v: string) => {
+    setSearch(v);
+    setPage(1);
+  };
 
   const visibleCustomers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -62,6 +67,11 @@ export default function CustomersPage() {
         String(c.pan ?? "").toLowerCase().includes(q)
     );
   }, [customers, search]);
+
+  const pageCount = Math.max(1, Math.ceil(visibleCustomers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageCustomers = visibleCustomers.slice(pageStart, pageStart + PAGE_SIZE);
 
   const onExport = async () => {
     setExporting(true);
@@ -172,7 +182,7 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {visibleCustomers.map((c) => {
+                {pageCustomers.map((c) => {
                   const latest = c.loans[0];
                   return (
                     <tr
@@ -238,6 +248,35 @@ export default function CustomersPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+        {visibleCustomers.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-4 py-3 sm:px-5">
+            <span className="text-xs text-zinc-500">
+              Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, visibleCustomers.length)} of{" "}
+              {visibleCustomers.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5 text-xs"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-zinc-500">
+                {currentPage} / {pageCount}
+              </span>
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5 text-xs"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </Card>

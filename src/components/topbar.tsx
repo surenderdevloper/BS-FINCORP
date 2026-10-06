@@ -3,18 +3,26 @@
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { formatDate } from "@/lib/money";
+import type { CompanyBranding } from "@/components/app-shell";
 
 export function Topbar({
   userName,
   onMenu,
+  branding,
 }: {
   userName: string;
   onMenu: () => void;
+  branding?: CompanyBranding;
 }) {
   const router = useRouter();
+  const companyName = branding?.companyName || "BS FINCORP";
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Logout should still proceed even if the request failed.
+    }
     router.push("/login");
     router.refresh();
   }
@@ -30,7 +38,7 @@ export function Topbar({
       </button>
 
       <div className="flex min-w-0 items-center md:hidden">
-        <span className="text-sm font-bold text-zinc-900">BS FINCORP</span>
+        <span className="text-sm font-bold text-zinc-900">{companyName}</span>
       </div>
 
       <div className="hidden items-center gap-1.5 text-sm text-zinc-500 sm:flex">

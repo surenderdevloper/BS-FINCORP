@@ -5,6 +5,7 @@ import type { CustomerDetail } from "@/lib/customers";
 import { Button, Card, CardHeader, Badge } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { inr, formatDate, formatDateTime } from "@/lib/money";
+import { cachedGet } from "@/lib/client-fetch";
 
 interface Company {
   companyName: string;
@@ -237,17 +238,11 @@ export function CustomerStatement({
   const [company, setCompany] = useState<Company | null>(null);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        if (res.ok) {
-          const data = (await res.json()) as { company: Company };
-          setCompany(data.company);
-        }
-      } catch {
+    void cachedGet<{ company: Company }>("/api/settings")
+      .then(({ data }) => setCompany(data.company))
+      .catch(() => {
         /* optional */
-      }
-    })();
+      });
   }, []);
 
   return (

@@ -5,7 +5,7 @@ import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { formatDate, inr } from "@/lib/money";
-import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
+import { CUSTOMERS_LIST_CACHE_KEY, cachedGet, invalidateCached } from "@/lib/client-fetch";
 import type { EmiRow, LoanDetail } from "@/lib/loans";
 
 interface LoanSummaryResult {
@@ -82,17 +82,11 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
   useEffect(() => {
     document.title = "EMI Pay";
-    void (async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        if (res.ok) {
-          const data = (await res.json()) as { company: Company };
-          setCompany(data.company);
-        }
-      } catch {
+    void cachedGet<{ company: Company }>("/api/settings")
+      .then(({ data }) => setCompany(data.company))
+      .catch(() => {
         /* settings optional for payment flow */
-      }
-    })();
+      });
   }, []);
 
   useEffect(() => {
@@ -345,7 +339,10 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     onChange={(e) => {
                       const v = e.target.value;
                       setPaymentDate(v);
-                      if (loan) void loadDetail(loan.loanNo, v);
+                      // Avoid a duplicate fetch: the preselected-loan effect already
+                      // reloads on paymentDate change. Only reload here when the loan
+                      // was picked via search (no preselected value).
+                      if (loan && !preselectedLoan) void loadDetail(loan.loanNo, v);
                     }}
                   />
                 </Field>

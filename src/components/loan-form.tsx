@@ -145,6 +145,8 @@ export function LoanForm() {
       const data = await res.json();
       if (seq !== searchSeq.current) return;
       setSearchResults(data.customers ?? []);
+    } catch {
+      if (seq === searchSeq.current) setSearchResults([]);
     } finally {
       if (seq === searchSeq.current) setSearchBusy(false);
     }

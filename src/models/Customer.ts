@@ -29,6 +29,7 @@ const customerSchema = new mongoose.Schema(
 );
 
 customerSchema.index({ name: "text", mobile: "text", aadhaar: "text" });
+customerSchema.index({ createdAt: -1 });
 
 export type CustomerType = InferSchemaType<typeof customerSchema>;
 

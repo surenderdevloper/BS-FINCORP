@@ -15,6 +15,13 @@ export function requireDbUrl(): string {
   return MONGODB_URI;
 }
 
+const CONNECTION_OPTIONS = {
+  bufferCommands: true,
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 10_000,
+  connectTimeoutMS: 10_000,
+};
+
 export async function dbConnect(): Promise<Connection> {
   const url = requireDbUrl();
   if (globalThis.__bsFincorpMongoose?.conn) {
@@ -29,11 +36,13 @@ export async function dbConnect(): Promise<Connection> {
   }
 
   if (!globalThis.__bsFincorpMongoose?.promise) {
-    const opts = { bufferCommands: true, maxPoolSize: 10 };
-    globalThis.__bsFincorpMongoose = {
-      conn: null,
-      promise: mongoose.connect(url, opts).then((m) => m.connection),
-    };
+    const connectionPromise = mongoose.connect(url, CONNECTION_OPTIONS).then((m) => m.connection);
+    // Reset the cached promise on failure so a later request can retry instead
+    // of awaiting a rejected promise for the rest of the process lifetime.
+    connectionPromise.catch(() => {
+      globalThis.__bsFincorpMongoose = undefined;
+    });
+    globalThis.__bsFincorpMongoose = { conn: null, promise: connectionPromise };
   }
 
   const pending = globalThis.__bsFincorpMongoose.promise;

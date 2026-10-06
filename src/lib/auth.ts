@@ -13,9 +13,13 @@ export interface SessionUser {
 }
 
 function getSecret(): Uint8Array {
-  return new TextEncoder().encode(
-    process.env.AUTH_SECRET ?? "bs-fincorp-insecure-dev-secret"
-  );
+  const secret = process.env.AUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    // Failing loudly on a misconfigured production deployment is safer than
+    // signing sessions with a publicly-known fallback key.
+    throw new Error("AUTH_SECRET must be set when NODE_ENV is production.");
+  }
+  return new TextEncoder().encode(secret ?? "bs-fincorp-insecure-dev-secret");
 }
 
 export async function signSessionToken(user: SessionUser): Promise<string> {

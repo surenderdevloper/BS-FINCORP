@@ -147,6 +147,7 @@ export function isValidObjectId(value: unknown): boolean {
 
 export async function listCustomerDocuments(customerId: string): Promise<CustomerDocumentMeta[]> {
   const docs = (await CustomerDocument.find({ customerId })
+    .select("-data")
     .sort({ createdAt: -1 })
     .lean()
     .exec()) as unknown as CustomerDocumentDoc[];

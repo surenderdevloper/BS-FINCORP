@@ -19,6 +19,8 @@ const emiSchema = new mongoose.Schema(
 
 emiSchema.index({ loanId: 1, dueDate: 1 });
 emiSchema.index({ status: 1, dueDate: 1 });
+emiSchema.index({ loanId: 1, emiNo: 1 });
+emiSchema.index({ loanNo: 1 });
 
 export type EmiType = InferSchemaType<typeof emiSchema>;
 

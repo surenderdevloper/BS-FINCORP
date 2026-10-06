@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
+import { cachedGet, invalidateCached } from "@/lib/client-fetch";
 
 interface PenaltyData {
   enabled: boolean;
@@ -30,18 +31,10 @@ export default function PenaltyRulesPage() {
 
   useEffect(() => {
     document.title = "Penalty Rules";
-    void (async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        if (!res.ok) throw new Error();
-        const data = (await res.json()) as { penalty: PenaltyData };
-        setPenalty({ ...emptyPenalty, ...data.penalty });
-      } catch {
-        setError("Could not load penalty rules.");
-      } finally {
-        setLoaded(true);
-      }
-    })();
+    void cachedGet<{ penalty: PenaltyData }>("/api/settings")
+      .then(({ data }) => setPenalty({ ...emptyPenalty, ...data.penalty }))
+      .catch(() => setError("Could not load penalty rules."))
+      .finally(() => setLoaded(true));
   }, []);
 
   const save = async () => {
@@ -59,6 +52,7 @@ export default function PenaltyRulesPage() {
         setError(data.error ?? "Could not save penalty rules.");
         return;
       }
+      invalidateCached("/api/settings");
       setMessage("Penalty rules saved.");
     } catch {
       setError("Network error while saving.");

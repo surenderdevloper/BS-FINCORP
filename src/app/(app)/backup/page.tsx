@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 
 interface BackupInfo {
   exportedAt: string;
+  app?: string;
   counts: Record<string, number>;
 }
 
@@ -33,7 +34,7 @@ export default function BackupPage() {
       const a = document.createElement("a");
       const stamp = data.exportedAt.slice(0, 10);
       a.href = url;
-      a.download = `bsfincorp-backup-${stamp}.json`;
+      a.download = `${data.app ?? "bsfincorp"}-backup-${stamp}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setLast(data);
@@ -66,7 +67,7 @@ export default function BackupPage() {
       )}
 
       <Card className="max-w-xl">
-        <CardHeader title="Full data backup" subtitle="Customers, loans, EMIs, payments, users, settings & penalty rules" />
+        <CardHeader title="Full data backup" subtitle="Customers, loans, EMIs, payments, users, settings, penalty rules & uploaded documents" />
         <div className="p-4 sm:p-5">
           <p className="text-sm text-zinc-600">
             The backup file contains every record in your system. Download it regularly and keep it on your device or

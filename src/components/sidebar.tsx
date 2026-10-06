@@ -99,7 +99,7 @@ export function SidebarContent({
       </nav>
 
       <div className="border-t border-zinc-100 px-5 py-3">
-        <p className="text-[10px] text-zinc-400">© {new Date().getFullYear()} BS FINCORP</p>
+        <p className="text-[10px] text-zinc-400">© {new Date().getFullYear()} {companyName}</p>
       </div>
     </div>
   );

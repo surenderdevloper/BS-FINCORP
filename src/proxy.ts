@@ -8,6 +8,10 @@ const PUBLIC_PATHS = ["/forgot-password", "/reset-password"];
 async function isAuthed(request: NextRequest): Promise<boolean> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return false;
+  // Refuse to authenticate with a known fallback key on a production
+  // deployment — treat a missing AUTH_SECRET as signed-out so the app fails
+  // closed instead of validating forged session cookies.
+  if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") return false;
   try {
     const secret = new TextEncoder().encode(
       process.env.AUTH_SECRET ?? "bs-fincorp-insecure-dev-secret"

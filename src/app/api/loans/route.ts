@@ -7,6 +7,7 @@ import { CompanySetting } from "@/models/CompanySetting";
 import { readSession } from "@/lib/auth";
 import { calcLoanSummary, generateSchedule } from "@/lib/emi";
 import { validateCustomerShape, validateFinancialShape } from "@/lib/validators";
+import { sanitizeSearch } from "@/lib/search";
 import { listLoans } from "@/lib/loans";
 import { invalidateCustomersListCache } from "@/lib/customers";
 import type { LoanFormPayload } from "@/types";
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
-  const search = url.searchParams.get("search") ?? undefined;
+  const search = sanitizeSearch(url.searchParams.get("search"));
   const statusParam = url.searchParams.get("status");
   const status = statusParam === "active" || statusParam === "closed" ? statusParam : undefined;
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50), 1), 200);

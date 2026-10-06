@@ -42,7 +42,7 @@ export function AppShell({
       )}
 
       <div className="flex min-h-screen w-full flex-col md:pl-60">
-        <Topbar userName={userName} onMenu={() => setDrawerOpen(true)} />
+        <Topbar userName={userName} onMenu={() => setDrawerOpen(true)} branding={branding} />
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-16 sm:px-6 sm:py-8 sm:pb-10 print:static print:px-0">
           {children}
         </main>

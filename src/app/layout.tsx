@@ -12,12 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const appTitle = process.env.NEXT_PUBLIC_APP_NAME || "BS FINCORP";
+
 export const metadata: Metadata = {
   title: {
-    default: "BS FINCORP | Loan Management",
-    template: "%s | BS FINCORP",
+    default: `${appTitle} | Loan Management`,
+    template: `%s | ${appTitle}`,
   },
-  description: "Loan management system for BS FINCORP microfinance business.",
+  description: `Loan management system for ${appTitle} microfinance business.`,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
