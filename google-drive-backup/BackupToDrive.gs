@@ -34,6 +34,10 @@ function getProp_(key) {
   return value;
 }
 
+function propSafe_(key, fallback) {
+  return PropertiesService.getScriptProperties().getProperty(key) || fallback;
+}
+
 function login_(baseUrl, email, password) {
   const res = UrlFetchApp.fetch(baseUrl + "/api/auth/login", {
     method: "post",
@@ -65,13 +69,15 @@ function fetchBackup_(baseUrl, cookie) {
   }
   const disposition = res.getHeaders()["content-disposition"] || "";
   const match = /filename="?([^";]+)"?/.exec(disposition);
-  const fileName = match ? match[1] : getProp_("FILE_PREFIX") + "-backup-" + Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd") + ".json";
+  const fileName = match
+    ? match[1]
+    : propSafe_("FILE_PREFIX", "bs-fincorp-backup") + "-backup-" + Utilities.formatDate(new Date(), "UTC", "yyyy-MM-dd") + ".json";
   return { content: res.getContentText(), fileName: fileName };
 }
 
 function saveToDrive_(folder, fileName, content) {
   const existing = folder.getFilesByName(fileName);
-  const file = existing.hasNext() ? existing.next() : folder.createFile(fileName, "", MimeType.JSON);
+  const file = existing.hasNext() ? existing.next() : folder.createFile(fileName, "", MimeType.PLAIN_TEXT);
   file.setContent(content);
   return file.getId();
 }
@@ -97,8 +103,8 @@ function cleanupOld_(folder, prefix, retentionDays) {
 function runBackup() {
   const baseUrl = getProp_("APP_BASE_URL");
   const folderId = getProp_("DRIVE_FOLDER_ID");
-  const retentionDays = Number(getProp_("RETENTION_DAYS") || 7);
-  const prefix = getProp_("FILE_PREFIX") || "bs-fincorp-backup";
+  const retentionDays = Number(propSafe_("RETENTION_DAYS", 7));
+  const prefix = propSafe_("FILE_PREFIX", "bs-fincorp-backup");
 
   const cookie = login_(baseUrl, getProp_("ADMIN_EMAIL"), getProp_("ADMIN_PASSWORD"));
   const backup = fetchBackup_(baseUrl, cookie);
