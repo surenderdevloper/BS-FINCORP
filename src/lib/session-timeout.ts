@@ -1,4 +1,4 @@
-export const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+export const SESSION_TIMEOUT_MS = 12 * 60 * 60 * 1000;
 export const WARNING_BEFORE_MS = 60 * 1000;
 export const MIN_ACTIVITY_INTERVAL_MS = 5000;
 export const MAX_SCHEDULE_TICK_MS = 60 * 1000;
