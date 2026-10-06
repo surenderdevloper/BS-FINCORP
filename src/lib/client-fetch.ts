@@ -66,6 +66,17 @@ async function fetchJson<T>(url: string): Promise<T> {
 
   const promise = (async () => {
     const res = await fetch(url, { cache: "no-store" });
+    if (res.status === 401 && typeof window !== "undefined" && window.location.pathname !== "/login") {
+      // Session is invalid or stale (e.g. cookie expired, secret rotated or
+      // the user was logged out in another tab). Send them to login instead of
+      // leaving the page stuck on an auth error banner.
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      // Intentional full-page navigation: a hard load to /login also clears the
+      // client router cache, which may hold pages rendered under a stale session.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(`/login${next ? `?next=${next}` : ""}`);
+      throw new Error(`Request to ${url} failed (${res.status}).`);
+    }
     if (!res.ok) throw new Error(`Request to ${url} failed (${res.status}).`);
     const data = (await res.json()) as T;
     memory.set(url, { data, at: Date.now() });
