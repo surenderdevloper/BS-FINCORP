@@ -170,15 +170,15 @@ export default function CustomersPage() {
             <table className="w-full min-w-[880px] text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
-                  <th className="px-3 py-2.5 font-medium sm:px-5">Customer</th>
-                  <th className="px-3 py-2.5 font-medium">Mobile</th>
-                  <th className="px-3 py-2.5 font-medium">Loan No</th>
-                  <th className="px-3 py-2.5 font-medium">Vehicle</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Loan Amount</th>
-                  <th className="px-3 py-2.5 text-center font-medium">EMIs Paid / Pending</th>
-                  <th className="px-3 py-2.5 text-center font-medium">Overdue</th>
-                  <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 text-right font-medium sm:px-5">Action</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mobile</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Loan No</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Vehicle</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Loan Amount</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">EMIs Paid / Pending</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">Overdue</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Status</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium sm:px-5">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -194,23 +194,23 @@ export default function CustomersPage() {
                         <p className="font-medium text-zinc-900">{c.name}</p>
                         <p className="text-[11px] text-zinc-400">{c.aadhaar || "No Aadhaar"}</p>
                       </td>
-                      <td className="px-3 py-3 font-mono text-xs text-zinc-600">{c.mobile}</td>
-                      <td className="px-3 py-3 font-mono text-xs text-zinc-500">{latest?.loanNo ?? "—"}</td>
-                      <td className="px-3 py-3 text-zinc-600">{latest?.vehicle || "—"}</td>
-                      <td className="px-3 py-3 text-right font-medium text-zinc-900">
+                      <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-600">{c.mobile}</td>
+                      <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">{latest?.loanNo ?? "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{latest?.vehicle || "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">
                         {latest ? inr(latest.loanAmount) : "—"}
                       </td>
-                      <td className="px-3 py-3 text-center text-zinc-600">
+                      <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">
                         {latest ? `${latest.paidCount} / ${latest.pendingCount}` : "—"}
                       </td>
-                      <td className="px-3 py-3 text-center">
+                      <td className="whitespace-nowrap px-3 py-3 text-center">
                         {latest && latest.overdueCount > 0 ? (
                           <Badge tone="red">{latest.overdueCount}</Badge>
                         ) : (
                           <span className="text-zinc-300">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="whitespace-nowrap px-3 py-3">
                         {latest ? (
                           latest.status === "closed" ? (
                             <Badge tone="zinc">Closed</Badge>
@@ -221,8 +221,8 @@ export default function CustomersPage() {
                           <Badge tone="blue">No loan</Badge>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-right sm:px-5">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="whitespace-nowrap px-3 py-3 text-center sm:px-5">
+                        <div className="flex items-center justify-center gap-1.5">
                           <Link
                             href={`/customers/${c._id}`}
                             onClick={(e) => e.stopPropagation()}

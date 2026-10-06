@@ -258,9 +258,9 @@ export function DocumentsTab({ customerId, customerName }: { customerId: string;
               <thead>
                 <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                   <th className="px-3 py-2.5 sm:px-5">Document</th>
-                  <th className="px-3 py-2.5 font-medium">Type</th>
-                  <th className="px-3 py-2.5 font-medium">Uploaded On</th>
-                  <th className="px-3 py-2.5 text-right font-medium sm:px-5">Actions</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Type</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Uploaded On</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium sm:px-5">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -280,12 +280,12 @@ export function DocumentsTab({ customerId, customerName }: { customerId: string;
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="whitespace-nowrap px-3 py-3">
                       <Badge tone={typeTone[doc.documentType]}>{doc.documentTypeLabel}</Badge>
                     </td>
-                    <td className="px-3 py-3 text-zinc-600">{doc.createdAt ? formatDate(doc.createdAt) : "—"}</td>
-                    <td className="px-3 py-3 text-right sm:px-5">
-                      <div className="flex justify-end gap-1">
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{doc.createdAt ? formatDate(doc.createdAt) : "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-center sm:px-5">
+                      <div className="flex justify-center gap-1">
                         <Button variant="ghost" size="sm" onClick={() => viewDocument(doc)} title="View">
                           <Icon name="view" size={16} /> View
                         </Button>

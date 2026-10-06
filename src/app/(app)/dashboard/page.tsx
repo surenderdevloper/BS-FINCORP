@@ -131,30 +131,30 @@ export default async function DashboardPage() {
                   <table className="w-full min-w-[640px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
-                        <th className="px-3 py-2.5 font-medium sm:px-5">Customer</th>
-                        <th className="px-3 py-2.5 font-medium">Mobile</th>
-                        <th className="px-3 py-2.5 font-medium">Vehicle</th>
-                        <th className="px-3 py-2.5 font-medium">Due Date</th>
-                        <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                        <th className="px-3 py-2.5 text-right font-medium">Days Late</th>
-                        <th className="px-3 py-2.5 text-right font-medium sm:px-5">Penalty</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mobile</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Vehicle</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Due Date</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Days Late</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Penalty</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
                       {data.overdueRows.map((row) => (
                         <tr key={row.emiId} className="hover:bg-zinc-50/60">
-                          <td className="px-3 py-3 font-medium text-zinc-900 sm:px-5">
+                          <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900 sm:px-5">
                             {row.customerName || "—"}
                             <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
                           </td>
-                          <td className="px-3 py-3 text-zinc-600">{row.mobile || "—"}</td>
-                          <td className="px-3 py-3 text-zinc-600">{row.vehicle || "—"}</td>
-                          <td className="px-3 py-3 text-zinc-600">{formatDate(row.dueDate)}</td>
-                          <td className="px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
-                          <td className="px-3 py-3 text-right">
+                          <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{row.mobile || "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{row.vehicle || "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{formatDate(row.dueDate)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right">
                             <Badge tone="red">{row.daysLate} days</Badge>
                           </td>
-                          <td className="px-3 py-3 text-right font-medium text-red-600 sm:px-5">{inr(row.penalty)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-red-600 sm:px-5">{inr(row.penalty)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -201,28 +201,28 @@ export default async function DashboardPage() {
                   <table className="w-full min-w-[560px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
-                        <th className="px-3 py-2.5 font-medium sm:px-5">Receipt</th>
-                        <th className="px-3 py-2.5 font-medium">Customer</th>
-                        <th className="px-3 py-2.5 font-medium">Mode</th>
-                        <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                        <th className="px-3 py-2.5 text-right font-medium sm:px-5">Time</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Receipt</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Customer</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mode</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Time</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
                       {data.todayRows.map((row) => (
                         <tr key={row.paymentId} className="hover:bg-zinc-50/60">
-                          <td className="px-3 py-3 font-mono text-xs text-zinc-500 sm:px-5">{row.receiptNo}</td>
-                          <td className="px-3 py-3 font-medium text-zinc-900">
+                          <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500 sm:px-5">{row.receiptNo}</td>
+                          <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900">
                             {row.customerName}
                             <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="whitespace-nowrap px-3 py-3">
                             <Badge tone={row.mode === "online" ? "blue" : "zinc"}>
                               {row.mode === "online" ? "Online" : "Cash"}
                             </Badge>
                           </td>
-                          <td className="px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
-                          <td className="px-3 py-3 text-right text-zinc-500 sm:px-5">
+                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right text-zinc-500 sm:px-5">
                             {new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(
                               new Date(row.paidAt)
                             )}

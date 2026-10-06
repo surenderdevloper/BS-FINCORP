@@ -235,14 +235,14 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
               <table className="w-full min-w-[700px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
-                    <th className="w-10 px-3 py-2.5 sm:px-5" />
-                    <th className="px-3 py-2.5 font-medium">EMI</th>
-                    <th className="px-3 py-2.5 font-medium">Due Date</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Principal</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Interest</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Amount</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Penalty</th>
-                    <th className="px-3 py-2.5 sm:px-5" />
+                    <th className="whitespace-nowrap w-10 px-3 py-2.5 sm:px-5" />
+                    <th className="whitespace-nowrap px-3 py-2.5 font-medium">EMI</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 font-medium">Due Date</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Principal</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Interest</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Penalty</th>
+                    <th className="whitespace-nowrap px-3 py-2.5 sm:px-5" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
@@ -262,16 +262,16 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                           )}
                         </td>
                         <td
-                          className={`px-3 py-2.5 font-mono text-xs ${isOverdue ? "font-bold text-red-600" : "text-zinc-500"}`}
+                          className={`whitespace-nowrap px-3 py-2.5 font-mono text-xs ${isOverdue ? "font-bold text-red-600" : "text-zinc-500"}`}
                         >
                           {String(e.emiNo).padStart(2, "0")}
                         </td>
-                        <td className="px-3 py-2.5 text-zinc-600">{formatDate(e.dueDate)}</td>
-                        <td className="px-3 py-2.5 text-right text-zinc-600">{inr(e.principal)}</td>
-                        <td className="px-3 py-2.5 text-right text-zinc-600">{inr(e.interest)}</td>
-                        <td className="px-3 py-2.5 text-right font-medium text-zinc-900">{inr(e.amount)}</td>
-                        <td className="px-3 py-2.5 text-right text-red-600">{e.penalty > 0 ? inr(e.penalty) : "—"}</td>
-                        <td className="px-3 py-2.5 text-right sm:px-5">
+                        <td className="whitespace-nowrap px-3 py-2.5 text-zinc-600">{formatDate(e.dueDate)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right text-zinc-600">{inr(e.principal)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right text-zinc-600">{inr(e.interest)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium text-zinc-900">{inr(e.amount)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right text-red-600">{e.penalty > 0 ? inr(e.penalty) : "—"}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right sm:px-5">
                           {e.status === "paid" ? (
                             <Badge tone="green">Paid</Badge>
                           ) : isOverdue ? (

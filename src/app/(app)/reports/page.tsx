@@ -150,7 +150,7 @@ export default function ReportsPage() {
                 <thead>
                   <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                     {data.columns.map((c) => (
-                      <th key={c} className="px-3 py-2.5 font-medium first:sm:pl-5 last:sm:pr-5">
+                      <th key={c} className="whitespace-nowrap px-3 py-2.5 font-medium first:sm:pl-5 last:sm:pr-5">
                         {c}
                       </th>
                     ))}
@@ -165,7 +165,7 @@ export default function ReportsPage() {
                         return (
                           <td
                             key={c}
-                            className={`px-3 py-3 ${j === 0 ? "font-medium text-zinc-900 sm:pl-5" : "text-zinc-600"} ${
+                            className={`whitespace-nowrap px-3 py-3 ${j === 0 ? "font-medium text-zinc-900 sm:pl-5" : "text-zinc-600"} ${
                               c === "Status" ? "capitalize" : ""
                             } ${isMoney ? "text-right font-medium text-zinc-900 first:font-normal last:sm:pr-5" : "last:sm:pr-5"}`}
                           >
