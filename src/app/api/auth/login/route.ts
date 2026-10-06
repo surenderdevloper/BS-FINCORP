@@ -45,8 +45,13 @@ if (!ok) {
     return res;
   } catch (err) {
     console.error("login error", err);
+    const missingSecret = err instanceof Error && err.message.includes("AUTH_SECRET");
     return NextResponse.json(
-      { error: "Server error. Check that MongoDB is reachable (MONGODB_URI)." },
+      {
+        error: missingSecret
+          ? "Server configuration error: AUTH_SECRET is not set for this environment. Add it as a production environment variable and redeploy."
+          : "Server error. Check that MongoDB is reachable (MONGODB_URI).",
+      },
       { status: 500 }
     );
   }
