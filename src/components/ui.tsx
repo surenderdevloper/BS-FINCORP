@@ -60,11 +60,11 @@ export function CardHeader({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3 sm:px-5">
-      <div>
-        <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>}
+      <div className="min-w-0">
+        <h2 className="break-words text-sm font-semibold text-zinc-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 break-words text-xs text-zinc-500">{subtitle}</p>}
       </div>
-      {action}
+      <div className="shrink-0">{action}</div>
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { getDashboardData } from "@/lib/dashboard";
 import { inr, formatDate } from "@/lib/money";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { RefreshButton } from "./refresh-button";
 import { RemindersCard } from "./reminders-card";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -62,7 +61,6 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-          <RefreshButton />
           <Link
             href="/loans/new"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700"

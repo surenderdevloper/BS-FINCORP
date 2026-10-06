@@ -231,7 +231,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                 </Badge>
               }
             />
-            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className="overflow-x-auto">
               <table className="w-full min-w-[700px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">

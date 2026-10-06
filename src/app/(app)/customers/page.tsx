@@ -166,7 +166,7 @@ export default function CustomersPage() {
             {search ? "No customers match your search." : "No customers yet. Register the first loan in New Loan."}
           </p>
         ) : (
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[880px] text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
