@@ -5,6 +5,7 @@ import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
+import { cachedGet, peekCached } from "@/lib/client-fetch";
 import { inr } from "@/lib/money";
 
 type ReportType = "loans-active" | "loans-closed" | "collections";
@@ -37,15 +38,22 @@ export default function ReportsPage() {
   }, []);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ type, to });
       if (from) params.set("from", from);
-      const res = await fetch(`/api/reports?${params.toString()}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load report.");
-      const json = (await res.json()) as ReportData;
-      setData(json);
+      const url = `/api/reports?${params.toString()}`;
+      // Show the previously loaded report instantly (same tab, same range)
+      // while a fresh copy is fetched in the background.
+      const cached = peekCached<ReportData>(url);
+      if (cached) {
+        setData(cached.data);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+      const { data } = await cachedGet<ReportData>(url);
+      setData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load report.");
     } finally {

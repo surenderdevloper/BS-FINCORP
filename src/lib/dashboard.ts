@@ -7,6 +7,15 @@ import type { DashboardData, OverdueRow, ReminderRow, TodayCollectionRow } from 
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// The dashboard runs many aggregation queries, so its output is cached for a
+// very short window. Switching back to the Dashboard tab then renders almost
+// instantly, and any staleness is at most this TTL (mutations reflect after a
+// few seconds). Mirrors the listCustomers server-cache pattern.
+const DASHBOARD_CACHE_TTL_MS = 10_000;
+
+let dashboardCache: { value: DashboardData; at: number; day: string } | null = null;
+let dashboardInFlight: Promise<DashboardData> | null = null;
+
 function startOfToday(today: Date): Date {
   return new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
 }
@@ -23,7 +32,7 @@ function populateCustomerName(c: LeanCustomer | null | undefined, fallback: stri
   return c ? c.name : fallback;
 }
 
-export async function getDashboardData(today = new Date()): Promise<DashboardData> {
+async function computeDashboardData(today: Date): Promise<DashboardData> {
   const startToday = startOfToday(today);
   const endToday = tomorrow(today);
 
@@ -187,4 +196,25 @@ export async function getDashboardData(today = new Date()): Promise<DashboardDat
     todayRows,
     reminders: reminders.sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 10),
   };
+}
+
+export async function getDashboardData(today = new Date()): Promise<DashboardData> {
+  const day = today.toDateString();
+  if (dashboardCache && dashboardCache.day === day && Date.now() - dashboardCache.at < DASHBOARD_CACHE_TTL_MS) {
+    return dashboardCache.value;
+  }
+  // Coalesce simultaneous renders so the aggregations only run once.
+  if (!dashboardInFlight) {
+    dashboardInFlight = computeDashboardData(today)
+      .then((value) => {
+        dashboardCache = { value, at: Date.now(), day };
+        dashboardInFlight = null;
+        return value;
+      })
+      .catch((err) => {
+        dashboardInFlight = null;
+        throw err;
+      });
+  }
+  return dashboardInFlight;
 }
