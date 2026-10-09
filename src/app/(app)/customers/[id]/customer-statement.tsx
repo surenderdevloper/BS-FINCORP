@@ -158,9 +158,7 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                   <th className="py-2 pr-3 text-right font-semibold">Amount</th>
                   <th className="py-2 pr-3 font-semibold">Mode</th>
                   <th className="py-2 pr-3 font-semibold">Notes</th>
-                  <th className="py-2 text-right font-semibold">
-                    <span className="sr-only">Receipt</span>
-                  </th>
+                  <th className="py-2 text-right font-semibold" aria-label="Download receipt" />
                 </tr>
               </thead>
               <tbody>
