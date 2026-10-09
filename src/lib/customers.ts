@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
 import { Customer } from "@/models/Customer";
 import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
@@ -317,6 +317,45 @@ interface RawPaymentLean {
   createdAt: Date;
 }
 
+function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
+  // discount = (principal + interest + penalty) − amount, clamped at 0.
+  // Matches how the receipt amount was computed: amount = emiTotal + penalty − discount.
+  const discount = Math.max(0, p.principal + p.interest + (p.penalty ?? 0) - p.amount);
+  return {
+    _id: p._id.toString(),
+    receiptNo: p.receiptNo,
+    loanNo: p.loanNo,
+    amount: p.amount,
+    principal: p.principal,
+    interest: p.interest,
+    penalty: p.penalty,
+    mode: p.mode,
+    notes: p.notes,
+    paidAt: p.createdAt.toISOString(),
+    customerName: p.customerName ?? "",
+    paidCount: p.emiIds?.length ?? 0,
+    discount,
+    receivedBy: p.receivedBy ?? "",
+  };
+}
+
+const PAYMENT_RECEIPT_FIELDS =
+  "receiptNo loanNo loanId amount principal interest penalty mode notes type createdAt customerName emiIds receivedBy";
+
+/** Load a single payment as a receipt row, scoped to its customer. */
+export async function getPaymentReceipt(
+  paymentId: string,
+  customerId: string
+): Promise<CustomerPaymentRow | null> {
+  if (!Types.ObjectId.isValid(paymentId) || !Types.ObjectId.isValid(customerId)) return null;
+  const p = (await Payment.findOne({ _id: paymentId, customerId })
+    .select(PAYMENT_RECEIPT_FIELDS)
+    .lean()
+    .exec()) as unknown as RawPaymentLean | null;
+  if (!p) return null;
+  return paymentToRow(p);
+}
+
 export async function getCustomerDetail(id: string): Promise<CustomerDetail | null> {
   const customer = await Customer.findById(id).lean();
   if (!customer) return null;
@@ -372,7 +411,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
   }
 
   const rawPaymentsAll = (await Payment.find({ loanId: { $in: loanIds } })
-    .select("receiptNo loanNo amount principal interest penalty loanId mode notes type createdAt customerName emiIds receivedBy")
+    .select(PAYMENT_RECEIPT_FIELDS)
     .sort({ loanId: 1, createdAt: -1 })
     .lean()
     .exec()) as unknown as RawPaymentLean[];
@@ -387,29 +426,8 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
   for (const loan of loans) {
     const { emis, totals: loanTotals } = await buildEmiRows(emisByLoan.get(loan._id.toString()) ?? []);
     const rawPayments = paymentsByLoan.get(loan._id.toString()) ?? [];
-    const toRow = (p: RawPaymentLean): CustomerPaymentRow => {
-      // discount = (principal + interest + penalty) − amount, clamped at 0.
-      // Matches how the receipt amount was computed: amount = emiTotal + penalty − discount.
-      const discount = Math.max(0, p.principal + p.interest + (p.penalty ?? 0) - p.amount);
-      return {
-        _id: p._id.toString(),
-        receiptNo: p.receiptNo,
-        loanNo: p.loanNo,
-        amount: p.amount,
-        principal: p.principal,
-        interest: p.interest,
-        penalty: p.penalty,
-        mode: p.mode,
-        notes: p.notes,
-        paidAt: p.createdAt.toISOString(),
-        customerName: p.customerName ?? "",
-        paidCount: p.emiIds?.length ?? 0,
-        discount,
-        receivedBy: p.receivedBy ?? "",
-      };
-    };
-    const payments = rawPayments.filter((p) => p.type !== "NOC_REPRINT").map(toRow);
-    const nocReprints = rawPayments.filter((p) => p.type === "NOC_REPRINT").map(toRow);
+    const payments = rawPayments.filter((p) => p.type !== "NOC_REPRINT").map(paymentToRow);
+    const nocReprints = rawPayments.filter((p) => p.type === "NOC_REPRINT").map(paymentToRow);
 
     loanDetails.push({
       _id: loan._id.toString(),

@@ -58,13 +58,7 @@ function DetailRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function LoanSection({
-  loan,
-  company,
-}: {
-  loan: CustomerDetail["loans"][number];
-  company: Company | null;
-}) {
+function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
   const t = loan.totals;
   return (
     <Card className="print-doc">
@@ -181,7 +175,7 @@ function LoanSection({
                     <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
                     <td className="py-2 pr-3 text-zinc-600">{p.notes || "—"}</td>
                     <td className="py-2 text-right">
-                      <ReceiptViewer payment={p} company={company} />
+                      <ReceiptViewer payment={p} />
                     </td>
                   </tr>
                 ))}
@@ -310,7 +304,7 @@ export function CustomerStatement({
           <CardHeader title="Loans" subtitle="No loans registered for this customer." />
         </Card>
       ) : (
-        customer.loans.map((loan) => <LoanSection key={loan._id} loan={loan} company={company} />)
+        customer.loans.map((loan) => <LoanSection key={loan._id} loan={loan} />)
       )}
     </div>
   );
