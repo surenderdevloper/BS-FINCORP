@@ -110,103 +110,109 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
 
         {loan.emis.length > 0 && (
           <div className="mt-4 overflow-x-auto">
-            <div className="mb-2 print-break-avoid print-section-heading">EMI Schedule</div>
-            <table className="w-full min-w-[640px] border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
-                  <th className="py-2 pr-3 font-semibold">EMI</th>
-                  <th className="py-2 pr-3 font-semibold">Due</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Principal</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Interest</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Amount</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Penalty</th>
-                  <th className="py-2 pr-3 font-semibold">Status</th>
-                  <th className="py-2 font-semibold">Paid On</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loan.emis.map((e) => (
-                  <tr key={e._id} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2 pr-3 font-medium text-zinc-900">#{e.emiNo}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{formatDate(e.dueDate)}</td>
-                    <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.principal)}</td>
-                    <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.interest)}</td>
-                    <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(e.amount)}</td>
-                    <td className="py-2 pr-3 text-right text-zinc-600">{e.penalty ? inr(e.penalty) : "—"}</td>
-                    <td className="py-2 pr-3">
-                      <Badge tone={e.status === "paid" ? "green" : "red"}>{e.status}</Badge>
-                    </td>
-                    <td className="py-2 text-zinc-600">{e.paidOn ? formatDate(e.paidOn) : "—"}</td>
+            <div className="w-max min-w-full">
+              <div className="mb-2 print-break-avoid print-section-heading">EMI Schedule</div>
+              <table className="w-full min-w-[640px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
+                    <th className="py-2 pr-3 font-semibold">EMI</th>
+                    <th className="py-2 pr-3 font-semibold">Due</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Principal</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Interest</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Amount</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Penalty</th>
+                    <th className="py-2 pr-3 font-semibold">Status</th>
+                    <th className="py-2 font-semibold">Paid On</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {loan.emis.map((e) => (
+                    <tr key={e._id} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-2 pr-3 font-medium text-zinc-900">#{e.emiNo}</td>
+                      <td className="py-2 pr-3 text-zinc-600">{formatDate(e.dueDate)}</td>
+                      <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.principal)}</td>
+                      <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.interest)}</td>
+                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(e.amount)}</td>
+                      <td className="py-2 pr-3 text-right text-zinc-600">{e.penalty ? inr(e.penalty) : "—"}</td>
+                      <td className="py-2 pr-3">
+                        <Badge tone={e.status === "paid" ? "green" : "red"}>{e.status}</Badge>
+                      </td>
+                      <td className="py-2 text-zinc-600">{e.paidOn ? formatDate(e.paidOn) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {loan.payments.length > 0 && (
           <div className="mt-4 overflow-x-auto">
-            <div className="mb-2 print-break-avoid print-section-heading">Payment History</div>
-            <table className="w-full min-w-[560px] border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
-                  <th className="py-2 pr-3 font-semibold">Receipt</th>
-                  <th className="py-2 pr-3 font-semibold">Date</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Principal</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Interest</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Penalty</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Amount</th>
-                  <th className="py-2 pr-3 font-semibold">Mode</th>
-                  <th className="py-2 pr-3 font-semibold">Notes</th>
-                  <th className="py-2 text-right font-semibold" aria-label="Download receipt" />
-                </tr>
-              </thead>
-              <tbody>
-                {loan.payments.map((p) => (
-                  <tr key={p._id} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2 pr-3 font-medium text-zinc-900">{p.receiptNo}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{formatDateTime(p.paidAt)}</td>
-                    <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.principal)}</td>
-                    <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.interest)}</td>
-                    <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.penalty)}</td>
-                    <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{p.notes || "—"}</td>
-                    <td className="py-2 text-right">
-                      <ReceiptViewer payment={p} />
-                    </td>
+            <div className="w-max min-w-full">
+              <div className="mb-2 print-break-avoid print-section-heading">Payment History</div>
+              <table className="w-full min-w-[560px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
+                    <th className="py-2 pr-3 font-semibold">Receipt</th>
+                    <th className="py-2 pr-3 font-semibold">Date</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Principal</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Interest</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Penalty</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Amount</th>
+                    <th className="py-2 pr-3 font-semibold">Mode</th>
+                    <th className="py-2 pr-3 font-semibold">Notes</th>
+                    <th className="py-2 text-right font-semibold" aria-label="Download receipt" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {loan.payments.map((p) => (
+                    <tr key={p._id} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-2 pr-3 font-medium text-zinc-900">{p.receiptNo}</td>
+                      <td className="py-2 pr-3 text-zinc-600">{formatDateTime(p.paidAt)}</td>
+                      <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.principal)}</td>
+                      <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.interest)}</td>
+                      <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.penalty)}</td>
+                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
+                      <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
+                      <td className="py-2 pr-3 text-zinc-600">{p.notes || "—"}</td>
+                      <td className="py-2 text-right">
+                        <ReceiptViewer payment={p} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {loan.nocReprints.length > 0 && (
           <div className="mt-4 overflow-x-auto">
-            <div className="mb-2 print-break-avoid print-section-heading">NOC Reprint Charges</div>
-            <table className="w-full min-w-[480px] border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
-                  <th className="py-2 pr-3 font-semibold">Receipt</th>
-                  <th className="py-2 pr-3 font-semibold">Date</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Amount</th>
-                  <th className="py-2 pr-3 font-semibold">Mode</th>
-                  <th className="py-2 font-semibold">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loan.nocReprints.map((p) => (
-                  <tr key={p._id} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2 pr-3 font-medium text-zinc-900">{p.receiptNo}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{formatDateTime(p.paidAt)}</td>
-                    <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
-                    <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
-                    <td className="py-2 text-zinc-600">{p.notes || "—"}</td>
+            <div className="w-max min-w-full">
+              <div className="mb-2 print-break-avoid print-section-heading">NOC Reprint Charges</div>
+              <table className="w-full min-w-[480px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
+                    <th className="py-2 pr-3 font-semibold">Receipt</th>
+                    <th className="py-2 pr-3 font-semibold">Date</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Amount</th>
+                    <th className="py-2 pr-3 font-semibold">Mode</th>
+                    <th className="py-2 font-semibold">Notes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {loan.nocReprints.map((p) => (
+                    <tr key={p._id} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-2 pr-3 font-medium text-zinc-900">{p.receiptNo}</td>
+                      <td className="py-2 pr-3 text-zinc-600">{formatDateTime(p.paidAt)}</td>
+                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
+                      <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
+                      <td className="py-2 text-zinc-600">{p.notes || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

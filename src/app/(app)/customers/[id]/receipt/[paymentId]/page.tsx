@@ -37,7 +37,7 @@ export default async function ReceiptPage({
           href={`/customers/${id}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
         >
-          <Icon name="chevron" size={16} className="-rotate-90" /> Back to Customer
+          <Icon name="arrowLeft" size={16} /> Back to Customer
         </Link>
         <ReceiptActions />
       </div>

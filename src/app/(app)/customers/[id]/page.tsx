@@ -41,7 +41,7 @@ export default async function CustomerDetailPage({
           href="/customers"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
         >
-          <Icon name="chevron" size={16} className="-rotate-90" /> All Customers
+          <Icon name="arrowLeft" size={16} /> All Customers
         </Link>
         <nav className="no-print flex flex-wrap gap-1.5" aria-label="Customer sections">
           <Link href={`/customers/${id}`} className={tabClasses(activeTab === "statement")}>
