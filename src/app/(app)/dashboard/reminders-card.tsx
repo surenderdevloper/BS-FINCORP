@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { SmsComposer } from "@/components/sms-composer";
 import { inr, formatDate } from "@/lib/money";
 import type { ReminderRow } from "@/types";
 
@@ -83,7 +84,15 @@ export function RemindersCard({ reminders, count }: { reminders: ReminderRow[]; 
                       <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Due amount</p>
                       <p className="text-sm font-semibold text-emerald-700">{inr(row.amount)}</p>
                     </div>
-                    <div className="flex items-end justify-end">
+                    <div className="flex items-end justify-end gap-2">
+                      <SmsComposer
+                        type="upcoming"
+                        customerName={row.customerName}
+                        mobile={row.mobile}
+                        loanNo={row.loanNo}
+                        amount={row.amount}
+                        dueDate={row.dueDate}
+                      />
                       <Link
                         href={`/emi-pay?loan=${row.loanNo}`}
                         className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"

@@ -5,6 +5,7 @@ import { getDashboardData } from "@/lib/dashboard";
 import { inr, formatDate } from "@/lib/money";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { SmsComposer } from "@/components/sms-composer";
 import { RemindersCard } from "./reminders-card";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -122,7 +123,17 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-zinc-500">{row.mobile || "—"}</span>
-                        <span className="font-medium text-red-600">+{inr(row.penalty)} penalty</span>
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium text-red-600">+{inr(row.penalty)} penalty</span>
+                          <SmsComposer
+                            type="overdue"
+                            customerName={row.customerName}
+                            mobile={row.mobile}
+                            loanNo={row.loanNo}
+                            amount={row.amount}
+                            dueDate={row.dueDate}
+                          />
+                        </span>
                       </div>
                     </li>
                   ))}
@@ -138,6 +149,7 @@ export default async function DashboardPage() {
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Days Late</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Penalty</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">SMS</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -155,6 +167,16 @@ export default async function DashboardPage() {
                             <Badge tone="red">{row.daysLate} days</Badge>
                           </td>
                           <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-red-600 sm:px-5">{inr(row.penalty)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">
+                            <SmsComposer
+                              type="overdue"
+                              customerName={row.customerName}
+                              mobile={row.mobile}
+                              loanNo={row.loanNo}
+                              amount={row.amount}
+                              dueDate={row.dueDate}
+                            />
+                          </td>
                         </tr>
                       ))}
                     </tbody>
