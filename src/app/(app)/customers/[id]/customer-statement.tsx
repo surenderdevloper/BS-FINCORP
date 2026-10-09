@@ -51,9 +51,9 @@ function SummaryGrid({ customer }: { customer: CustomerDetail }) {
 function DetailRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</dt>
-      <dd className="text-sm font-medium text-zinc-900">{value}</dd>
+      <dd className="break-words text-sm font-medium text-zinc-900">{value}</dd>
     </div>
   );
 }
@@ -69,9 +69,9 @@ function LoanSection({
   return (
     <Card className="print-doc">
       <div className="print-banner flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-bold text-white">Loan {loan.loanNo}</p>
-          <p className="mt-0.5 text-xs text-white/85">
+          <p className="mt-0.5 break-words text-xs text-white/85">
             {loan.vehicle.name ?? ""}
             {loan.vehicle.regNo ? ` • ${loan.vehicle.regNo}` : ""}
           </p>

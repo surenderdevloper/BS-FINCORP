@@ -130,10 +130,10 @@ export default function CloseLoanPage() {
                       setResults([]);
                       void selectLoan(l.loanNo);
                     }}
-                    className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-zinc-50"
                   >
-                    <span className="font-medium text-zinc-900">{l.customer.name}</span>
-                    <span className="font-mono text-xs text-zinc-500">{l.loanNo}</span>
+                    <span className="min-w-0 truncate font-medium text-zinc-900">{l.customer.name}</span>
+                    <span className="shrink-0 font-mono text-xs text-zinc-500">{l.loanNo}</span>
                   </button>
                 </li>
               ))}

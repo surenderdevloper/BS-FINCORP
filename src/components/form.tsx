@@ -20,8 +20,8 @@ export function Field({
         {required && <span className="ml-0.5 text-red-500">*</span>}
       </span>
       {children}
-      {hint && !error && <span className="mt-1 block text-[11px] text-zinc-400">{hint}</span>}
-      {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
+      {hint && !error && <span className="mt-1 block break-words text-[11px] text-zinc-400">{hint}</span>}
+      {error && <span className="mt-1 block break-words text-xs text-red-600">{error}</span>}
     </label>
   );
 }

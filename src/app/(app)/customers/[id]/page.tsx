@@ -36,14 +36,14 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="space-y-4">
-      <div className="no-print flex items-center justify-between">
+      <div className="no-print flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/customers"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
         >
           <Icon name="chevron" size={16} className="-rotate-90" /> All Customers
         </Link>
-        <nav className="no-print flex gap-1.5" aria-label="Customer sections">
+        <nav className="no-print flex flex-wrap gap-1.5" aria-label="Customer sections">
           <Link href={`/customers/${id}`} className={tabClasses(activeTab === "statement")}>
             Statement
           </Link>

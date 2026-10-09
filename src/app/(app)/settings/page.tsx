@@ -164,7 +164,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
             <div className="sm:col-span-2">
               <p className="mb-1.5 inline-block text-xs font-medium text-zinc-700">Company Logo</p>
-              <div className="flex items-center gap-4 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4">
+              <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4">
                 {company.logo ? (
                   <img src={company.logo} alt="Company logo" className="h-16 w-16 rounded-lg bg-white object-contain ring-1 ring-zinc-200" />
                 ) : (
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                     <Icon name="user" size={28} />
                   </span>
                 )}
-                <div className="flex flex-col gap-2">
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
                       <Icon name="edit" size={14} /> Upload Logo

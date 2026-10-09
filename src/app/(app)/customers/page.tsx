@@ -134,8 +134,8 @@ export default function CustomersPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 sm:max-w-sm">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400">
             <Icon name="search" size={16} />
           </span>

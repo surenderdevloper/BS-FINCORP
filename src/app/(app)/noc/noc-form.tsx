@@ -170,10 +170,10 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
                       setResults([]);
                       void loadLoan(l.loanNo);
                     }}
-                    className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-zinc-50"
                   >
-                    <span className="font-medium text-zinc-900">{l.customer.name}</span>
-                    <span className="font-mono text-xs text-zinc-500">{l.loanNo}</span>
+                    <span className="min-w-0 truncate font-medium text-zinc-900">{l.customer.name}</span>
+                    <span className="shrink-0 font-mono text-xs text-zinc-500">{l.loanNo}</span>
                   </button>
                 </li>
               ))}
@@ -338,7 +338,7 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
               </p>
             </div>
 
-            <div className="mt-12 flex items-end justify-between text-sm text-zinc-800">
+            <div className="mt-12 flex flex-wrap items-end justify-between gap-4 text-sm text-zinc-800">
               <div>
                 <p>Date: _______________</p>
               </div>
@@ -425,9 +425,9 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     <span className="text-sm font-semibold">Amount Received</span>
                     <span className="text-xl font-bold">{inr(reprintReceipt.amount)}</span>
                   </div>
-                  <div className="mt-8 flex items-end justify-between text-xs text-zinc-500">
-                    <span>Received By: _______________</span>
-                    <span>Customer Sign: _______________</span>
+                  <div className="mt-8 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 text-xs text-zinc-500">
+                    <span className="break-all">Received By: _______________</span>
+                    <span className="break-all">Customer Sign: _______________</span>
                   </div>
                 </div>
               </Card>

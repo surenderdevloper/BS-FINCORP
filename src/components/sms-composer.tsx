@@ -183,7 +183,7 @@ export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDat
                   </Button>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button variant="secondary" size="md" onClick={() => void onCopy("message", message)}>
                     {copied === "message" && <Icon name="check" size={16} />}
                     {copied === "message" ? "Copied" : "Copy Message"}

@@ -79,10 +79,10 @@ export default function BackupPage() {
           </Button>
 
           {last && (
-            <dl className="mt-5 grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 text-sm">
+            <dl className="mt-5 grid grid-cols-1 gap-3 rounded-lg bg-zinc-50 p-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-zinc-500">Exported</dt>
-                <dd className="font-medium text-zinc-900">{new Date(last.exportedAt).toLocaleString("en-IN")}</dd>
+                <dd className="break-words font-medium text-zinc-900">{new Date(last.exportedAt).toLocaleString("en-IN")}</dd>
               </div>
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-zinc-500">Records</dt>

@@ -76,7 +76,7 @@ export function ReceiptViewer({
   .r span:last-child{text-align:right;font-weight:500}
   .total{display:flex;justify-content:space-between;align-items:center;background:#f4f5f6;border-radius:10px;padding:14px 16px;font-weight:700;font-size:16px;margin-top:18px}
   .total .amt{font-size:22px}
-  .sig{display:flex;justify-content:space-between;gap:16px;margin-top:44px;font-size:12px;color:#666}
+  .sig{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;margin-top:44px;font-size:12px;color:#666}
   .toolbar{max-width:520px;margin:16px auto 0;text-align:center}
   .toolbar button{font:inherit;font-weight:600;background:#059669;color:#fff;border:0;border-radius:9px;padding:10px 18px;cursor:pointer}
   .toolbar p{margin:10px 0 0;font-size:12px;color:#888}
@@ -148,7 +148,7 @@ export function ReceiptViewer({
       </button>
 
       {open && (
-        <div className="no-print fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="no-print fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           <div className="absolute inset-0 bg-zinc-900/60" onClick={() => setOpen(false)} />
           <Card className="relative flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-0">
             <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
@@ -166,7 +166,7 @@ export function ReceiptViewer({
               </button>
             </div>
 
-            <div className="overflow-y-auto px-5 py-4">
+            <div className="min-w-0 overflow-y-auto px-4 py-4 sm:px-5">
               <div className="text-center">
                 <p className="text-base font-bold text-zinc-900">{companyName}</p>
                 {company?.address && <p className="mt-0.5 text-[11px] text-zinc-500">{company.address}</p>}
@@ -226,9 +226,9 @@ export function ReceiptViewer({
                 <span className="text-lg font-bold text-zinc-900">{inr(payment.amount)}</span>
               </div>
 
-              <div className="mt-6 flex items-end justify-between gap-4 text-[11px] text-zinc-500">
-                <span>Received By: {payment.receivedBy?.trim() || "_______________"}</span>
-                <span>Customer Sign: _______________</span>
+              <div className="mt-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 text-[11px] text-zinc-500">
+                <span className="break-all">Received By: {payment.receivedBy?.trim() || "_______________"}</span>
+                <span className="break-all">Customer Sign: _______________</span>
               </div>
             </div>
 

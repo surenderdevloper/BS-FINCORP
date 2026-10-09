@@ -104,7 +104,7 @@ export default function ReportsPage() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="From">
               <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             </Field>

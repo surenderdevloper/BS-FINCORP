@@ -199,10 +199,10 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                       setResults([]);
                       void selectLoan(l.loanNo);
                     }}
-                    className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-zinc-50"
                   >
-                    <span className="font-medium text-zinc-900">{l.customer.name}</span>
-                    <span className="font-mono text-xs text-zinc-500">{l.loanNo}</span>
+                    <span className="min-w-0 truncate font-medium text-zinc-900">{l.customer.name}</span>
+                    <span className="shrink-0 font-mono text-xs text-zinc-500">{l.loanNo}</span>
                   </button>
                 </li>
               ))}
@@ -313,7 +313,7 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                       <p className="font-semibold text-zinc-900">-{inr(discountValue)}</p>
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-200 pt-3">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-zinc-200 pt-3">
                     <span className="text-xs text-zinc-500">
                       {inr(emiTotal)} + {inr(penaltyTotal)} − {inr(discountValue)}
                     </span>
@@ -443,9 +443,9 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                 <span className="text-sm font-semibold">Amount Received</span>
                 <span className="text-xl font-bold">{inr(receipt.amount)}</span>
               </div>
-              <div className="mt-8 flex items-end justify-between text-xs text-zinc-500">
-                <span>Received By: _______________</span>
-                <span>Customer Sign: _______________</span>
+              <div className="mt-8 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 text-xs text-zinc-500">
+                <span className="break-all">Received By: _______________</span>
+                <span className="break-all">Customer Sign: _______________</span>
               </div>
             </div>
           </Card>

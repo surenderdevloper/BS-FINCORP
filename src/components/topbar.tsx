@@ -38,7 +38,7 @@ export function Topbar({
       </button>
 
       <div className="flex min-w-0 items-center md:hidden">
-        <span className="text-sm font-bold text-zinc-900">{companyName}</span>
+        <span className="truncate text-sm font-bold text-zinc-900">{companyName}</span>
       </div>
 
       <div className="hidden items-center gap-1.5 text-sm text-zinc-500 sm:flex">

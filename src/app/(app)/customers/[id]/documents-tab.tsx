@@ -237,7 +237,7 @@ export function DocumentsTab({ customerId, customerName }: { customerId: string;
         {loading ? (
           <p className="p-5 text-sm text-zinc-500">Loading documents…</p>
         ) : loadError ? (
-          <div className="flex items-center justify-between gap-2 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-5">
             <p className="flex items-center gap-2 text-sm text-red-700">
               <Icon name="alert" size={16} /> {loadError}
             </p>
@@ -383,7 +383,7 @@ export function DocumentsTab({ customerId, customerName }: { customerId: string;
             <div className="p-4 sm:p-5">
               <p className="text-sm text-zinc-700">
                 Are you sure you want to delete this document?{" "}
-                <span className="font-medium text-zinc-900">{deleteTarget.originalFileName}</span> will be removed.
+                <span className="break-all font-medium text-zinc-900">{deleteTarget.originalFileName}</span> will be removed.
               </p>
               {deleteError && (
                 <p className="mt-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
