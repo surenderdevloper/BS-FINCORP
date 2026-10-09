@@ -235,6 +235,10 @@ export interface CustomerPaymentRow {
   mode: string;
   notes: string;
   paidAt: string;
+  customerName: string;
+  paidCount: number;
+  discount: number;
+  receivedBy?: string;
 }
 
 export interface CustomerLoanDetail {
@@ -307,6 +311,9 @@ interface RawPaymentLean {
   mode: string;
   notes: string;
   type?: string;
+  customerName?: string;
+  emiIds?: Types.ObjectId[];
+  receivedBy?: string;
   createdAt: Date;
 }
 
@@ -365,7 +372,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
   }
 
   const rawPaymentsAll = (await Payment.find({ loanId: { $in: loanIds } })
-    .select("receiptNo loanNo amount principal interest penalty loanId mode notes type createdAt")
+    .select("receiptNo loanNo amount principal interest penalty loanId mode notes type createdAt customerName emiIds receivedBy")
     .sort({ loanId: 1, createdAt: -1 })
     .lean()
     .exec()) as unknown as RawPaymentLean[];
@@ -380,18 +387,27 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
   for (const loan of loans) {
     const { emis, totals: loanTotals } = await buildEmiRows(emisByLoan.get(loan._id.toString()) ?? []);
     const rawPayments = paymentsByLoan.get(loan._id.toString()) ?? [];
-    const toRow = (p: RawPaymentLean): CustomerPaymentRow => ({
-      _id: p._id.toString(),
-      receiptNo: p.receiptNo,
-      loanNo: p.loanNo,
-      amount: p.amount,
-      principal: p.principal,
-      interest: p.interest,
-      penalty: p.penalty,
-      mode: p.mode,
-      notes: p.notes,
-      paidAt: p.createdAt.toISOString(),
-    });
+    const toRow = (p: RawPaymentLean): CustomerPaymentRow => {
+      // discount = (principal + interest + penalty) − amount, clamped at 0.
+      // Matches how the receipt amount was computed: amount = emiTotal + penalty − discount.
+      const discount = Math.max(0, p.principal + p.interest + (p.penalty ?? 0) - p.amount);
+      return {
+        _id: p._id.toString(),
+        receiptNo: p.receiptNo,
+        loanNo: p.loanNo,
+        amount: p.amount,
+        principal: p.principal,
+        interest: p.interest,
+        penalty: p.penalty,
+        mode: p.mode,
+        notes: p.notes,
+        paidAt: p.createdAt.toISOString(),
+        customerName: p.customerName ?? "",
+        paidCount: p.emiIds?.length ?? 0,
+        discount,
+        receivedBy: p.receivedBy ?? "",
+      };
+    };
     const payments = rawPayments.filter((p) => p.type !== "NOC_REPRINT").map(toRow);
     const nocReprints = rawPayments.filter((p) => p.type === "NOC_REPRINT").map(toRow);
 

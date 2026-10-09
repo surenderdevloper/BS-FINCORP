@@ -6,6 +6,7 @@ import { Button, Card, CardHeader, Badge } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { inr, formatDate, formatDateTime } from "@/lib/money";
 import { cachedGet } from "@/lib/client-fetch";
+import { ReceiptViewer } from "./receipt-viewer";
 
 interface Company {
   companyName: string;
@@ -57,7 +58,13 @@ function DetailRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
+function LoanSection({
+  loan,
+  company,
+}: {
+  loan: CustomerDetail["loans"][number];
+  company: Company | null;
+}) {
   const t = loan.totals;
   return (
     <Card className="print-doc">
@@ -156,7 +163,10 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                   <th className="py-2 pr-3 text-right font-semibold">Penalty</th>
                   <th className="py-2 pr-3 text-right font-semibold">Amount</th>
                   <th className="py-2 pr-3 font-semibold">Mode</th>
-                  <th className="py-2 font-semibold">Notes</th>
+                  <th className="py-2 pr-3 font-semibold">Notes</th>
+                  <th className="py-2 text-right font-semibold">
+                    <span className="sr-only">Receipt</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +179,10 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                     <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.penalty)}</td>
                     <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
                     <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
-                    <td className="py-2 text-zinc-600">{p.notes || "—"}</td>
+                    <td className="py-2 pr-3 text-zinc-600">{p.notes || "—"}</td>
+                    <td className="py-2 text-right">
+                      <ReceiptViewer payment={p} company={company} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -297,7 +310,7 @@ export function CustomerStatement({
           <CardHeader title="Loans" subtitle="No loans registered for this customer." />
         </Card>
       ) : (
-        customer.loans.map((loan) => <LoanSection key={loan._id} loan={loan} />)
+        customer.loans.map((loan) => <LoanSection key={loan._id} loan={loan} company={company} />)
       )}
     </div>
   );
