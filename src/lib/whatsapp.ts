@@ -1,5 +1,6 @@
 import { inr } from "@/lib/money";
 import { normalizeMobile } from "@/lib/sms";
+import { renderTemplate } from "@/lib/message-templates";
 
 export const WHATSAPP_BRANDING = "BS FINCORP";
 
@@ -56,7 +57,21 @@ export interface WaEmiReminderInput {
 }
 
 /** Hindi EMI reminder for an upcoming, due-today or overdue installment. */
-export function buildEmiReminderMessage(kind: WaReminderKind, input: WaEmiReminderInput): string {
+export function buildEmiReminderMessage(
+  kind: WaReminderKind,
+  input: WaEmiReminderInput,
+  template?: string
+): string {
+  const custom = (template ?? "").trim();
+  if (custom) {
+    return renderTemplate(custom, {
+      name: input.customerName,
+      amount: input.amount,
+      loan: input.loanNo,
+      date: input.dueDate,
+      brand: branding(input.brandingName),
+    });
+  }
   const name = customerName(input.customerName);
   const amount = inr(input.amount);
   const date = formatMessageDate(input.dueDate);
@@ -103,7 +118,18 @@ export interface WaPaymentInput {
  * Payment confirmation message. Only call this once a payment has actually been
  * saved, so the customer is never told about a payment that was not recorded.
  */
-export function buildPaymentConfirmationMessage(input: WaPaymentInput): string {
+export function buildPaymentConfirmationMessage(input: WaPaymentInput, template?: string): string {
+  const custom = (template ?? "").trim();
+  if (custom) {
+    return renderTemplate(custom, {
+      name: input.customerName,
+      amount: input.amount,
+      loan: input.loanNo ?? "",
+      date: input.paidAt,
+      brand: branding(input.brandingName),
+      receipt: input.receiptNo ?? "",
+    });
+  }
   const name = customerName(input.customerName);
   const amount = inr(input.amount);
   const date = formatMessageDate(input.paidAt);
@@ -130,7 +156,22 @@ export interface WaFollowUpInput {
 }
 
 /** Professional, non-threatening collection follow-up message. */
-export function buildCollectionFollowUpMessage(kind: WaFollowUpKind, input: WaFollowUpInput): string {
+export function buildCollectionFollowUpMessage(
+  kind: WaFollowUpKind,
+  input: WaFollowUpInput,
+  template?: string
+): string {
+  const custom = (template ?? "").trim();
+  if (custom) {
+    return renderTemplate(custom, {
+      name: input.customerName,
+      amount: input.amount,
+      loan: input.loanNo,
+      date: new Date(),
+      brand: branding(input.brandingName),
+      phone: input.officePhone ?? "",
+    });
+  }
   const name = customerName(input.customerName);
   const amount = inr(input.amount);
   const loan = input.loanNo.trim();
@@ -173,7 +214,20 @@ export interface WaStatementInput {
 }
 
 /** Short account summary used when sharing a customer's statement. */
-export function buildStatementMessage(input: WaStatementInput): string {
+export function buildStatementMessage(input: WaStatementInput, template?: string): string {
+  const custom = (template ?? "").trim();
+  if (custom) {
+    return renderTemplate(custom, {
+      name: input.customerName,
+      amount: input.totalPaid,
+      loan: "",
+      date: new Date(),
+      brand: branding(input.brandingName),
+      totalLoan: input.loanCount,
+      totalPaid: input.totalPaid,
+      outstanding: input.outstanding,
+    });
+  }
   const name = customerName(input.customerName);
   const b = branding(input.brandingName);
   return [
@@ -189,6 +243,16 @@ export function buildStatementMessage(input: WaStatementInput): string {
 }
 
 /** Default greeting used when opening a direct chat from a customer profile. */
-export function buildCustomChatMessage(name?: string, brandingName?: string): string {
+export function buildCustomChatMessage(name?: string, brandingName?: string, template?: string): string {
+  const custom = (template ?? "").trim();
+  if (custom) {
+    return renderTemplate(custom, {
+      name: name ?? "",
+      amount: 0,
+      loan: "",
+      date: new Date(),
+      brand: branding(brandingName),
+    });
+  }
   return [`नमस्ते ${customerName(name)} जी,`, ``, `- ${branding(brandingName)}`].join("\n");
 }

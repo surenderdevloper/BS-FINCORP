@@ -6,11 +6,29 @@ import { User } from "@/models/User";
 
 export { SESSION_COOKIE };
 
+export type UserRole = "admin" | "developer";
+
 export interface SessionUser {
   id: string;
   name: string;
   email: string;
+  role: UserRole;
   tokenVersion?: number;
+}
+
+/** A session is a developer (owner-level) account when its role says so. */
+export function isDeveloper(user: SessionUser | null): boolean {
+  return user?.role === "developer";
+}
+
+/**
+ * Read the current session and require the developer role. Returns null when
+ * there is no session or the account is not a developer. Use in developer-only
+ * pages and API routes so admin accounts cannot reach them.
+ */
+export async function requireDeveloper(): Promise<SessionUser | null> {
+  const user = await readSession();
+  return isDeveloper(user) ? user : null;
 }
 
 function getSecret(): Uint8Array {
@@ -27,6 +45,7 @@ export async function signSessionToken(user: SessionUser): Promise<string> {
   return new SignJWT({
     name: user.name,
     email: user.email,
+    role: user.role,
     v: user.tokenVersion ?? 0,
   } as JWTPayload)
     .setProtectedHeader({ alg: "HS256" })
@@ -43,10 +62,12 @@ export async function verifySessionToken(
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (!payload.sub) return null;
+    const role = payload.role === "developer" ? "developer" : "admin";
     return {
       id: payload.sub,
       name: (payload.name as string) ?? "",
       email: (payload.email as string) ?? "",
+      role,
       tokenVersion: (payload.v as number | undefined) ?? 0,
     };
   } catch {
@@ -63,9 +84,12 @@ export async function readSession(): Promise<SessionUser | null> {
     // instance buffers the query (mongoose bufferTimeoutMS) until it throws,
     // which turns a slow start into a bogus 401 / forced logout.
     await dbConnect();
-    const current = await User.findById(user.id).select("tokenVersion").lean();
+    const current = await User.findById(user.id).select("tokenVersion role").lean();
     if (!current) return null;
     if ((current.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) return null;
+    // Role is read from the database on every request so a role change takes
+    // effect immediately without waiting for the session token to expire.
+    user.role = current.role === "developer" ? "developer" : "admin";
   } catch {
     return null;
   }

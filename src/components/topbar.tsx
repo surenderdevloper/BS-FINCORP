@@ -9,10 +9,12 @@ export function Topbar({
   userName,
   onMenu,
   branding,
+  isDeveloper = false,
 }: {
   userName: string;
   onMenu: () => void;
   branding?: CompanyBranding;
+  isDeveloper?: boolean;
 }) {
   const router = useRouter();
   const companyName = branding?.companyName || "BS FINCORP";
@@ -53,7 +55,7 @@ export function Topbar({
           </span>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-zinc-900">{userName}</p>
-            <p className="text-[11px] text-zinc-400">Administrator</p>
+            <p className="text-[11px] text-zinc-400">{isDeveloper ? "Developer" : "Administrator"}</p>
           </div>
         </div>
         <button

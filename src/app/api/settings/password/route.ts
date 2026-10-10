@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
-import { readSession } from "@/lib/auth";
+import { SESSION_COOKIE, readSession, signSessionToken, sessionCookieOptions } from "@/lib/auth";
 
 export async function PUT(req: Request) {
   const session = await readSession();
@@ -46,7 +47,21 @@ export async function PUT(req: Request) {
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
   user.passwordHash = passwordHash;
+  // Bumping the token version invalidates every existing session. We then
+  // re-issue a cookie for the current device so the person changing the
+  // password is not logged out, while all other sessions are revoked.
+  user.tokenVersion = (user.tokenVersion ?? 0) + 1;
   await user.save();
+
+  const token = await signSessionToken({
+    id: String(user._id),
+    name: user.name,
+    email: user.email,
+    role: user.role === "developer" ? "developer" : "admin",
+    tokenVersion: user.tokenVersion,
+  });
+  const store = await cookies();
+  store.set(SESSION_COOKIE, token, sessionCookieOptions());
 
   return NextResponse.json({ ok: true });
 }

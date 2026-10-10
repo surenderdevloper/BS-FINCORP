@@ -109,10 +109,13 @@ function fillFromLoan(l: LoanDetail) {
 export function EditCustomerForm({
   preselectedId,
   preselectedLoan,
+  loanTypes,
 }: {
   preselectedId?: string;
   preselectedLoan?: string;
+  loanTypes?: string[];
 }) {
+  const typeOptions = loanTypes && loanTypes.length ? loanTypes : ["2 Wheeler", "3 Wheeler", "4 Wheeler", "Other"];
   const [search, setSearch] = useState(preselectedLoan ?? "");
   const [results, setResults] = useState<LoanSummary[]>([]);
   const [loan, setLoan] = useState<LoanDetail | null>(null);
@@ -495,10 +498,11 @@ export function EditCustomerForm({
                   </Field>
                   <Field label="Loan Type">
                     <Select value={vehicle.loanType} onChange={(e) => setField("vehicle", "loanType", e.target.value)}>
-                      <option>2 Wheeler</option>
-                      <option>3 Wheeler</option>
-                      <option>4 Wheeler</option>
-                      <option>Other</option>
+                      {typeOptions.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
                     </Select>
                   </Field>
                 </div>

@@ -51,8 +51,20 @@ const emptyCustomer = {
 const emptyVehicle = { name: "", model: "", engineNo: "", chassisNo: "", regNo: "", loanType: "2 Wheeler", dealerName: "" };
 const emptyGuarantor = { name: "", mobile: "", relation: "", address: "" };
 
-export function LoanForm() {
+const FALLBACK_LOAN_TYPES = ["2 Wheeler", "3 Wheeler", "4 Wheeler", "Other"];
+
+export interface LoanTypeOption {
+  name: string;
+  defaultInterestType?: "flat" | "reducing";
+  defaultRate?: number;
+  defaultTenureMonths?: number;
+  defaultEmiDay?: number;
+}
+
+export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
   const router = useRouter();
+
+  const typeOptions: LoanTypeOption[] = loanTypes && loanTypes.length ? loanTypes : FALLBACK_LOAN_TYPES.map((name) => ({ name }));
 
   const [tab, setTab] = useState(0);
   const [customer, setCustomer] = useState(emptyCustomer);
@@ -63,7 +75,10 @@ export function LoanForm() {
   const [searchBusy, setSearchBusy] = useState(false);
   const [searching, setSearching] = useState(false);
 
-  const [vehicle, setVehicle] = useState(emptyVehicle);
+  const [vehicle, setVehicle] = useState(() => ({
+    ...emptyVehicle,
+    loanType: (loanTypes && loanTypes.length ? loanTypes[0].name : emptyVehicle.loanType),
+  }));
   const [financial, setFinancial] = useState({
     vehiclePrice: "",
     downPayment: "",
@@ -178,6 +193,27 @@ export function LoanForm() {
     if (group === "vehicle") setVehicle((v) => ({ ...v, [key]: value }));
     if (group === "guarantor") setGuarantor((g) => ({ ...g, [key]: value }));
     if (group === "financial") setFinancial((f) => ({ ...f, [key]: value }));
+  }
+
+  /**
+   * When a loan type with configured EMI rules is chosen, prefill the financial
+   * fields with its defaults. Only meaningful values are applied so the
+   * built-in types (which have no configured defaults) leave the form as-is.
+   */
+  function chooseLoanType(name: string) {
+    setField("vehicle", "loanType", name);
+    const opt = typeOptions.find((t) => t.name === name);
+    if (!opt) return;
+    setFinancial((f) => ({
+      ...f,
+      interestType: opt.defaultInterestType ?? f.interestType,
+      interestRate: opt.defaultRate && opt.defaultRate > 0 ? String(opt.defaultRate) : f.interestRate,
+      tenureMonths:
+        opt.defaultTenureMonths && opt.defaultTenureMonths > 0
+          ? String(opt.defaultTenureMonths)
+          : f.tenureMonths,
+      emiDay: opt.defaultEmiDay && opt.defaultEmiDay >= 1 ? String(opt.defaultEmiDay) : f.emiDay,
+    }));
   }
 
   async function handleSubmit() {
@@ -570,12 +606,13 @@ export function LoanForm() {
                   <Field label="Loan Type">
                     <Select
                       value={vehicle.loanType}
-                      onChange={(e) => setField("vehicle", "loanType", e.target.value)}
+                      onChange={(e) => chooseLoanType(e.target.value)}
                     >
-                      <option>2 Wheeler</option>
-                      <option>3 Wheeler</option>
-                      <option>4 Wheeler</option>
-                      <option>Other</option>
+                      {typeOptions.map((t) => (
+                        <option key={t.name} value={t.name}>
+                          {t.name}
+                        </option>
+                      ))}
                     </Select>
                   </Field>
                 </div>

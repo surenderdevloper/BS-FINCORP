@@ -3,6 +3,10 @@ import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { signSessionToken, sessionCookieOptions, SESSION_COOKIE } from "@/lib/auth";
+import { clientKey, rateLimit, rateLimitReset } from "@/lib/rate-limit";
+
+const MAX_ATTEMPTS = 10;
+const WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
@@ -14,29 +18,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
+    const limit = rateLimit(`login:${clientKey(req)}:${email}`, MAX_ATTEMPTS, WINDOW_MS);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+      );
+    }
+
     await dbConnect();
     const user = await User.findOne({ email });
 
-if (!user) {
-  return NextResponse.json(
-    { error: "Invalid email or password." },
-    { status: 401 }
-  );
-}
+    if (!user) {
+      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    }
 
-const ok = await bcrypt.compare(password, user.passwordHash);
+    const ok = await bcrypt.compare(password, user.passwordHash);
 
-if (!ok) {
-  return NextResponse.json(
-    { error: "Invalid email or password." },
-    { status: 401 }
-  );
-}
+    if (!ok) {
+      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    }
+
+    rateLimitReset(`login:${clientKey(req)}:${email}`);
 
     const token = await signSessionToken({
       id: user._id.toString(),
       name: user.name,
       email: user.email,
+      role: user.role === "developer" ? "developer" : "admin",
       tokenVersion: user.tokenVersion ?? 0,
     });
 

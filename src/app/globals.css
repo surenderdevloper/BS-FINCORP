@@ -3,6 +3,25 @@
 :root {
   --background: #f4f4f5;
   --foreground: #18181b;
+
+  /* Brand palette defaults (Tailwind emerald). Overridden at runtime from the
+     Developer Console by inlining --brand-* on <html>. */
+  --brand-50: #ecfdf5;
+  --brand-100: #d1fae5;
+  --brand-200: #a7f3d0;
+  --brand-300: #6ee7b7;
+  --brand-400: #34d399;
+  --brand-500: #10b981;
+  --brand-600: #059669;
+  --brand-700: #047857;
+  --brand-800: #065f46;
+  --brand-900: #064e3b;
+  --brand-950: #022c22;
+
+  /* Print/document colours (Developer Console → Receipt & Documents). */
+  --print-letterhead: #1e40af;
+  --print-accent: #1e40af;
+  --print-text: #18181b;
 }
 
 @theme inline {
@@ -10,6 +29,23 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Re-point the emerald utility scale at the runtime --brand-* palette. Because
+   these reference CSS variables, a theme change only needs to update --brand-*
+   (no component changes). Defaults are emerald, so the look is unchanged. */
+@theme {
+  --color-emerald-50: var(--brand-50);
+  --color-emerald-100: var(--brand-100);
+  --color-emerald-200: var(--brand-200);
+  --color-emerald-300: var(--brand-300);
+  --color-emerald-400: var(--brand-400);
+  --color-emerald-500: var(--brand-500);
+  --color-emerald-600: var(--brand-600);
+  --color-emerald-700: var(--brand-700);
+  --color-emerald-800: var(--brand-800);
+  --color-emerald-900: var(--brand-900);
+  --color-emerald-950: var(--brand-950);
 }
 
 body {
@@ -34,11 +70,11 @@ body {
 
 .print-doc {
   background-color: #fff;
-  color: #18181b;
+  color: var(--print-text);
 }
 
 .print-letterhead {
-  background-color: #1e40af;
+  background-color: var(--print-letterhead);
   color: #fff;
 }
 
@@ -50,19 +86,25 @@ body {
   line-height: 1.25;
 }
 
+.print-logo {
+  max-height: 64px;
+  max-width: 180px;
+  object-fit: contain;
+}
+
 .print-letterhead-detail,
 .print-letterhead-detail > * {
   color: rgba(255, 255, 255, 0.92);
 }
 
 .print-title {
-  color: #1e40af;
+  color: var(--print-accent);
   font-weight: 700;
 }
 
 .print-banner,
 .print-section-heading {
-  background-color: #1e40af;
+  background-color: var(--print-accent);
   color: #fff;
 }
 
@@ -76,7 +118,7 @@ body {
 }
 
 .print-total {
-  background-color: #1e40af;
+  background-color: var(--print-accent);
   color: #fff;
 }
 

@@ -20,10 +20,16 @@ export function RemindersCard({
   reminders,
   count,
   brandingName = "",
+  waUpcoming = "",
+  waDuetoday = "",
+  smsUpcoming = "",
 }: {
   reminders: ReminderRow[];
   count: number;
   brandingName?: string;
+  waUpcoming?: string;
+  waDuetoday?: string;
+  smsUpcoming?: string;
 }) {
   const [open, setOpen] = useState<string | null>(null);
 
@@ -102,6 +108,8 @@ export function RemindersCard({
                         loanNo={row.loanNo}
                         amount={row.amount}
                         dueDate={row.dueDate}
+                        template={smsUpcoming}
+                        brandingName={brandingName}
                       />
                       <WhatsAppShare
                         recipientName={row.customerName}
@@ -112,24 +120,32 @@ export function RemindersCard({
                           {
                             key: "upcoming",
                             label: "Upcoming reminder",
-                            message: buildEmiReminderMessage("upcoming", {
-                              customerName: row.customerName,
-                              loanNo: row.loanNo,
-                              amount: row.amount,
-                              dueDate: row.dueDate,
-                              brandingName,
-                            }),
+                            message: buildEmiReminderMessage(
+                              "upcoming",
+                              {
+                                customerName: row.customerName,
+                                loanNo: row.loanNo,
+                                amount: row.amount,
+                                dueDate: row.dueDate,
+                                brandingName,
+                              },
+                              waUpcoming
+                            ),
                           },
                           {
                             key: "duetoday",
                             label: "Due today / now",
-                            message: buildEmiReminderMessage("duetoday", {
-                              customerName: row.customerName,
-                              loanNo: row.loanNo,
-                              amount: row.amount,
-                              dueDate: row.dueDate,
-                              brandingName,
-                            }),
+                            message: buildEmiReminderMessage(
+                              "duetoday",
+                              {
+                                customerName: row.customerName,
+                                loanNo: row.loanNo,
+                                amount: row.amount,
+                                dueDate: row.dueDate,
+                                brandingName,
+                              },
+                              waDuetoday
+                            ),
                           },
                         ]}
                       />

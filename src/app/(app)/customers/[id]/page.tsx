@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { buildCustomChatMessage, buildStatementMessage } from "@/lib/whatsapp";
+import { getMessageSettings } from "@/lib/message-config";
 import { CustomerStatement } from "./customer-statement";
 import { DocumentsTab } from "./documents-tab";
 
@@ -29,17 +30,22 @@ export default async function CustomerDetailPage({
 
   const activeTab = tab === "documents" ? "documents" : "statement";
 
+  const msgs = await getMessageSettings();
   const whatsAppTemplates = [
-    { key: "chat", label: "Direct chat", message: buildCustomChatMessage(customer.name) },
+    { key: "chat", label: "Direct chat", message: buildCustomChatMessage(customer.name, msgs.brand, msgs.wa.chat) },
     {
       key: "statement",
       label: "Statement summary",
-      message: buildStatementMessage({
-        customerName: customer.name,
-        loanCount: customer.totals.loanCount,
-        totalPaid: customer.totals.totalPaid,
-        outstanding: customer.totals.outstanding,
-      }),
+      message: buildStatementMessage(
+        {
+          customerName: customer.name,
+          loanCount: customer.totals.loanCount,
+          totalPaid: customer.totals.totalPaid,
+          outstanding: customer.totals.outstanding,
+          brandingName: msgs.brand,
+        },
+        msgs.wa.statement
+      ),
     },
   ];
 

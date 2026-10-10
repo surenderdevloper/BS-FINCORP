@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { useFeatures } from "@/components/feature-context";
 import { inr, formatDate } from "@/lib/money";
 import {
   buildSmsMessage,
@@ -21,19 +22,33 @@ export interface SmsComposerProps {
   loanNo: string;
   amount: number;
   dueDate: string;
+  /** Optional developer-defined template. Empty → built-in message. */
+  template?: string;
+  /** Optional brand name appended to the message. */
+  brandingName?: string;
 }
 
-export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDate }: SmsComposerProps) {
+export function SmsComposer({
+  type,
+  customerName,
+  mobile,
+  loanNo,
+  amount,
+  dueDate,
+  template,
+  brandingName,
+}: SmsComposerProps) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [target] = useState<SmsTarget>(() => detectSmsTarget());
+  const features = useFeatures();
 
   const mobileDigits = normalizeMobile(mobile);
   const displayMobile = mobileDigits ? `+91 ${mobileDigits}` : mobile.trim() || "No number on record";
   const parts = countSmsParts(message);
 
   const openComposer = () => {
-    setMessage(buildSmsMessage(type, { customerName, loanNo, amount, dueDate }));
+    setMessage(buildSmsMessage(type, { customerName, loanNo, amount, dueDate, brandingName }, template));
     setOpen(true);
   };
 
@@ -47,6 +62,8 @@ export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDat
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  if (!features.sms) return null;
 
   const url = mobileDigits ? buildSmsUrl(mobileDigits, message, target) : null;
 

@@ -23,6 +23,26 @@ interface Company {
   logo?: string;
 }
 
+interface ReceiptDocConfig {
+  receiptTitle: string;
+  receiptFooterNote: string;
+  signOffReceived: string;
+  signOffCustomer: string;
+  showGstOnReceipt: boolean;
+  showLogoOnPrint: boolean;
+  printLogo: string;
+}
+
+const DEFAULT_DOCS: ReceiptDocConfig = {
+  receiptTitle: "Payment Receipt",
+  receiptFooterNote: "This is a computer-generated receipt.",
+  signOffReceived: "Received By",
+  signOffCustomer: "Customer Sign",
+  showGstOnReceipt: true,
+  showLogoOnPrint: true,
+  printLogo: "",
+};
+
 interface ReceiptResult {
   receiptNo: string;
   loanNo: string;
@@ -49,7 +69,15 @@ const localDateStr = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
 
-export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
+export function EmiPayForm({
+  preselectedLoan,
+  paymentTemplate = "",
+  documents = DEFAULT_DOCS,
+}: {
+  preselectedLoan?: string;
+  paymentTemplate?: string;
+  documents?: ReceiptDocConfig;
+}) {
   const [search, setSearch] = useState(preselectedLoan ?? "");
   const [results, setResults] = useState<LoanSummaryResult[]>([]);
   const [loan, setLoan] = useState<LoanDetail | null>(null);
@@ -399,14 +427,17 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                     {
                       key: "confirmation",
                       label: "Payment confirmation",
-                      message: buildPaymentConfirmationMessage({
-                        customerName: receipt.customerName,
-                        amount: receipt.amount,
-                        paidAt: receipt.paidAt,
-                        receiptNo: receipt.receiptNo,
-                        loanNo: receipt.loanNo,
-                        brandingName: company?.companyName,
-                      }),
+                      message: buildPaymentConfirmationMessage(
+                        {
+                          customerName: receipt.customerName,
+                          amount: receipt.amount,
+                          paidAt: receipt.paidAt,
+                          receiptNo: receipt.receiptNo,
+                          loanNo: receipt.loanNo,
+                          brandingName: company?.companyName,
+                        },
+                        paymentTemplate
+                      ),
                     },
                   ]}
                 />
@@ -422,13 +453,16 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
           <Card className="print-doc mx-auto max-w-md overflow-hidden p-0 sm:p-0">
             <div className="print-letterhead px-6 pb-5 pt-6 text-center">
+              {documents.showLogoOnPrint && documents.printLogo ? (
+                <img src={documents.printLogo} alt="" className="print-logo mx-auto mb-2" />
+              ) : null}
               <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
               {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
               {company?.phone && <p className="print-letterhead-detail mt-0.5 text-xs">Ph: {company.phone}</p>}
             </div>
             <div className="p-6 sm:p-8">
               <div className="text-center">
-                <p className="print-title text-base">Payment Receipt</p>
+                <p className="print-title text-base">{documents.receiptTitle || "Payment Receipt"}</p>
                 <p className="mt-1 font-mono text-sm text-zinc-700">{receipt.receiptNo}</p>
               </div>
               <dl className="mt-4 space-y-2 text-sm">
@@ -470,9 +504,12 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
                 <span className="text-xl font-bold">{inr(receipt.amount)}</span>
               </div>
               <div className="mt-8 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 text-xs text-zinc-500">
-                <span className="break-all">Received By: _______________</span>
-                <span className="break-all">Customer Sign: _______________</span>
+                <span className="break-all">{documents.signOffReceived || "Received By"}: _______________</span>
+                <span className="break-all">{documents.signOffCustomer || "Customer Sign"}: _______________</span>
               </div>
+              {documents.receiptFooterNote && (
+                <p className="mt-4 text-center text-[11px] italic text-zinc-500">{documents.receiptFooterNote}</p>
+              )}
             </div>
           </Card>
         </div>

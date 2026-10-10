@@ -1,5 +1,6 @@
 import { inr } from "@/lib/money";
 import { isValidMobile } from "@/lib/validators";
+import { renderTemplate } from "@/lib/message-templates";
 
 export type SmsReminderType = "upcoming" | "overdue";
 
@@ -38,7 +39,21 @@ function formatSmsDate(d: string | Date): string {
   }).format(new Date(d));
 }
 
-export function buildSmsMessage(type: SmsReminderType, input: SmsMessageInput): string {
+export function buildSmsMessage(
+  type: SmsReminderType,
+  input: SmsMessageInput,
+  template?: string
+): string {
+  const custom = (template ?? "").trim();
+  if (custom) {
+    return renderTemplate(custom, {
+      name: input.customerName,
+      amount: input.amount,
+      loan: input.loanNo,
+      date: input.dueDate,
+      brand: input.brandingName?.trim() || SMS_BRANDING,
+    });
+  }
   const name = input.customerName.trim() || "ग्राहक";
   const amount = inr(input.amount);
   const date = formatSmsDate(input.dueDate);

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { useFeatures } from "@/components/feature-context";
 import { buildWhatsAppUrl, toWhatsAppNumber } from "@/lib/whatsapp";
 
 export interface WhatsAppTemplate {
@@ -36,6 +37,7 @@ export function WhatsAppShare({
   const [open, setOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState("");
   const [message, setMessage] = useState("");
+  const features = useFeatures();
 
   const number = useMemo(() => toWhatsAppNumber(mobile), [mobile]);
   const displayMobile = number ? `+${number}` : mobile.trim() || "No number on record";
@@ -58,6 +60,8 @@ export function WhatsAppShare({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  if (!features.whatsapp) return null;
 
   const url = number ? buildWhatsAppUrl(number, message) : null;
 

@@ -8,39 +8,13 @@ import { Icon } from "@/components/icons";
 import { SmsComposer } from "@/components/sms-composer";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { buildCollectionFollowUpMessage, buildEmiReminderMessage } from "@/lib/whatsapp";
-import { getCompanySetting } from "@/models/CompanySetting";
+import { getMessageSettings } from "@/lib/message-config";
 import type { OverdueRow } from "@/types";
 import { RemindersCard } from "./reminders-card";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export const dynamic = "force-dynamic";
-
-function overdueTemplates(row: OverdueRow, brandingName: string, officePhone: string) {
-  const base = { customerName: row.customerName, loanNo: row.loanNo, amount: row.amount, brandingName };
-  return [
-    {
-      key: "overdue",
-      label: "Overdue reminder",
-      message: buildEmiReminderMessage("overdue", { ...base, dueDate: row.dueDate }),
-    },
-    {
-      key: "friendly",
-      label: "Friendly follow-up",
-      message: buildCollectionFollowUpMessage("friendly", base),
-    },
-    {
-      key: "status",
-      label: "Ask payment date",
-      message: buildCollectionFollowUpMessage("status", base),
-    },
-    {
-      key: "office",
-      label: "Contact office",
-      message: buildCollectionFollowUpMessage("contact_office", { ...base, officePhone }),
-    },
-  ];
-}
 
 export default async function DashboardPage() {
   let data;
@@ -52,14 +26,34 @@ export default async function DashboardPage() {
     error = err instanceof Error ? err.message : "Failed to load dashboard data.";
   }
 
-  let brandingName = "";
-  let officePhone = "";
-  try {
-    const company = await getCompanySetting();
-    brandingName = company.companyName?.trim() ?? "";
-    officePhone = company.phone?.trim() ?? "";
-  } catch {
-    /* branding is optional for reminders */
+  const msgs = await getMessageSettings();
+  const brandingName = msgs.brand;
+  const officePhone = msgs.officePhone;
+
+  function overdueTemplates(row: OverdueRow) {
+    const base = { customerName: row.customerName, loanNo: row.loanNo, amount: row.amount, brandingName };
+    return [
+      {
+        key: "overdue",
+        label: "Overdue reminder",
+        message: buildEmiReminderMessage("overdue", { ...base, dueDate: row.dueDate }, msgs.wa.overdue),
+      },
+      {
+        key: "friendly",
+        label: "Friendly follow-up",
+        message: buildCollectionFollowUpMessage("friendly", base, msgs.wa.followupFriendly),
+      },
+      {
+        key: "status",
+        label: "Ask payment date",
+        message: buildCollectionFollowUpMessage("status", base, msgs.wa.followupStatus),
+      },
+      {
+        key: "office",
+        label: "Contact office",
+        message: buildCollectionFollowUpMessage("contact_office", { ...base, officePhone }, msgs.wa.followupContact),
+      },
+    ];
   }
 
   if (error) {
@@ -123,7 +117,14 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <RemindersCard reminders={data.reminders} count={data.upcomingEmis} brandingName={brandingName} />
+      <RemindersCard
+        reminders={data.reminders}
+        count={data.upcomingEmis}
+        brandingName={brandingName}
+        waUpcoming={msgs.wa.upcoming}
+        waDuetoday={msgs.wa.duetoday}
+        smsUpcoming={msgs.sms.upcoming}
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
@@ -172,13 +173,15 @@ export default async function DashboardPage() {
                             loanNo={row.loanNo}
                             amount={row.amount}
                             dueDate={row.dueDate}
+                            template={msgs.sms.overdue}
+                            brandingName={brandingName}
                           />
                           <WhatsAppShare
                             recipientName={row.customerName}
                             mobile={row.mobile}
                             title="WhatsApp Reminder"
                             subtitle={`${row.loanNo} · overdue EMI`}
-                            templates={overdueTemplates(row, brandingName, officePhone)}
+                            templates={overdueTemplates(row)}
                           />
                         </span>
                       </div>
@@ -223,13 +226,15 @@ export default async function DashboardPage() {
                                 loanNo={row.loanNo}
                                 amount={row.amount}
                                 dueDate={row.dueDate}
+                                template={msgs.sms.overdue}
+                                brandingName={brandingName}
                               />
                               <WhatsAppShare
                                 recipientName={row.customerName}
                                 mobile={row.mobile}
                                 title="WhatsApp Reminder"
                                 subtitle={`${row.loanNo} · overdue EMI`}
-                                templates={overdueTemplates(row, brandingName, officePhone)}
+                                templates={overdueTemplates(row)}
                               />
                             </div>
                           </td>
