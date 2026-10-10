@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
-import { requireDeveloper } from "@/lib/auth";
+import { hasDeveloperAccess } from "@/lib/developer-access";
 import { invalidateCompanySettingCache, getCompanySetting } from "@/models/CompanySetting";
 import { invalidatePenaltyRuleCache } from "@/models/PenaltyRule";
 import { invalidateAppConfigCache } from "@/models/AppConfig";
@@ -13,8 +13,7 @@ function dbStateLabel(state: number): string {
 }
 
 export async function POST(req: Request) {
-  const session = await requireDeveloper();
-  if (!session) {
+  if (!(await hasDeveloperAccess())) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

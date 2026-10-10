@@ -1,37 +1,54 @@
 # Developer Console
 
-The Developer Console is an owner-only area that exposes settings which are
-deliberately kept out of the day-to-day Settings page: website theming, print
-document wording, loan-type defaults, message templates, and feature flags.
+The Developer Console is a hidden, owner-only page for settings that are kept
+out of the day-to-day Settings page: website theming, print document wording,
+loan-type defaults, message templates, and feature flags.
 
-It is protected by a **role**, not a password. Only accounts with the
-`developer` role can see it; for everyone else the page and its API behave as if
-they do not exist.
+There is no role or separate login. Access is granted by a **secret key** that
+only you know, and the console has **no link anywhere in the UI** — you reach it
+by typing its URL.
 
-## Creating the developer account
+## 1. Set the secret key
 
-Roles are changed with a script (never through the UI) so a compromised admin
-account cannot grant itself developer access:
+The console is disabled until the `DEVELOPER_KEY` environment variable is set.
 
-```bash
-# Promote an existing account
-npm run set-role -- --email owner@example.com --role developer
+On Vercel: **Project → Settings → Environment Variables → Add**
 
-# Or create a brand-new developer account
-npm run set-role -- --email owner@example.com --role developer \
-  --name "Owner" --password "a-strong-password"
+- Name: `DEVELOPER_KEY`
+- Value: a long random string (e.g. run `openssl rand -hex 24`)
+
+Then **redeploy** so the new variable takes effect.
+
+For local development, add the same line to `.env`:
+
+```
+DEVELOPER_KEY=your-long-random-string
 ```
 
-The script only updates the matching user (or creates one) — it never drops or
-reseeds the database, so it is safe to run against production. To demote an
-account back, run the same command with `--role admin`.
+> Leave `DEVELOPER_KEY` unset to keep the console completely off. If it is
+> missing, `/developer` behaves as if it does not exist.
 
-After the role is set, the person must **log out and back in** (the role is read
-from the database on every request, so a fresh login reflects it immediately).
-Once they are a developer:
+## 2. Open the console (one time per device)
 
-- A **Developer** section appears in the sidebar linking to `/developer`.
-- The API at `/api/developer` responds; for non-developers it returns `404`.
+While logged in to the app, open:
+
+```
+https://<your-app-domain>/developer?key=<DEVELOPER_KEY>
+```
+
+That verifies the key and stores a signed, httpOnly cookie for 30 days, then
+redirects you to the clean `/developer` URL. After that you can bookmark:
+
+```
+https://<your-app-domain>/developer
+```
+
+To lock a device again use **Lock console** in *Developer Tools*, or clear the
+`bs_developer_access` cookie.
+
+If the key is wrong or missing you will see a short notice instead of the
+console. The console and its API return "not found" to anyone without access, so
+the page is invisible to normal users and to search engines.
 
 ## What each tab controls
 
@@ -42,7 +59,7 @@ Once they are a developer:
 | **Loan Types & EMI Rules** | Loan type names + default interest type, rate, tenure, EMI day | Loan creation form, customer edit form |
 | **Messages** | WhatsApp and SMS templates using `{tokens}` | All reminder / payment / statement composers |
 | **Website Theme** | Primary brand colour | Every `emerald-*` accent across the app, and print colours |
-| **Developer Tools** | Database check, cache refresh, maintenance banner, WhatsApp/SMS feature flags, audit log | Whole app |
+| **Developer Tools** | Database check, cache refresh, maintenance banner, WhatsApp/SMS feature flags, lock console, audit log | Whole app |
 
 ## Message templates
 
@@ -78,8 +95,8 @@ numbers are untouched so re-enabling them brings them straight back.
 ## Cache
 
 Developer settings are cached in memory for 10 seconds (and Company Settings
-separately). After saving a change, use **Refresh cache** in Developer Tools if
-another page still shows the old value.
+separately). After saving a change, use **Clear server cache** in Developer
+Tools if another page still shows the old value.
 
 ## Storage
 

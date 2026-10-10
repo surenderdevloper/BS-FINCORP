@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader, Badge } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
@@ -1024,6 +1025,7 @@ function ToolsTab({
 }) {
   const [toolMsg, setToolMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   async function runAction(action: string) {
     setBusy(true);
@@ -1041,6 +1043,17 @@ function ToolsTab({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function lockConsole() {
+    setBusy(true);
+    try {
+      await fetch("/api/developer/access", { method: "DELETE" });
+    } catch {
+      /* still navigate away below */
+    }
+    router.push("/developer?devError=locked");
+    router.refresh();
   }
 
   return (
@@ -1074,7 +1087,13 @@ function ToolsTab({
             <Button variant="secondary" size="sm" onClick={() => runAction("invalidate-cache")} disabled={busy}>
               <Icon name="refresh" size={14} /> Clear server cache
             </Button>
+            <Button variant="secondary" size="sm" onClick={lockConsole} disabled={busy}>
+              <Icon name="lock" size={14} /> Lock console
+            </Button>
           </div>
+          <p className="text-[11px] text-zinc-400">
+            Locking signs this device out of the console. Re-open it with your secret key link.
+          </p>
           {toolMsg && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-700 ring-1 ring-zinc-200">{toolMsg}</p>}
         </div>
       </Card>

@@ -101,6 +101,30 @@ export async function destroySession(): Promise<void> {
   store.delete(SESSION_COOKIE);
 }
 
+/**
+ * The developer console is unlocked with a secret key (see
+ * `src/lib/developer-access.ts`). Once the key is verified we hand back a signed
+ * cookie so the key never has to be repeated in the URL. This token is
+ * independent from the login session.
+ */
+export async function signDeveloperAccessToken(): Promise<string> {
+  return new SignJWT({ scope: "developer" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(getSecret());
+}
+
+export async function verifyDeveloperAccessToken(token: string | undefined): Promise<boolean> {
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload.scope === "developer";
+  } catch {
+    return false;
+  }
+}
+
 export function sessionCookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
   return {

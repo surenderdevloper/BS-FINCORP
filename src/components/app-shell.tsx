@@ -38,7 +38,7 @@ export function AppShell({
     <div className="flex min-h-screen bg-zinc-100">
       {/* Desktop sidebar */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-zinc-200 bg-white md:block">
-        <SidebarContent branding={branding} isDeveloper={isDeveloper} />
+        <SidebarContent branding={branding} />
       </aside>
 
       {/* Mobile drawer */}
@@ -51,7 +51,6 @@ export function AppShell({
           <aside className="absolute inset-y-0 left-0 w-64 animate-in bg-white shadow-xl">
             <SidebarContent
               branding={branding}
-              isDeveloper={isDeveloper}
               onNavigate={() => setDrawerOpen(false)}
             />
           </aside>

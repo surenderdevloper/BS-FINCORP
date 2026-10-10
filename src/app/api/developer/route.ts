@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
-import { requireDeveloper } from "@/lib/auth";
+import { readSession } from "@/lib/auth";
+import { hasDeveloperAccess } from "@/lib/developer-access";
 import { isValidHex, DEFAULT_PRIMARY } from "@/lib/brand";
 import { CompanySetting, getCompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
 import {
@@ -58,8 +59,7 @@ function envStatus() {
 }
 
 export async function GET() {
-  const session = await requireDeveloper();
-  if (!session) {
+  if (!(await hasDeveloperAccess())) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -131,8 +131,7 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const session = await requireDeveloper();
-  if (!session) {
+  if (!(await hasDeveloperAccess())) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -332,8 +331,7 @@ export async function PUT(req: Request) {
 
 /** Append an audit-log entry (called by the client after a successful save). */
 export async function POST(req: Request) {
-  const session = await requireDeveloper();
-  if (!session) {
+  if (!(await hasDeveloperAccess())) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   let body: { summary?: string };
@@ -345,11 +343,14 @@ export async function POST(req: Request) {
   const summary = str(body.summary, 200);
   if (!summary) return NextResponse.json({ error: "Nothing to log." }, { status: 400 });
 
+  const session = await readSession();
+  const by = session?.email ?? "developer";
+
   await dbConnect();
   const cfg = await AppConfig.findOneAndUpdate(
     { singleton: "appconfig" },
     {
-      $push: { audit: { $each: [{ at: new Date(), by: session.email, summary }], $slice: -50 } },
+      $push: { audit: { $each: [{ at: new Date(), by, summary }], $slice: -50 } },
       $setOnInsert: { singleton: "appconfig" },
     },
     { upsert: true, returnDocument: "after" }

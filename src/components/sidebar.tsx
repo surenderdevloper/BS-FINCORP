@@ -36,25 +36,17 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-/** Extra section shown only to developer (owner-level) accounts. */
-export const DEVELOPER_SECTION: { title: string; items: NavItem[] } = {
-  title: "Developer",
-  items: [{ href: "/developer", label: "Developer Console", icon: "settings" }],
-};
-
 export function SidebarContent({
   onNavigate,
   branding,
-  isDeveloper = false,
 }: {
   onNavigate?: () => void;
   branding?: CompanyBranding;
-  isDeveloper?: boolean;
 }) {
   const pathname = usePathname();
   const logo = branding?.logo ?? "";
   const companyName = branding?.companyName || "BS FINCORP";
-  const sections = isDeveloper ? [...NAV_SECTIONS, DEVELOPER_SECTION] : NAV_SECTIONS;
+  const sections = NAV_SECTIONS;
 
   return (
     <div className="flex h-full flex-col">
