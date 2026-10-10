@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { buildWhatsAppUrl, toWhatsAppNumber } from "@/lib/whatsapp";
@@ -21,32 +21,8 @@ export interface WhatsAppShareProps {
   triggerVariant?: "link" | "primary" | "secondary";
 }
 
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-    const el = document.createElement("textarea");
-    el.value = text;
-    el.setAttribute("readonly", "");
-    el.style.position = "fixed";
-    el.style.opacity = "0";
-    document.body.appendChild(el);
-    el.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(el);
-    return ok;
-  } catch {
-    return false;
-  }
-}
-
 const primaryButton =
   "inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
-
-const secondaryButton =
-  "inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60";
 
 export function WhatsAppShare({
   recipientName,
@@ -60,8 +36,6 @@ export function WhatsAppShare({
   const [open, setOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState("");
   const [message, setMessage] = useState("");
-  const [copied, setCopied] = useState<"message" | "phone" | null>(null);
-  const [copyFailed, setCopyFailed] = useState(false);
 
   const number = useMemo(() => toWhatsAppNumber(mobile), [mobile]);
   const displayMobile = number ? `+${number}` : mobile.trim() || "No number on record";
@@ -71,8 +45,6 @@ export function WhatsAppShare({
     const first = templates[0];
     setSelectedKey(first?.key ?? "");
     setMessage(first?.message ?? "");
-    setCopied(null);
-    setCopyFailed(false);
     setOpen(true);
   };
 
@@ -86,13 +58,6 @@ export function WhatsAppShare({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
-
-  const onCopy = useCallback(async (kind: "message" | "phone", text: string) => {
-    const ok = await writeClipboard(text);
-    setCopied(ok ? kind : null);
-    setCopyFailed(!ok);
-    window.setTimeout(() => setCopied(null), 1600);
-  }, []);
 
   const url = number ? buildWhatsAppUrl(number, message) : null;
 
@@ -206,8 +171,7 @@ export function WhatsAppShare({
 
               {!number && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-700 ring-1 ring-red-200">
-                  No valid 10-digit mobile number on record. Add a number to open the WhatsApp chat; you can
-                  still copy the message and paste it manually.
+                  No valid 10-digit mobile number on record. Add a number to open the WhatsApp chat.
                 </p>
               )}
 
@@ -228,26 +192,6 @@ export function WhatsAppShare({
                   </button>
                 )}
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    className={secondaryButton}
-                    onClick={() => void onCopy("message", message)}
-                  >
-                    {copied === "message" && <Icon name="check" size={16} />}
-                    {copied === "message" ? "Copied" : "Copy Message"}
-                  </button>
-                  <button
-                    type="button"
-                    className={secondaryButton}
-                    disabled={!number}
-                    onClick={() => number && void onCopy("phone", `+${number}`)}
-                  >
-                    {copied === "phone" && <Icon name="check" size={16} />}
-                    {copied === "phone" ? "Copied" : "Copy Number"}
-                  </button>
-                </div>
-
                 <button
                   type="button"
                   onClick={closeComposer}
@@ -255,12 +199,6 @@ export function WhatsAppShare({
                 >
                   Cancel
                 </button>
-
-                {copyFailed && (
-                  <p className="text-center text-[11px] text-red-600">
-                    Could not write to clipboard. Copy manually instead.
-                  </p>
-                )}
               </div>
             </div>
           </Card>

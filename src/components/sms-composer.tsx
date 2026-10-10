@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { inr, formatDate } from "@/lib/money";
 import {
   buildSmsMessage,
   buildSmsUrl,
-  buildSmsUrlAlt,
   countSmsParts,
   detectSmsTarget,
   normalizeMobile,
@@ -24,32 +23,9 @@ export interface SmsComposerProps {
   dueDate: string;
 }
 
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-    const el = document.createElement("textarea");
-    el.value = text;
-    el.setAttribute("readonly", "");
-    el.style.position = "fixed";
-    el.style.opacity = "0";
-    document.body.appendChild(el);
-    el.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(el);
-    return ok;
-  } catch {
-    return false;
-  }
-}
-
 export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDate }: SmsComposerProps) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [copied, setCopied] = useState<"message" | "phone" | null>(null);
-  const [copyFailed, setCopyFailed] = useState(false);
   const [target] = useState<SmsTarget>(() => detectSmsTarget());
 
   const mobileDigits = normalizeMobile(mobile);
@@ -58,8 +34,6 @@ export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDat
 
   const openComposer = () => {
     setMessage(buildSmsMessage(type, { customerName, loanNo, amount, dueDate }));
-    setCopied(null);
-    setCopyFailed(false);
     setOpen(true);
   };
 
@@ -74,15 +48,7 @@ export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDat
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const onCopy = useCallback(async (kind: "message" | "phone", text: string) => {
-    const ok = await writeClipboard(text);
-    setCopied(ok ? kind : null);
-    setCopyFailed(!ok);
-    window.setTimeout(() => setCopied(null), 1600);
-  }, []);
-
   const url = mobileDigits ? buildSmsUrl(mobileDigits, message, target) : null;
-  const altUrl = mobileDigits ? buildSmsUrlAlt(mobileDigits, message, target) : null;
 
   return (
     <>
@@ -164,7 +130,7 @@ export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDat
               {!mobileDigits && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-700 ring-1 ring-red-200">
                   No valid 10-digit mobile number on record for this customer. Add a mobile number to enable
-                  the SMS link; you can still copy the message.
+                  the SMS link.
                 </p>
               )}
 
@@ -181,36 +147,6 @@ export function SmsComposer({ type, customerName, mobile, loanNo, amount, dueDat
                   <Button variant="primary" size="md" className="w-full" disabled>
                     Open Messages
                   </Button>
-                )}
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <Button variant="secondary" size="md" onClick={() => void onCopy("message", message)}>
-                    {copied === "message" && <Icon name="check" size={16} />}
-                    {copied === "message" ? "Copied" : "Copy Message"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    disabled={!mobileDigits}
-                    onClick={() => mobileDigits && void onCopy("phone", `+91${mobileDigits}`)}
-                  >
-                    {copied === "phone" && <Icon name="check" size={16} />}
-                    {copied === "phone" ? "Copied" : "Copy Phone"}
-                  </Button>
-                </div>
-
-                {mobileDigits && (
-                  <button
-                    type="button"
-                    onClick={() => altUrl && (window.location.href = altUrl)}
-                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg py-1 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-800"
-                  >
-                    Message not prefilled? Try the alternate link
-                  </button>
-                )}
-
-                {copyFailed && (
-                  <p className="text-center text-[11px] text-red-600">Could not write to clipboard. Copy manually instead.</p>
                 )}
               </div>
             </div>
