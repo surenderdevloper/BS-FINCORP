@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx src/lib/session-timeout.test.ts src/lib/password-reset.test.ts src/lib/sms.test.ts",
+    "test": "node --test --import tsx src/lib/session-timeout.test.ts src/lib/password-reset.test.ts src/lib/sms.test.ts src/lib/whatsapp.test.ts",
     "seed": "tsx scripts/seed.ts",
     "demo": "node scripts/dev-demo.mjs"
   },

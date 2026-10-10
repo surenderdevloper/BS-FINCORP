@@ -4,6 +4,8 @@ import { dbConnect } from "@/lib/db";
 import { getCustomerDetail } from "@/lib/customers";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { WhatsAppShare } from "@/components/whatsapp-share";
+import { buildCustomChatMessage, buildStatementMessage } from "@/lib/whatsapp";
 import { CustomerStatement } from "./customer-statement";
 import { DocumentsTab } from "./documents-tab";
 
@@ -27,6 +29,20 @@ export default async function CustomerDetailPage({
 
   const activeTab = tab === "documents" ? "documents" : "statement";
 
+  const whatsAppTemplates = [
+    { key: "chat", label: "Direct chat", message: buildCustomChatMessage(customer.name) },
+    {
+      key: "statement",
+      label: "Statement summary",
+      message: buildStatementMessage({
+        customerName: customer.name,
+        loanCount: customer.totals.loanCount,
+        totalPaid: customer.totals.totalPaid,
+        outstanding: customer.totals.outstanding,
+      }),
+    },
+  ];
+
   const tabClasses = (active: boolean) =>
     `rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
       active
@@ -43,14 +59,24 @@ export default async function CustomerDetailPage({
         >
           <Icon name="arrowLeft" size={16} /> All Customers
         </Link>
-        <nav className="no-print flex flex-wrap gap-1.5" aria-label="Customer sections">
-          <Link href={`/customers/${id}`} className={tabClasses(activeTab === "statement")}>
-            Statement
-          </Link>
-          <Link href={`/customers/${id}?tab=documents`} className={tabClasses(activeTab === "documents")}>
-            Documents
-          </Link>
-        </nav>
+        <div className="flex flex-wrap items-center gap-2">
+          <WhatsAppShare
+            recipientName={customer.name}
+            mobile={customer.mobile}
+            title={`WhatsApp — ${customer.name || "Customer"}`}
+            triggerVariant="secondary"
+            triggerLabel="WhatsApp"
+            templates={whatsAppTemplates}
+          />
+          <nav className="no-print flex flex-wrap gap-1.5" aria-label="Customer sections">
+            <Link href={`/customers/${id}`} className={tabClasses(activeTab === "statement")}>
+              Statement
+            </Link>
+            <Link href={`/customers/${id}?tab=documents`} className={tabClasses(activeTab === "documents")}>
+              Documents
+            </Link>
+          </nav>
+        </div>
       </div>
       {activeTab === "documents" ? (
         <DocumentsTab customerId={customer._id} customerName={customer.name} />

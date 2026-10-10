@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
+import { WhatsAppShare } from "@/components/whatsapp-share";
 import { formatDate, inr } from "@/lib/money";
+import { buildPaymentConfirmationMessage } from "@/lib/whatsapp";
 import { CUSTOMERS_LIST_CACHE_KEY, cachedGet, invalidateCached } from "@/lib/client-fetch";
 import type { EmiRow, LoanDetail } from "@/lib/loans";
 
@@ -384,7 +386,31 @@ export function EmiPayForm({ preselectedLoan }: { preselectedLoan?: string }) {
               <h2 className="text-base font-semibold text-zinc-900">Payment recorded</h2>
               <p className="text-sm text-zinc-500">Receipt {receipt.receiptNo} generated. Print a copy below.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {loan && (
+                <WhatsAppShare
+                  recipientName={receipt.customerName}
+                  mobile={loan.customer.mobile}
+                  title="Payment Confirmation"
+                  subtitle={`Receipt ${receipt.receiptNo}`}
+                  triggerVariant="secondary"
+                  triggerLabel="WhatsApp"
+                  templates={[
+                    {
+                      key: "confirmation",
+                      label: "Payment confirmation",
+                      message: buildPaymentConfirmationMessage({
+                        customerName: receipt.customerName,
+                        amount: receipt.amount,
+                        paidAt: receipt.paidAt,
+                        receiptNo: receipt.receiptNo,
+                        loanNo: receipt.loanNo,
+                        brandingName: company?.companyName,
+                      }),
+                    },
+                  ]}
+                />
+              )}
               <Button onClick={() => window.print()}>
                 <Icon name="print" size={16} /> Print Receipt
               </Button>

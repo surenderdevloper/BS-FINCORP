@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { SmsComposer } from "@/components/sms-composer";
+import { WhatsAppShare } from "@/components/whatsapp-share";
+import { buildEmiReminderMessage } from "@/lib/whatsapp";
 import { inr, formatDate } from "@/lib/money";
 import type { ReminderRow } from "@/types";
 
@@ -14,7 +16,15 @@ function daysLabel(days: number): string {
   return `In ${days} days`;
 }
 
-export function RemindersCard({ reminders, count }: { reminders: ReminderRow[]; count: number }) {
+export function RemindersCard({
+  reminders,
+  count,
+  brandingName = "",
+}: {
+  reminders: ReminderRow[];
+  count: number;
+  brandingName?: string;
+}) {
   const [open, setOpen] = useState<string | null>(null);
 
   return (
@@ -84,7 +94,7 @@ export function RemindersCard({ reminders, count }: { reminders: ReminderRow[]; 
                       <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Due amount</p>
                       <p className="text-sm font-semibold text-emerald-700">{inr(row.amount)}</p>
                     </div>
-                    <div className="flex items-end justify-end gap-2">
+                    <div className="flex flex-wrap items-end justify-end gap-2">
                       <SmsComposer
                         type="upcoming"
                         customerName={row.customerName}
@@ -92,6 +102,36 @@ export function RemindersCard({ reminders, count }: { reminders: ReminderRow[]; 
                         loanNo={row.loanNo}
                         amount={row.amount}
                         dueDate={row.dueDate}
+                      />
+                      <WhatsAppShare
+                        recipientName={row.customerName}
+                        mobile={row.mobile}
+                        title="WhatsApp Reminder"
+                        subtitle={`${row.loanNo} · EMI #${row.emiNo}`}
+                        templates={[
+                          {
+                            key: "upcoming",
+                            label: "Upcoming reminder",
+                            message: buildEmiReminderMessage("upcoming", {
+                              customerName: row.customerName,
+                              loanNo: row.loanNo,
+                              amount: row.amount,
+                              dueDate: row.dueDate,
+                              brandingName,
+                            }),
+                          },
+                          {
+                            key: "duetoday",
+                            label: "Due today / now",
+                            message: buildEmiReminderMessage("duetoday", {
+                              customerName: row.customerName,
+                              loanNo: row.loanNo,
+                              amount: row.amount,
+                              dueDate: row.dueDate,
+                              brandingName,
+                            }),
+                          },
+                        ]}
                       />
                       <Link
                         href={`/emi-pay?loan=${row.loanNo}`}

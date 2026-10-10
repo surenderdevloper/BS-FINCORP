@@ -6,11 +6,41 @@ import { inr, formatDate } from "@/lib/money";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { SmsComposer } from "@/components/sms-composer";
+import { WhatsAppShare } from "@/components/whatsapp-share";
+import { buildCollectionFollowUpMessage, buildEmiReminderMessage } from "@/lib/whatsapp";
+import { getCompanySetting } from "@/models/CompanySetting";
+import type { OverdueRow } from "@/types";
 import { RemindersCard } from "./reminders-card";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export const dynamic = "force-dynamic";
+
+function overdueTemplates(row: OverdueRow, brandingName: string, officePhone: string) {
+  const base = { customerName: row.customerName, loanNo: row.loanNo, amount: row.amount, brandingName };
+  return [
+    {
+      key: "overdue",
+      label: "Overdue reminder",
+      message: buildEmiReminderMessage("overdue", { ...base, dueDate: row.dueDate }),
+    },
+    {
+      key: "friendly",
+      label: "Friendly follow-up",
+      message: buildCollectionFollowUpMessage("friendly", base),
+    },
+    {
+      key: "status",
+      label: "Ask payment date",
+      message: buildCollectionFollowUpMessage("status", base),
+    },
+    {
+      key: "office",
+      label: "Contact office",
+      message: buildCollectionFollowUpMessage("contact_office", { ...base, officePhone }),
+    },
+  ];
+}
 
 export default async function DashboardPage() {
   let data;
@@ -20,6 +50,16 @@ export default async function DashboardPage() {
     data = await getDashboardData();
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load dashboard data.";
+  }
+
+  let brandingName = "";
+  let officePhone = "";
+  try {
+    const company = await getCompanySetting();
+    brandingName = company.companyName?.trim() ?? "";
+    officePhone = company.phone?.trim() ?? "";
+  } catch {
+    /* branding is optional for reminders */
   }
 
   if (error) {
@@ -83,7 +123,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <RemindersCard reminders={data.reminders} count={data.upcomingEmis} />
+      <RemindersCard reminders={data.reminders} count={data.upcomingEmis} brandingName={brandingName} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
@@ -123,7 +163,7 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-zinc-500">{row.mobile || "—"}</span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex flex-wrap items-center justify-end gap-2">
                           <span className="font-medium text-red-600">+{inr(row.penalty)} penalty</span>
                           <SmsComposer
                             type="overdue"
@@ -132,6 +172,13 @@ export default async function DashboardPage() {
                             loanNo={row.loanNo}
                             amount={row.amount}
                             dueDate={row.dueDate}
+                          />
+                          <WhatsAppShare
+                            recipientName={row.customerName}
+                            mobile={row.mobile}
+                            title="WhatsApp Reminder"
+                            subtitle={`${row.loanNo} · overdue EMI`}
+                            templates={overdueTemplates(row, brandingName, officePhone)}
                           />
                         </span>
                       </div>
@@ -149,7 +196,7 @@ export default async function DashboardPage() {
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Days Late</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Penalty</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">SMS</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Contact</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -168,14 +215,23 @@ export default async function DashboardPage() {
                           </td>
                           <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-red-600 sm:px-5">{inr(row.penalty)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">
-                            <SmsComposer
-                              type="overdue"
-                              customerName={row.customerName}
-                              mobile={row.mobile}
-                              loanNo={row.loanNo}
-                              amount={row.amount}
-                              dueDate={row.dueDate}
-                            />
+                            <div className="flex items-center justify-end gap-1">
+                              <SmsComposer
+                                type="overdue"
+                                customerName={row.customerName}
+                                mobile={row.mobile}
+                                loanNo={row.loanNo}
+                                amount={row.amount}
+                                dueDate={row.dueDate}
+                              />
+                              <WhatsAppShare
+                                recipientName={row.customerName}
+                                mobile={row.mobile}
+                                title="WhatsApp Reminder"
+                                subtitle={`${row.loanNo} · overdue EMI`}
+                                templates={overdueTemplates(row, brandingName, officePhone)}
+                              />
+                            </div>
                           </td>
                         </tr>
                       ))}

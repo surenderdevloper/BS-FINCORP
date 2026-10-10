@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Types } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { getPaymentReceipt } from "@/lib/customers";
 import { getCompanySetting } from "@/models/CompanySetting";
+import { Customer } from "@/models/Customer";
 import { Card } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { WhatsAppShare } from "@/components/whatsapp-share";
+import { buildPaymentConfirmationMessage } from "@/lib/whatsapp";
 import { inr, formatDate } from "@/lib/money";
 import { ReceiptActions } from "./receipt-actions";
 
@@ -27,8 +31,13 @@ export default async function ReceiptPage({
   ]);
   if (!payment) notFound();
 
+  const customer =
+    Types.ObjectId.isValid(id)
+      ? await Customer.findById(id).select("mobile name").lean()
+      : null;
+
   const emiTotal = payment.principal + payment.interest;
-  const customer = payment.customerName?.trim() || "—";
+  const customerName = payment.customerName?.trim() || "—";
 
   return (
     <div className="space-y-4">
@@ -39,7 +48,31 @@ export default async function ReceiptPage({
         >
           <Icon name="arrowLeft" size={16} /> Back to Customer
         </Link>
-        <ReceiptActions />
+        <div className="no-print flex flex-wrap items-center gap-2">
+          <WhatsAppShare
+            recipientName={customerName}
+            mobile={customer?.mobile ?? ""}
+            title="Share Receipt"
+            subtitle={`Receipt ${payment.receiptNo} · Loan ${payment.loanNo}`}
+            triggerVariant="secondary"
+            triggerLabel="Share on WhatsApp"
+            templates={[
+              {
+                key: "receipt",
+                label: "Receipt summary",
+                message: buildPaymentConfirmationMessage({
+                  customerName: customerName === "—" ? "" : customerName,
+                  amount: payment.amount,
+                  paidAt: payment.paidAt,
+                  receiptNo: payment.receiptNo,
+                  loanNo: payment.loanNo,
+                  brandingName: company.companyName,
+                }),
+              },
+            ]}
+          />
+          <ReceiptActions />
+        </div>
       </div>
 
       <Card className="print-doc mx-auto max-w-md overflow-hidden p-0">
@@ -70,7 +103,7 @@ export default async function ReceiptPage({
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-zinc-500">Customer</dt>
-              <dd className="min-w-0 break-words text-right font-medium text-zinc-900">{customer}</dd>
+              <dd className="min-w-0 break-words text-right font-medium text-zinc-900">{customerName}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-zinc-500">Loan No</dt>
