@@ -276,7 +276,10 @@ export default async function DashboardPage() {
                           </Badge>
                         </span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold text-zinc-900">{inr(row.amount)}</span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-sm font-semibold text-zinc-900">{inr(row.settled)}</span>
+                        {row.advanceUsed > 0 && <Badge tone="amber">Advance</Badge>}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -304,7 +307,12 @@ export default async function DashboardPage() {
                               {row.mode === "online" ? "Online" : "Cash"}
                             </Badge>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">
+                            <span className="inline-flex items-center justify-end gap-1.5">
+                              {inr(row.settled)}
+                              {row.advanceUsed > 0 && <Badge tone="amber">Advance</Badge>}
+                            </span>
+                          </td>
                           <td className="whitespace-nowrap px-3 py-3 text-right text-zinc-500 sm:px-5">
                             {new Intl.DateTimeFormat("en-IN", {
                               hour: "2-digit",

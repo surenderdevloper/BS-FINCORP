@@ -199,6 +199,8 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     customerName: p.customerName,
     loanNo: p.loanNo,
     amount: p.amount,
+    settled: (p.principal ?? 0) + (p.interest ?? 0) + (p.penalty ?? 0),
+    advanceUsed: p.advanceUsed ?? 0,
     penalty: p.penalty,
     mode: p.mode,
     paidAt: p.createdAt.toISOString(),

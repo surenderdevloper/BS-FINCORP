@@ -78,6 +78,12 @@ export interface TodayCollectionRow {
   customerName: string;
   loanNo: string;
   amount: number;
+  // EMI value cleared by this receipt (principal + interest + penalty). Equal
+  // to cash + advance used − advance saved, so advance-only receipts still
+  // show the value settled instead of ₹0.
+  settled: number;
+  // Credit consumed from a previous overpayment on this receipt.
+  advanceUsed: number;
   penalty: number;
   mode: string;
   paidAt: string;
