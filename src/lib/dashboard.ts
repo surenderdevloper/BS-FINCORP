@@ -63,8 +63,8 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       { $match: { createdAt: { $gte: startToday, $lt: endToday }, type: { $ne: "NOC_REPRINT" } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
-    Emi.countDocuments({ status: "pending", dueDate: { $lt: startToday } }),
-    Emi.countDocuments({ status: "pending", dueDate: { $gte: startToday } }),
+    Emi.countDocuments({ status: { $ne: "paid" }, dueDate: { $lt: startToday } }),
+    Emi.countDocuments({ status: { $ne: "paid" }, dueDate: { $gte: startToday } }),
     Loan.find({ status: "active" }).select("_id").lean().exec(),
     Payment.find({
       createdAt: { $gte: startToday, $lt: endToday },
@@ -87,24 +87,44 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     Emi.aggregate<{ total: number }>([
       {
         $match: {
-          status: "pending",
+          status: { $ne: "paid" },
           dueDate: { $gte: startToday },
           loanId: { $in: activeLoanIds },
         },
       },
-      { $group: { _id: null, total: { $sum: "$principal" } } },
+      {
+        $group: {
+          _id: null,
+          // Outstanding principal of the remaining balance (partial EMIs only
+          // contribute their unpaid share).
+          total: {
+            $sum: {
+              $cond: [
+                { $gt: ["$amount", 0] },
+                {
+                  $multiply: [
+                    "$principal",
+                    { $divide: [{ $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] }, "$amount"] },
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      },
     ]),
     Emi.countDocuments({
-      status: "pending",
+      status: { $ne: "paid" },
       dueDate: { $gte: startToday, $lt: reminderCutoff },
       loanId: { $in: activeLoanIds },
     }),
-    Emi.find({ status: "pending", dueDate: { $lt: startToday }, loanId: { $in: activeLoanIds } })
+    Emi.find({ status: { $ne: "paid" }, dueDate: { $lt: startToday }, loanId: { $in: activeLoanIds } })
       .sort({ dueDate: 1 })
       .limit(10)
       .lean(),
     Emi.find({
-      status: "pending",
+      status: { $ne: "paid" },
       dueDate: { $gte: startToday, $lt: reminderCutoff },
       loanId: { $in: activeLoanIds },
     })
@@ -145,9 +165,9 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       loanNo: loan.loanNo,
       vehicle: loan.vehicle?.name ?? "",
       dueDate: emi.dueDate.toISOString(),
-      amount: emi.amount,
+      amount: Math.max(0, emi.amount - (emi.paidAmount ?? 0)),
       daysLate: late.daysLate,
-      penalty: late.penalty,
+      penalty: (emi.penalty ?? 0) > 0 ? (emi.penalty ?? 0) : late.penalty,
     });
   }
 
@@ -165,7 +185,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       loanNo: loan.loanNo,
       vehicle: loan.vehicle?.name ?? "",
       dueDate: due.toISOString(),
-      amount: emi.amount,
+      amount: Math.max(0, emi.amount - (emi.paidAmount ?? 0)),
       daysLeft: Math.max(0, Math.ceil((due.getTime() - startToday.getTime()) / DAY_MS)),
     });
   }

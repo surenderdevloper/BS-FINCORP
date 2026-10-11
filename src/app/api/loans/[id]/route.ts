@@ -149,7 +149,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
 
   // 3. If the repayment plan changed and no EMI has been paid, regenerate the schedule.
   if (financialChanged) {
-    const paidCount = await Emi.countDocuments({ loanId: loan._id, status: "paid" });
+    const paidCount = await Emi.countDocuments({ loanId: loan._id, status: { $ne: "pending" } });
     if (paidCount > 0) {
       return NextResponse.json(
         { error: "The repayment plan is locked because EMIs have already been paid on this loan." },
@@ -201,6 +201,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
         amount: row.amount,
         principal: row.principal,
         interest: row.interest,
+        paidAmount: 0,
         status: "pending" as const,
       }))
     );

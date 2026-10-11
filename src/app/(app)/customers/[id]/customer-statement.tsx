@@ -85,6 +85,7 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
           <DetailRow label="Chassis No" value={loan.vehicle.chassisNo} />
           <DetailRow label="Engine No" value={loan.vehicle.engineNo} />
           <DetailRow label="Dealer Name" value={loan.vehicle.dealerName} />
+          {loan.advance > 0 && <DetailRow label="Advance Credit" value={inr(loan.advance)} />}
         </dl>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -132,10 +133,15 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                       <td className="py-2 pr-3 text-zinc-600">{formatDate(e.dueDate)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.principal)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.interest)}</td>
-                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(e.amount)}</td>
+                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">
+                        {e.status === "partial" ? inr(e.remaining) : inr(e.amount)}
+                        {e.status === "partial" && (
+                          <span className="block text-[10px] font-normal text-amber-600">{inr(e.paidAmount)} paid</span>
+                        )}
+                      </td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{e.penalty ? inr(e.penalty) : "—"}</td>
                       <td className="py-2 pr-3">
-                        <Badge tone={e.status === "paid" ? "green" : "red"}>{e.status}</Badge>
+                        <Badge tone={e.status === "paid" ? "green" : e.status === "partial" ? "amber" : "red"}>{e.status}</Badge>
                       </td>
                       <td className="py-2 text-zinc-600">{e.paidOn ? formatDate(e.paidOn) : "—"}</td>
                     </tr>
@@ -172,7 +178,18 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.principal)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.interest)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.penalty)}</td>
-                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">{inr(p.amount)}</td>
+                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">
+                        {inr(p.amount)}
+                        {p.discount > 0 && (
+                          <span className="block text-[10px] font-normal text-amber-600">-{inr(p.discount)} disc</span>
+                        )}
+                        {p.advanceUsed > 0 && (
+                          <span className="block text-[10px] font-normal text-sky-600">{inr(p.advanceUsed)} adv</span>
+                        )}
+                        {p.advanceAdded > 0 && (
+                          <span className="block text-[10px] font-normal text-sky-600">+{inr(p.advanceAdded)} adv</span>
+                        )}
+                      </td>
                       <td className="py-2 pr-3 text-zinc-600">{p.mode}</td>
                       <td className="py-2 pr-3 text-zinc-600">{p.notes || "—"}</td>
                       <td className="py-2 text-right">

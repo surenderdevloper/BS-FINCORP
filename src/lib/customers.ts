@@ -51,7 +51,10 @@ interface Calcs {
   pendingAmount: number;
 }
 
-export function calcLoanFromEmis(emis: { status: string; amount: number; dueDate: Date }[], today: Date): Calcs {
+export function calcLoanFromEmis(
+  emis: { status: string; amount: number; paidAmount?: number; dueDate: Date }[],
+  today: Date
+): Calcs {
   const start = startOfToday(today);
   const calcs: Calcs = { totalPaid: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, pendingAmount: 0 };
   for (const emi of emis) {
@@ -59,8 +62,10 @@ export function calcLoanFromEmis(emis: { status: string; amount: number; dueDate
       calcs.paidCount++;
       calcs.totalPaid += emi.amount;
     } else {
+      const paid = Math.max(0, emi.paidAmount ?? 0);
       calcs.pendingCount++;
-      calcs.pendingAmount += emi.amount;
+      calcs.totalPaid += paid;
+      calcs.pendingAmount += Math.max(0, emi.amount - paid);
       if (new Date(emi.dueDate) < start) calcs.overdueCount++;
     }
   }
@@ -153,18 +158,34 @@ export async function listCustomers(input: { search?: string; limit?: number; to
         $group: {
           _id: "$loanId",
           paidCount: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
-          pendingCount: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+          pendingCount: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 0, 1] } },
           overdueCount: {
             $sum: {
               $cond: [
-                { $and: [{ $eq: ["$status", "pending"] }, { $lt: ["$dueDate", todayStart] }] },
+                { $and: [{ $ne: ["$status", "paid"] }, { $lt: ["$dueDate", todayStart] }] },
                 1,
                 0,
               ],
             },
           },
-          totalPaid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0] } },
-          pendingAmount: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0] } },
+          totalPaid: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "paid"] },
+                "$amount",
+                { $ifNull: ["$paidAmount", 0] },
+              ],
+            },
+          },
+          pendingAmount: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "paid"] },
+                0,
+                { $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] },
+              ],
+            },
+          },
         },
       },
     ]).exec();
@@ -238,6 +259,8 @@ export interface CustomerPaymentRow {
   customerName: string;
   paidCount: number;
   discount: number;
+  advanceUsed: number;
+  advanceAdded: number;
   receivedBy?: string;
 }
 
@@ -266,6 +289,7 @@ export interface CustomerLoanDetail {
     emiDay: number;
   };
   paymentPlan: { monthlyEmi: number; totalPayable: number; totalInterest: number };
+  advance: number;
   emis: EmiRow[];
   payments: CustomerPaymentRow[];
   nocReprints: CustomerPaymentRow[];
@@ -308,6 +332,9 @@ interface RawPaymentLean {
   principal: number;
   interest: number;
   penalty: number;
+  discount?: number;
+  advanceUsed?: number;
+  advanceAdded?: number;
   mode: string;
   notes: string;
   type?: string;
@@ -318,9 +345,10 @@ interface RawPaymentLean {
 }
 
 function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
-  // discount = (principal + interest + penalty) − amount, clamped at 0.
-  // Matches how the receipt amount was computed: amount = emiTotal + penalty − discount.
-  const discount = Math.max(0, p.principal + p.interest + (p.penalty ?? 0) - p.amount);
+  // Prefer the explicit discount stored on newer payments. Fall back to the
+  // derived value for legacy records: (principal + interest + penalty) − amount.
+  const derived = Math.max(0, p.principal + p.interest + (p.penalty ?? 0) - p.amount);
+  const discount = p.discount != null ? Math.max(0, p.discount) : derived;
   return {
     _id: p._id.toString(),
     receiptNo: p.receiptNo,
@@ -335,12 +363,14 @@ function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
     customerName: p.customerName ?? "",
     paidCount: p.emiIds?.length ?? 0,
     discount,
+    advanceUsed: Math.max(0, p.advanceUsed ?? 0),
+    advanceAdded: Math.max(0, p.advanceAdded ?? 0),
     receivedBy: p.receivedBy ?? "",
   };
 }
 
 const PAYMENT_RECEIPT_FIELDS =
-  "receiptNo loanNo loanId amount principal interest penalty mode notes type createdAt customerName emiIds receivedBy";
+  "receiptNo loanNo loanId amount principal interest penalty discount advanceUsed advanceAdded mode notes type createdAt customerName emiIds receivedBy";
 
 /** Load a single payment as a receipt row, scoped to its customer. */
 export async function getPaymentReceipt(
@@ -369,6 +399,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
     loanNo: string;
     status: string;
     closedAt?: Date;
+    advance?: number;
     vehicle: { name: string; model?: string; engineNo?: string; chassisNo?: string; regNo?: string; loanType?: string; dealerName?: string };
     financial: {
       vehiclePrice: number;
@@ -458,6 +489,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
         totalPayable: loan.paymentPlan.totalPayable,
         totalInterest: loan.paymentPlan.totalInterest,
       },
+      advance: Math.max(0, loan.advance ?? 0),
       emis,
       payments,
       nocReprints,

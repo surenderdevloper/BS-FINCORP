@@ -35,6 +35,9 @@ const loanSchema = new mongoose.Schema(
       relation: { type: String, default: "" },
       address: { type: String, default: "" },
     },
+    // Credit balance from overpayments. Applied automatically to the next EMI
+    // collected on this loan. Reset to 0 when the loan is closed.
+    advance: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "closed"], default: "active" },
     closedAt: { type: Date },
   },

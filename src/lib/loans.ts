@@ -14,7 +14,11 @@ export interface EmiRow {
   amount: number;
   principal: number;
   interest: number;
-  status: "pending" | "paid";
+  /** Amount collected towards this EMI. */
+  paidAmount: number;
+  /** `amount - paidAmount`, clamped at 0. */
+  remaining: number;
+  status: "pending" | "partial" | "paid";
   paidOn?: string;
   penalty: number;
 }
@@ -69,9 +73,12 @@ export interface LoanDetail {
     relation?: string;
     address?: string;
   };
+  /** Credit balance from overpayments, applied to future EMIs. */
+  advance: number;
   emis: EmiRow[];
   totals: {
     paidCount: number;
+    partialCount: number;
     pendingCount: number;
     overdueCount: number;
     paidAmount: number;
@@ -109,8 +116,10 @@ export interface RawEmi {
   amount: number;
   principal: number;
   interest: number;
-  status: "pending" | "paid";
+  paidAmount?: number;
+  status: "pending" | "partial" | "paid";
   paidOn?: Date;
+  penalty?: number;
 }
 
 interface RawLoan {
@@ -142,6 +151,7 @@ interface RawLoan {
   };
   paymentPlan: { monthlyEmi: number; totalPayable: number; totalInterest: number };
   guarantor?: { name?: string; mobile?: string; relation?: string; address?: string };
+  advance?: number;
 }
 
 export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promise<{ emis: EmiRow[]; totals: LoanDetail["totals"] }> {
@@ -149,6 +159,7 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
   const emis: EmiRow[] = [];
   const totals: LoanDetail["totals"] = {
     paidCount: 0,
+    partialCount: 0,
     pendingCount: 0,
     overdueCount: 0,
     paidAmount: 0,
@@ -158,10 +169,20 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
   };
 
   for (const emi of rawEmis) {
+    const paidAmount = emi.status === "paid" ? emi.amount : Math.max(0, emi.paidAmount ?? 0);
+    const remaining = Math.max(0, emi.amount - paidAmount);
+
+    // Penalty is frozen once charged (stored); otherwise computed live for
+    // overdue outstanding EMIs.
     let penalty = 0;
-    if (emi.status === "pending" && emi.dueDate < todayStart) {
-      penalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, today)).penalty;
+    if (emi.status !== "paid" && remaining > 0) {
+      if ((emi.penalty ?? 0) > 0) {
+        penalty = emi.penalty ?? 0;
+      } else if (emi.dueDate < todayStart) {
+        penalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, today)).penalty;
+      }
     }
+
     emis.push({
       _id: emi._id.toString(),
       loanId: emi.loanId.toString(),
@@ -171,16 +192,21 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
       amount: emi.amount,
       principal: emi.principal,
       interest: emi.interest,
+      paidAmount,
+      remaining,
       status: emi.status,
       paidOn: emi.paidOn?.toISOString(),
       penalty,
     });
+
     if (emi.status === "paid") {
       totals.paidCount++;
       totals.paidAmount += emi.amount;
     } else {
+      if (emi.status === "partial") totals.partialCount++;
       totals.pendingCount++;
-      totals.pendingAmount += emi.amount;
+      totals.paidAmount += paidAmount;
+      totals.pendingAmount += remaining;
       if (emi.dueDate < todayStart) totals.overdueCount++;
       totals.totalPenalty += penalty;
     }
@@ -267,6 +293,7 @@ export async function getLoanDetail(loanNo: string, today = new Date()): Promise
           address: loan.guarantor.address ?? "",
         }
       : undefined,
+    advance: Math.max(0, loan.advance ?? 0),
     emis,
     totals,
   };
@@ -342,11 +369,10 @@ export async function listLoans(input: {
         continue;
       }
       pendingCount++;
+      outstandingAmount += row.remaining;
       if (new Date(row.dueDate) < todayStart) {
         overdueCount++;
         overduePenalty += row.penalty;
-      } else {
-        outstandingAmount += row.amount;
       }
     }
     summaries.push({

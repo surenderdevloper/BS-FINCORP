@@ -9,7 +9,11 @@ const emiSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     principal: { type: Number, required: true },
     interest: { type: Number, required: true },
-    status: { type: String, enum: ["pending", "paid"], default: "pending" },
+    // Amount actually collected towards this EMI. `amount - paidAmount` is the
+    // remaining due. Existing paid EMIs may have 0 here for backwards
+    // compatibility; treat `status === "paid"` as fully settled regardless.
+    paidAmount: { type: Number, default: 0 },
+    status: { type: String, enum: ["pending", "partial", "paid"], default: "pending" },
     paidOn: { type: Date },
     penalty: { type: Number, default: 0 },
     paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },

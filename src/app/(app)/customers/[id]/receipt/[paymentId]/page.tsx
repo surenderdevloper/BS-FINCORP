@@ -146,6 +146,18 @@ export default async function ReceiptPage({
                 <dd className="text-right text-zinc-800">-{inr(payment.discount)}</dd>
               </div>
             )}
+            {payment.advanceUsed > 0 && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">Advance Used</dt>
+                <dd className="text-right text-zinc-800">-{inr(payment.advanceUsed)}</dd>
+              </div>
+            )}
+            {payment.advanceAdded > 0 && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">Advance Saved</dt>
+                <dd className="text-right text-zinc-800">{inr(payment.advanceAdded)}</dd>
+              </div>
+            )}
           </dl>
 
           <div className="print-total mt-4 flex items-center justify-between gap-3 rounded-lg px-4 py-3">

@@ -21,8 +21,9 @@ export default function CloseLoanPage() {
   const [loan, setLoan] = useState<LoanDetail | null>(null);
   const [mode, setMode] = useState<"cash" | "online">("cash");
   const [notes, setNotes] = useState("");
+  const [discount, setDiscount] = useState("");
   const [confirming, setConfirming] = useState(false);
-  const [result, setResult] = useState<{ loanNo: string; closedAt: string; settledAmount: number; penalty: number; receiptNo: string } | null>(null);
+  const [result, setResult] = useState<{ loanNo: string; closedAt: string; settledAmount: number; penalty: number; discount: number; receiptNo: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -60,6 +61,7 @@ export default function CloseLoanPage() {
       }
       const data = (await res.json()) as { loan: LoanDetail };
       setLoan(data.loan);
+      setDiscount("");
     } catch {
       setError("Could not load loan details.");
     }
@@ -73,7 +75,7 @@ export default function CloseLoanPage() {
       const res = await fetch(`/api/loans/${loan._id}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, notes }),
+        body: JSON.stringify({ mode, notes, discount: discountValue }),
       });
       const data = (await res.json()) as {
         error?: string;
@@ -81,6 +83,7 @@ export default function CloseLoanPage() {
         closedAt?: string;
         settledAmount?: number;
         penalty?: number;
+        discount?: number;
         receiptNo?: string;
       };
       if (!res.ok) {
@@ -88,7 +91,7 @@ export default function CloseLoanPage() {
         return;
       }
       invalidateCached(CUSTOMERS_LIST_CACHE_KEY);
-      setResult(data as { loanNo: string; closedAt: string; settledAmount: number; penalty: number; receiptNo: string });
+      setResult(data as { loanNo: string; closedAt: string; settledAmount: number; penalty: number; discount: number; receiptNo: string });
       setLoan(null);
       setSearch("");
       setResults([]);
@@ -98,6 +101,10 @@ export default function CloseLoanPage() {
       setConfirming(false);
     }
   };
+
+  const discountValue = discount.trim() === "" ? 0 : Math.max(0, Number(discount) || 0);
+  const advance = loan?.advance ?? 0;
+  const finalAmount = loan ? Math.max(0, loan.totals.outstandingAmount - discountValue - advance) : 0;
 
   return (
     <div className="space-y-5">
@@ -186,6 +193,12 @@ export default function CloseLoanPage() {
             <span className="text-2xl font-bold text-white">{inr(loan.totals.outstandingAmount)}</span>
           </div>
 
+          {advance > 0 && (
+            <p className="border-t border-amber-100 bg-amber-50 px-4 py-2.5 text-xs text-amber-800 sm:px-5">
+              Advance credit of {inr(advance)} will be applied to this settlement.
+            </p>
+          )}
+
           <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
             <Field label="Payment Mode">
               <Select value={mode} onChange={(e) => setMode(e.target.value as "cash" | "online")}>
@@ -193,9 +206,27 @@ export default function CloseLoanPage() {
                 <option value="online">Online (UPI / Bank)</option>
               </Select>
             </Field>
-            <Field label="Notes (optional)">
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. full settlement…" />
+            <Field label="Discount (₹)" hint="Optional concession on settlement.">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                placeholder="0"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+              />
             </Field>
+            <div className="sm:col-span-2">
+              <Field label="Notes (optional)">
+                <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. full settlement…" />
+              </Field>
+            </div>
+          </div>
+
+          <div className="mx-4 mb-1 flex items-center justify-between rounded-lg bg-zinc-900 px-4 py-3 sm:mx-5">
+            <span className="text-sm font-medium text-white/80">Final amount to collect</span>
+            <span className="text-xl font-bold text-white">{inr(finalAmount)}</span>
           </div>
 
           <div className="flex justify-end border-t border-zinc-100 px-4 py-4 sm:px-5">
@@ -233,6 +264,7 @@ export default function CloseLoanPage() {
               <p className="text-sm text-zinc-600">
                 Settled <span className="font-bold text-zinc-900">{inr(result.settledAmount)}</span>
                 {result.penalty > 0 && <span className="ml-1 text-xs text-red-600">(incl. {inr(result.penalty)} penalty)</span>}
+                {result.discount > 0 && <span className="ml-1 text-xs text-amber-600">(after {inr(result.discount)} discount)</span>}
               </p>
               <Link
                 href={`/noc?loan=${result.loanNo}`}

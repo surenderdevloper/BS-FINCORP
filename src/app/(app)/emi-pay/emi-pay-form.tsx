@@ -51,15 +51,17 @@ interface ReceiptResult {
   emiTotal: number;
   penalty: number;
   discount: number;
+  advanceUsed: number;
+  advanceAdded: number;
   paidCount: number;
   mode: string;
   paidAt: string;
 }
 
 const defaultDue = (emis: EmiRow[]) => {
-  const overdue = emis.filter((e) => e.status === "pending" && e.penalty > 0);
+  const overdue = emis.filter((e) => e.status !== "paid" && e.penalty > 0);
   if (overdue.length) return overdue.map((e) => e._id);
-  const earliest = emis.find((e) => e.status === "pending");
+  const earliest = emis.find((e) => e.status !== "paid");
   return earliest ? [earliest._id] : [];
 };
 
@@ -86,6 +88,7 @@ export function EmiPayForm({
   const [mode, setMode] = useState<"cash" | "online">("cash");
   const [notes, setNotes] = useState("");
   const [discount, setDiscount] = useState("");
+  const [amountReceived, setAmountReceived] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => localDateStr());
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collecting, setCollecting] = useState(false);
@@ -103,6 +106,7 @@ export function EmiPayForm({
       setLoan(data.loan);
       setSelected(defaultDue(data.loan.emis));
       setDiscount("");
+      setAmountReceived("");
     } catch {
       /* handled by caller */
     } finally {
@@ -157,10 +161,15 @@ export function EmiPayForm({
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const selectedRows = (loan?.emis ?? []).filter((e) => selected.includes(e._id));
-  const emiTotal = selectedRows.reduce((n, e) => n + e.amount, 0);
+  const emiTotal = selectedRows.reduce((n, e) => n + e.remaining, 0);
   const penaltyTotal = selectedRows.reduce((n, e) => n + e.penalty, 0);
   const discountValue = discount.trim() === "" ? 0 : Math.max(0, Number(discount) || 0);
-  const payable = Math.max(0, emiTotal + penaltyTotal - discountValue);
+  const advance = loan?.advance ?? 0;
+  const payable = Math.max(0, emiTotal + penaltyTotal - discountValue - advance);
+  const amountReceivedValue =
+    amountReceived.trim() === "" ? payable : Math.max(0, Number(amountReceived) || 0);
+  const shortfall = Math.max(0, payable - amountReceivedValue);
+  const excess = Math.max(0, amountReceivedValue - payable);
 
   const onCollect = async () => {
     if (!loan || !selected.length) return;
@@ -170,7 +179,15 @@ export function EmiPayForm({
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loanNo: loan.loanNo, emiIds: selected, mode, notes, discount: discountValue, paymentDate }),
+        body: JSON.stringify({
+          loanNo: loan.loanNo,
+          emiIds: selected,
+          mode,
+          notes,
+          discount: discountValue,
+          amount: amountReceivedValue,
+          paymentDate,
+        }),
       });
       const data = (await res.json()) as { error?: string; payment?: ReceiptResult };
       if (!res.ok) {
@@ -195,6 +212,7 @@ export function EmiPayForm({
     setResults([]);
     setNotes("");
     setDiscount("");
+    setAmountReceived("");
     setPaymentDate(localDateStr());
   };
 
@@ -261,6 +279,11 @@ export function EmiPayForm({
                 </Badge>
               }
             />
+            {advance > 0 && (
+              <div className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-800 sm:px-5">
+                Advance credit available: {inr(advance)} — applied automatically to this collection.
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full min-w-[700px] text-left text-sm">
                 <thead>
@@ -277,12 +300,12 @@ export function EmiPayForm({
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
                   {loan.emis.map((e) => {
-                    const isOverdue = e.status === "pending" && e.penalty > 0;
+                    const isOverdue = e.status !== "paid" && e.penalty > 0;
                     const checked = selected.includes(e._id);
                     return (
                       <tr key={e._id} className={e.status === "paid" ? "opacity-50" : "hover:bg-zinc-50/60"}>
                         <td className="px-3 py-2.5 sm:px-5">
-                          {e.status === "pending" && (
+                          {e.status !== "paid" && (
                             <input
                               type="checkbox"
                               checked={checked}
@@ -299,11 +322,20 @@ export function EmiPayForm({
                         <td className="whitespace-nowrap px-3 py-2.5 text-zinc-600">{formatDate(e.dueDate)}</td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right text-zinc-600">{inr(e.principal)}</td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right text-zinc-600">{inr(e.interest)}</td>
-                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium text-zinc-900">{inr(e.amount)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium text-zinc-900">
+                          {e.status === "partial" ? inr(e.remaining) : inr(e.amount)}
+                          {e.status === "partial" && (
+                            <span className="block text-[10px] font-normal text-amber-600">
+                              {inr(e.paidAmount)} paid
+                            </span>
+                          )}
+                        </td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right text-red-600">{e.penalty > 0 ? inr(e.penalty) : "—"}</td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right sm:px-5">
                           {e.status === "paid" ? (
                             <Badge tone="green">Paid</Badge>
+                          ) : e.status === "partial" ? (
+                            <Badge tone="amber">Partial</Badge>
                           ) : isOverdue ? (
                             <Badge tone="red">Overdue</Badge>
                           ) : (
@@ -346,12 +378,23 @@ export function EmiPayForm({
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-zinc-200 pt-3">
                     <span className="text-xs text-zinc-500">
                       {inr(emiTotal)} + {inr(penaltyTotal)} − {inr(discountValue)}
+                      {advance > 0 ? ` − ${inr(advance)} advance` : ""}
                     </span>
                     <span className="text-right">
                       <span className="block text-xs text-zinc-500">Payable Now</span>
                       <span className="text-lg font-bold text-emerald-700">{inr(payable)}</span>
                     </span>
                   </div>
+                  {excess > 0 && (
+                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Extra {inr(excess)} will be saved as advance credit for the next EMI.
+                    </p>
+                  )}
+                  {shortfall > 0 && (
+                    <p className="mt-3 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
+                      Short by {inr(shortfall)} — the selected EMI(s) will be marked partially paid.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -376,6 +419,17 @@ export function EmiPayForm({
                     }}
                   />
                 </Field>
+                <Field label="Amount Received (₹)" hint={`Leave blank to collect the full ${inr(payable)}.`}>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder={String(payable)}
+                    value={amountReceived}
+                    onChange={(e) => setAmountReceived(e.target.value)}
+                  />
+                </Field>
                 <Field label="Discount (₹)" hint="Optional. Negative values are ignored.">
                   <Input
                     type="number"
@@ -387,9 +441,11 @@ export function EmiPayForm({
                     onChange={(e) => setDiscount(e.target.value)}
                   />
                 </Field>
-                <Field label="Notes (optional)">
-                  <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any remarks…" />
-                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Notes (optional)">
+                    <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any remarks…" />
+                  </Field>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -399,7 +455,7 @@ export function EmiPayForm({
                   disabled={collecting || !selected.length || loan.totals.pendingCount === 0}
                 >
                   <Icon name="cash" size={16} />
-                  {collecting ? "Recording…" : `Collect ${inr(payable)}`}
+                  {collecting ? "Recording…" : `Collect ${inr(amountReceivedValue)}`}
                 </Button>
               </div>
             </div>
@@ -498,6 +554,18 @@ export function EmiPayForm({
                   <dt className="text-zinc-500">Discount</dt>
                   <dd className="text-zinc-800">{receipt.discount > 0 ? `-${inr(receipt.discount)}` : "—"}</dd>
                 </div>
+                {receipt.advanceUsed > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-zinc-500">Advance Used</dt>
+                    <dd className="text-zinc-800">-{inr(receipt.advanceUsed)}</dd>
+                  </div>
+                )}
+                {receipt.advanceAdded > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-zinc-500">Advance Saved</dt>
+                    <dd className="text-zinc-800">{inr(receipt.advanceAdded)}</dd>
+                  </div>
+                )}
               </dl>
               <div className="print-total mt-4 flex items-center justify-between rounded-lg px-4 py-3">
                 <span className="text-sm font-semibold">Amount Received</span>
