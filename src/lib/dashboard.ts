@@ -65,7 +65,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     ]),
     Emi.countDocuments({ status: { $ne: "paid" }, dueDate: { $lt: startToday } }),
     Emi.countDocuments({ status: { $ne: "paid" }, dueDate: { $gte: startToday } }),
-    Loan.find({ status: "active" }).select("_id").lean().exec(),
+    Loan.find({ status: "active" }).select("_id advance").lean().exec(),
     Payment.find({
       createdAt: { $gte: startToday, $lt: endToday },
       type: { $ne: "NOC_REPRINT" },
@@ -81,6 +81,12 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
   const todayCollection = todayAgg[0]?.total ?? 0;
 
   const activeLoanIds = activeLoanDocs.map((loan) => loan._id);
+  // Prepaid credit already collected (extra over scheduled EMIs) reduces the
+  // amount still owed, so the outstanding figure is net of it.
+  const advanceCredit = activeLoanDocs.reduce(
+    (sum, loan) => sum + ((loan as { advance?: number }).advance ?? 0),
+    0
+  );
   const reminderCutoff = new Date(startToday.getTime() + 7 * DAY_MS);
 
   const [pendingAmountAgg, upcomingEmis, overdueEmisRows, reminderEmisRows] = await Promise.all([
@@ -95,18 +101,13 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       {
         $group: {
           _id: null,
-          // Outstanding principal of the remaining balance (partial EMIs only
-          // contribute their unpaid share).
+          // Total outstanding (principal + interest) of the remaining balance.
+          // Partial EMIs only contribute their unpaid share.
           total: {
             $sum: {
               $cond: [
                 { $gt: ["$amount", 0] },
-                {
-                  $multiply: [
-                    "$principal",
-                    { $divide: [{ $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] }, "$amount"] },
-                  ],
-                },
+                { $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] },
                 0,
               ],
             },
@@ -132,7 +133,9 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       .limit(10)
       .lean(),
   ]);
-  const pendingAmount = pendingAmountAgg[0]?.total ?? 0;
+  // Outstanding = remaining principal + interest of upcoming EMIs, less any
+  // advance credit the customer has already paid.
+  const pendingAmount = Math.max(0, (pendingAmountAgg[0]?.total ?? 0) - advanceCredit);
 
   const rowLoanIds = [
     ...new Set([...overdueEmisRows, ...reminderEmisRows].map((emi) => emi.loanId.toString())),
