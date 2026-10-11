@@ -6,6 +6,7 @@ import { Button, Card, CardHeader, Badge } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { buildBrandScale } from "@/lib/brand";
+import { APP_TIME_ZONE } from "@/lib/money";
 
 interface CompanyState {
   companyName: string;
@@ -1143,7 +1144,7 @@ function ToolsTab({
                 <li key={i} className="flex items-center justify-between gap-3 py-2 text-sm">
                   <span className="text-zinc-700">{a.summary}</span>
                   <span className="shrink-0 text-[11px] text-zinc-400">
-                    {a.by} · {new Date(a.at).toLocaleString()}
+                    {a.by} · {new Date(a.at).toLocaleString("en-IN", { timeZone: APP_TIME_ZONE })}
                   </span>
                 </li>
               ))}

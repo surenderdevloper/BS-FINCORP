@@ -5,7 +5,7 @@ import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { WhatsAppShare } from "@/components/whatsapp-share";
-import { formatDate, inr } from "@/lib/money";
+import { formatDate, inr, APP_TIME_ZONE } from "@/lib/money";
 import { buildPaymentConfirmationMessage } from "@/lib/whatsapp";
 import { CUSTOMERS_LIST_CACHE_KEY, cachedGet, invalidateCached } from "@/lib/client-fetch";
 import type { EmiRow, LoanDetail } from "@/lib/loans";
@@ -65,11 +65,13 @@ const defaultDue = (emis: EmiRow[]) => {
   return earliest ? [earliest._id] : [];
 };
 
-const localDateStr = () => {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-};
+const localDateStr = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
 export function EmiPayForm({
   preselectedLoan,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { dbConnect } from "@/lib/db";
 import { getDashboardData } from "@/lib/dashboard";
-import { inr, formatDate } from "@/lib/money";
+import { inr, formatDate, APP_TIME_ZONE } from "@/lib/money";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { SmsComposer } from "@/components/sms-composer";
@@ -306,9 +306,11 @@ export default async function DashboardPage() {
                           </td>
                           <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-right text-zinc-500 sm:px-5">
-                            {new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(
-                              new Date(row.paidAt)
-                            )}
+                            {new Intl.DateTimeFormat("en-IN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              timeZone: APP_TIME_ZONE,
+                            }).format(new Date(row.paidAt))}
                           </td>
                         </tr>
                       ))}

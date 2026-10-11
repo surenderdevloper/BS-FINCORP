@@ -1,4 +1,4 @@
-import { inr } from "@/lib/money";
+import { inr, APP_TIME_ZONE } from "@/lib/money";
 import { isValidMobile } from "@/lib/validators";
 import { renderTemplate } from "@/lib/message-templates";
 
@@ -36,6 +36,7 @@ function formatSmsDate(d: string | Date): string {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(d));
 }
 

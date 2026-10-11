@@ -1,4 +1,4 @@
-import { inr } from "@/lib/money";
+import { inr, APP_TIME_ZONE } from "@/lib/money";
 import { normalizeMobile } from "@/lib/sms";
 import { renderTemplate } from "@/lib/message-templates";
 
@@ -25,6 +25,7 @@ export function formatMessageDate(d: string | Date): string {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(d));
 }
 
