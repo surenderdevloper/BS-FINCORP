@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { Tenant } from "@/models/Tenant";
 import { normalizeRole } from "@/lib/auth";
 import { withSuperadmin } from "@/lib/tenant-route";
+import { recordAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET() {
   return withSuperadmin(async () => {
     await dbConnect();
     const users = await User.find({})
-      .select("name email role tenantId createdAt")
+      .select("name email role tenantId createdAt lastLoginAt")
       .sort({ createdAt: 1 })
       .lean();
     return NextResponse.json({
@@ -23,13 +24,14 @@ export async function GET() {
         role: normalizeRole(u.role),
         tenantId: u.tenantId ?? null,
         createdAt: u.createdAt?.toISOString(),
+        lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : null,
       })),
     });
   });
 }
 
 export async function POST(req: Request) {
-  return withSuperadmin(async () => {
+  return withSuperadmin(async (session) => {
     let body: {
       email?: string;
       name?: string;
@@ -96,6 +98,14 @@ export async function POST(req: Request) {
       passwordHash: await bcrypt.hash(password, 10),
       role,
       tenantId,
+    });
+
+    await recordAudit({
+      actor: session,
+      action: "user.create",
+      targetType: "user",
+      targetId: email,
+      details: `Created ${role}${tenantId ? ` for ${tenantId}` : ""}`,
     });
 
     return NextResponse.json(

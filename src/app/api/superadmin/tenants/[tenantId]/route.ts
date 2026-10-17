@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Tenant } from "@/models/Tenant";
 import { withSuperadmin } from "@/lib/tenant-route";
+import { recordAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ type RouteContext = { params: Promise<{ tenantId: string }> };
 const PLAN_STATUSES = ["active", "suspended"] as const;
 
 export async function PATCH(req: Request, ctx: RouteContext) {
-  return withSuperadmin(async () => {
+  return withSuperadmin(async (session) => {
     const { tenantId } = await ctx.params;
 
     let body: {
@@ -19,6 +20,8 @@ export async function PATCH(req: Request, ctx: RouteContext) {
       businessName?: string;
       adminEmail?: string;
       expiresAt?: string | null;
+      archived?: boolean;
+      notes?: string;
     };
     try {
       body = await req.json();
@@ -44,6 +47,11 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     }
     if (body.adminEmail !== undefined) {
       set.adminEmail = String(body.adminEmail).trim().toLowerCase().slice(0, 200);
+    }
+    if (body.notes !== undefined) set.notes = String(body.notes ?? "").trim().slice(0, 500);
+    if (body.archived !== undefined) {
+      if (typeof body.archived === "boolean") set.archived = body.archived;
+      else fieldErrors.archived = "Expected true or false.";
     }
     if (body.expiresAt !== undefined) {
       if (body.expiresAt === null || body.expiresAt === "") {
@@ -75,6 +83,14 @@ export async function PATCH(req: Request, ctx: RouteContext) {
       return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
     }
 
+    await recordAudit({
+      actor: session,
+      action: "tenant.update",
+      targetType: "tenant",
+      targetId: tenantId,
+      details: `Updated ${Object.keys(set).join(", ")}`,
+    });
+
     return NextResponse.json({
       tenant: {
         tenantId: tenant.tenantId,
@@ -83,7 +99,40 @@ export async function PATCH(req: Request, ctx: RouteContext) {
         planName: tenant.planName ?? "",
         planStatus: tenant.planStatus,
         expiresAt: tenant.expiresAt ? new Date(tenant.expiresAt).toISOString() : null,
+        archived: tenant.archived === true,
+        notes: tenant.notes ?? "",
       },
     });
+  });
+}
+
+/**
+ * Soft-delete a tenant: marks it archived and suspends it. Records, users and
+ * loans are left untouched so nothing is lost and the tenant can be restored
+ * with a PATCH `{ archived: false }`.
+ */
+export async function DELETE(req: Request, ctx: RouteContext) {
+  return withSuperadmin(async (session) => {
+    const { tenantId } = await ctx.params;
+    const { searchParams } = new URL(req.url);
+    const restore = searchParams.get("restore") === "1";
+
+    await dbConnect();
+    const tenant = await Tenant.findOneAndUpdate(
+      { tenantId },
+      { $set: { archived: !restore, ...(restore ? {} : { planStatus: "suspended" }) } },
+      { new: true }
+    );
+    if (!tenant) return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
+
+    await recordAudit({
+      actor: session,
+      action: restore ? "tenant.restore" : "tenant.archive",
+      targetType: "tenant",
+      targetId: tenantId,
+      details: restore ? "Restored tenant" : `Archived "${tenant.businessName}"`,
+    });
+
+    return NextResponse.json({ tenant: { tenantId, archived: tenant.archived === true } });
   });
 }

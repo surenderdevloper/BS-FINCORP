@@ -130,9 +130,15 @@ export async function readSession(): Promise<SessionUser | null> {
     if (multiTenantEnabled() && user.tenantId) {
       // Tenant is a global registry collection (not plugin-scoped).
       const tenant = await Tenant.findOne({ tenantId: user.tenantId })
-        .select("planStatus")
+        .select("planStatus expiresAt archived")
         .lean();
-      user.suspended = tenant?.planStatus === "suspended";
+      // A tenant is blocked when it is explicitly suspended, archived, or has
+      // run past its subscription expiry date. Checking expiry here means it
+      // takes effect on the next request — no cron job required.
+      const now = Date.now();
+      const expired = tenant?.expiresAt ? new Date(tenant.expiresAt).getTime() < now : false;
+      user.suspended =
+        tenant?.planStatus === "suspended" || tenant?.archived === true || expired;
     }
   } catch {
     return null;

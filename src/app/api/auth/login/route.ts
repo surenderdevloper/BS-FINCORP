@@ -43,6 +43,14 @@ export async function POST(req: Request) {
 
     rateLimitReset(`login:${clientKey(req)}:${email}`);
 
+    // Best-effort "last seen" so the superadmin panel can show when each
+    // account was last used. Never blocks the login itself.
+    try {
+      await runUnscoped(() => User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } }));
+    } catch {
+      // ignore
+    }
+
     const token = await signSessionToken({
       id: user._id.toString(),
       name: user.name,

@@ -18,6 +18,10 @@ const tenantSchema = new mongoose.Schema(
     planName: { type: String, default: "", trim: true },
     planStatus: { type: String, enum: ["active", "suspended"], default: "active" },
     expiresAt: { type: Date, default: null },
+    // Soft delete: archived tenants stay listed (with their data) but are
+    // excluded from the default panel list and treated as suspended.
+    archived: { type: Boolean, default: false },
+    notes: { type: String, default: "" },
   },
   { timestamps: true }
 );

@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["admin", "developer", "superadmin"], default: "admin" },
     tokenVersion: { type: Number, default: 0 },
     tenantId: { type: String, trim: true },
+    lastLoginAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
