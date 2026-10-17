@@ -52,7 +52,7 @@ export function tenantPlugin(schema: Schema): void {
     if (this[FIELD] == null) this[FIELD] = tenantId;
   } as never);
 
-  schema.pre("insertMany", function (this: unknown, next: (err?: Error) => void, docs: unknown) {
+  schema.pre("insertMany", function (this: unknown, docs: unknown) {
     const tenantId = activeTenantId();
     if (tenantId && Array.isArray(docs)) {
       for (const doc of docs) {
@@ -61,6 +61,5 @@ export function tenantPlugin(schema: Schema): void {
         }
       }
     }
-    next();
   } as never);
 }
