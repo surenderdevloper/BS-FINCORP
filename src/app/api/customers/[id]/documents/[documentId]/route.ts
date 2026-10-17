@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
 import { CustomerDocument } from "@/models/CustomerDocument";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { findOwnedDocument, toDocumentMeta } from "@/lib/customerDocuments";
 
 type RouteContext = { params: Promise<{ id: string; documentId: string }> };
 
 export async function GET(_req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id, documentId } = await ctx.params;
   await dbConnect();
 
@@ -21,12 +19,11 @@ export async function GET(_req: Request, ctx: RouteContext) {
   if (!doc) return NextResponse.json({ error: "Document not found." }, { status: 404 });
 
   return NextResponse.json({ document: toDocumentMeta(doc) });
+  });
 }
 
 export async function DELETE(_req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id, documentId } = await ctx.params;
   await dbConnect();
 
@@ -49,4 +46,5 @@ export async function DELETE(_req: Request, ctx: RouteContext) {
   }
 
   return NextResponse.json({ ok: true, deletedId: documentId });
+  });
 }

@@ -3,11 +3,12 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
-import { SESSION_COOKIE, readSession, signSessionToken, sessionCookieOptions } from "@/lib/auth";
+import { SESSION_COOKIE, signSessionToken, sessionCookieOptions, normalizeRole } from "@/lib/auth";
+import { runUnscoped } from "@/lib/tenant";
+import { withTenant } from "@/lib/tenant-route";
 
 export async function PUT(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return withTenant(async (session) => {
 
   let body: { currentPassword?: string; newPassword?: string };
   try {
@@ -34,7 +35,8 @@ export async function PUT(req: Request) {
 
   await dbConnect();
 
-  const user = await User.findById(session.id);
+  // Accounts are global; the id is enough to find the signed-in user.
+  const user = await runUnscoped(() => User.findById(session.id));
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
   const ok = await bcrypt.compare(currentPassword, user.passwordHash);
@@ -57,11 +59,13 @@ export async function PUT(req: Request) {
     id: String(user._id),
     name: user.name,
     email: user.email,
-    role: user.role === "developer" ? "developer" : "admin",
+    role: normalizeRole(user.role),
     tokenVersion: user.tokenVersion,
+    tenantId: user.tenantId ?? null,
   });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, sessionCookieOptions());
 
   return NextResponse.json({ ok: true });
+  });
 }

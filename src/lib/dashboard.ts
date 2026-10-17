@@ -4,6 +4,7 @@ import { Emi } from "@/models/Emi";
 import { Payment } from "@/models/Payment";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { isoDateIST, startOfISTDay } from "@/lib/dates";
+import { currentTenantId } from "@/lib/tenant";
 import type { DashboardData, OverdueRow, ReminderRow, TodayCollectionRow } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -14,8 +15,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // few seconds). Mirrors the listCustomers server-cache pattern.
 const DASHBOARD_CACHE_TTL_MS = 10_000;
 
-let dashboardCache: { value: DashboardData; at: number; day: string } | null = null;
-let dashboardInFlight: Promise<DashboardData> | null = null;
+let dashboardCache: { value: DashboardData; at: number; day: string; tenant: string } | null = null;
+const dashboardInFlight = new Map<string, Promise<DashboardData>>();
 
 // "Today" is the IST business day: IST midnight → next IST midnight. India has
 // no DST, so a day is always exactly 24h. Without this, a payment made just
@@ -224,22 +225,24 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
 }
 
 export async function getDashboardData(today = new Date()): Promise<DashboardData> {
-  const day = today.toDateString();
+  const tenant = currentTenantId() ?? "global";
+  const day = `${today.toDateString()}::${tenant}`;
   if (dashboardCache && dashboardCache.day === day && Date.now() - dashboardCache.at < DASHBOARD_CACHE_TTL_MS) {
     return dashboardCache.value;
   }
-  // Coalesce simultaneous renders so the aggregations only run once.
-  if (!dashboardInFlight) {
-    dashboardInFlight = computeDashboardData(today)
-      .then((value) => {
-        dashboardCache = { value, at: Date.now(), day };
-        dashboardInFlight = null;
-        return value;
-      })
-      .catch((err) => {
-        dashboardInFlight = null;
-        throw err;
-      });
-  }
-  return dashboardInFlight;
+  // Coalesce simultaneous renders so the aggregations only run once per tenant.
+  const existing = dashboardInFlight.get(day);
+  if (existing) return existing;
+  const pending = computeDashboardData(today)
+    .then((value) => {
+      dashboardCache = { value, at: Date.now(), day, tenant };
+      dashboardInFlight.delete(day);
+      return value;
+    })
+    .catch((err) => {
+      dashboardInFlight.delete(day);
+      throw err;
+    });
+  dashboardInFlight.set(day, pending);
+  return pending;
 }

@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { sanitizeSearch } from "@/lib/search";
 import { listCustomers } from "@/lib/customers";
 
 export async function GET(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const url = new URL(req.url);
   const search = sanitizeSearch(url.searchParams.get("search"));
   const all = url.searchParams.get("all") === "1";
@@ -54,5 +52,6 @@ export async function GET(req: Request) {
       city: c.city,
       state: c.state,
     })),
+  });
   });
 }

@@ -1,4 +1,6 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { currentTenantId, multiTenantEnabled } from "@/lib/tenant";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 /**
  * Developer Console configuration — owner-only settings that go beyond the
@@ -68,7 +70,7 @@ const auditEntrySchema = new mongoose.Schema(
 
 const appConfigSchema = new mongoose.Schema(
   {
-    singleton: { type: String, default: "appconfig", unique: true, required: true },
+    singleton: { type: String, default: "appconfig", required: true },
     tagline: { type: String, default: "Loan Management", trim: true },
     website: { type: String, default: "", trim: true },
     printLogo: { type: String, default: "" },
@@ -88,9 +90,18 @@ const appConfigSchema = new mongoose.Schema(
       sms: { type: Boolean, default: true },
     },
     audit: { type: [auditEntrySchema], default: [] },
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true, minimize: false }
 );
+
+appConfigSchema.plugin(tenantPlugin);
+
+if (multiTenantEnabled()) {
+  appConfigSchema.index({ tenantId: 1, singleton: 1 }, { unique: true });
+} else {
+  appConfigSchema.index({ singleton: 1 }, { unique: true });
+}
 
 export type AppConfigType = InferSchemaType<typeof appConfigSchema>;
 export type LoanTypeConfig = {
@@ -114,8 +125,10 @@ export const DEFAULT_LOAN_TYPES: LoanTypeConfig[] = [
   { name: "Other", defaultInterestType: "flat", defaultRate: 0, defaultTenureMonths: 12, defaultEmiDay: 5, active: true },
 ];
 
-let cache: { value: AppConfigType; at: number } | null = null;
+let cache: { value: AppConfigType; at: number; key: string } | null = null;
 const CACHE_TTL_MS = 10_000;
+
+const cacheKey = () => currentTenantId() ?? "global";
 
 /**
  * Read the developer configuration (cached for 10s). If no document exists a
@@ -123,7 +136,8 @@ const CACHE_TTL_MS = 10_000;
  * The document is only persisted when the developer actually saves it.
  */
 export async function getAppConfig(): Promise<InstanceType<typeof AppConfig>> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+  const key = cacheKey();
+  if (cache && cache.key === key && Date.now() - cache.at < CACHE_TTL_MS) {
     const doc = new AppConfig(cache.value as AppConfigType) as InstanceType<typeof AppConfig>;
     doc.isNew = false;
     return doc;
@@ -134,12 +148,12 @@ export async function getAppConfig(): Promise<InstanceType<typeof AppConfig>> {
     | null;
 
   if (existing) {
-    cache = { value: existing.toObject() as AppConfigType, at: Date.now() };
+    cache = { value: existing.toObject() as AppConfigType, at: Date.now(), key };
     return existing;
   }
 
   const fresh = new AppConfig({} as AppConfigType) as InstanceType<typeof AppConfig>;
-  cache = { value: fresh.toObject() as AppConfigType, at: Date.now() };
+  cache = { value: fresh.toObject() as AppConfigType, at: Date.now(), key };
   return fresh;
 }
 

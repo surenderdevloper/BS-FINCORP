@@ -1,4 +1,5 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const emiSchema = new mongoose.Schema(
   {
@@ -17,9 +18,12 @@ const emiSchema = new mongoose.Schema(
     paidOn: { type: Date },
     penalty: { type: Number, default: 0 },
     paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true }
 );
+
+emiSchema.plugin(tenantPlugin);
 
 emiSchema.index({ loanId: 1, dueDate: 1 });
 emiSchema.index({ status: 1, dueDate: 1 });

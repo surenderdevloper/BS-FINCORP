@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { readSession } from "@/lib/auth";
+import { runForSession } from "@/lib/tenant";
 import { getAppConfig } from "@/models/AppConfig";
 import { getMessageSettings } from "@/lib/message-config";
 import { EmiPayForm } from "./emi-pay-form";
@@ -9,7 +11,10 @@ export const dynamic = "force-dynamic";
 
 export default async function EmiPayPage({ searchParams }: { searchParams: Promise<{ loan?: string }> }) {
   const { loan } = await searchParams;
-  const [config, msgs] = await Promise.all([getAppConfig(), getMessageSettings()]);
+  const session = await readSession();
+  const [config, msgs] = await runForSession(session?.tenantId, () =>
+    Promise.all([getAppConfig(), getMessageSettings()])
+  );
   const docs = config.documents;
   return (
     <EmiPayForm

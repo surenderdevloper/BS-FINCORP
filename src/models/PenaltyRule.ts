@@ -1,16 +1,27 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { currentTenantId, multiTenantEnabled } from "@/lib/tenant";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const penaltyRuleSchema = new mongoose.Schema(
   {
-    singleton: { type: String, default: "penalty", unique: true, required: true },
+    singleton: { type: String, default: "penalty", required: true },
     enabled: { type: Boolean, default: true },
     graceDays: { type: Number, default: 3 },
     penaltyType: { type: String, enum: ["fixed", "percentage"], default: "fixed" },
     penaltyPerDay: { type: Number, default: 10 },
     maxPenaltyAmount: { type: Number }, // optional cap per EMI, e.g. 1000
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true }
 );
+
+penaltyRuleSchema.plugin(tenantPlugin);
+
+if (multiTenantEnabled()) {
+  penaltyRuleSchema.index({ tenantId: 1, singleton: 1 }, { unique: true });
+} else {
+  penaltyRuleSchema.index({ singleton: 1 }, { unique: true });
+}
 
 export type PenaltyRuleType = InferSchemaType<typeof penaltyRuleSchema>;
 
@@ -21,21 +32,24 @@ export const PenaltyRule =
 let cache: Invalidatable<PenaltyRuleType> | null = null;
 const CACHE_TTL_MS = 10_000;
 
-type Invalidatable<T> = { value: T; at: number };
+type Invalidatable<T> = { value: T; at: number; key: string };
+
+const cacheKey = () => currentTenantId() ?? "global";
 
 export async function getPenaltyRule(): Promise<InstanceType<typeof PenaltyRule>> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+  const key = cacheKey();
+  if (cache && cache.key === key && Date.now() - cache.at < CACHE_TTL_MS) {
     const doc: InstanceType<typeof PenaltyRule> = new PenaltyRule(cache.value as PenaltyRuleType) as InstanceType<typeof PenaltyRule>;
     doc.isNew = false;
     return doc;
   }
   const existing = (await PenaltyRule.findOne({ singleton: "penalty" }).exec()) as unknown as InstanceType<typeof PenaltyRule> | null;
   if (existing) {
-    cache = { value: existing.toObject() as PenaltyRuleType, at: Date.now() };
+    cache = { value: existing.toObject() as PenaltyRuleType, at: Date.now(), key };
     return existing;
   }
   const fresh = new PenaltyRule({} as PenaltyRuleType) as InstanceType<typeof PenaltyRule>;
-  cache = { value: fresh.toObject() as PenaltyRuleType, at: Date.now() };
+  cache = { value: fresh.toObject() as PenaltyRuleType, at: Date.now(), key };
   return fresh;
 }
 

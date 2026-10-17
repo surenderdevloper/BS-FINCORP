@@ -1,8 +1,10 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { currentTenantId, multiTenantEnabled } from "@/lib/tenant";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const companySettingSchema = new mongoose.Schema(
   {
-    singleton: { type: String, default: "company", unique: true, required: true },
+    singleton: { type: String, default: "company", required: true },
     companyName: { type: String, required: true, default: "Gigabyte Finance Manager" },
     address: { type: String, default: "" },
     gst: { type: String, default: "" },
@@ -13,9 +15,18 @@ const companySettingSchema = new mongoose.Schema(
     nextReceiptNo: { type: Number, default: 1 },
     loanPrefix: { type: String, default: "GFM" },
     nextLoanNo: { type: Number, default: 1 },
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true }
 );
+
+companySettingSchema.plugin(tenantPlugin);
+
+if (multiTenantEnabled()) {
+  companySettingSchema.index({ tenantId: 1, singleton: 1 }, { unique: true });
+} else {
+  companySettingSchema.index({ singleton: 1 }, { unique: true });
+}
 
 export type CompanySettingType = InferSchemaType<typeof companySettingSchema>;
 
@@ -26,7 +37,9 @@ export const CompanySetting =
 let cache: Invalidatable<CompanySettingType> | null = null;
 const CACHE_TTL_MS = 10_000;
 
-type Invalidatable<T> = { value: T; at: number };
+type Invalidatable<T> = { value: T; at: number; key: string };
+
+const cacheKey = () => currentTenantId() ?? "global";
 
 /**
  * Read-only company settings lookup. Never writes to MongoDB by itself.
@@ -38,7 +51,8 @@ type Invalidatable<T> = { value: T; at: number };
  *   actually saves it (e.g. when allocating a receipt/loan number).
  */
 export async function getCompanySetting(): Promise<InstanceType<typeof CompanySetting>> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+  const key = cacheKey();
+  if (cache && cache.key === key && Date.now() - cache.at < CACHE_TTL_MS) {
     const doc: InstanceType<typeof CompanySetting> = new CompanySetting(
       cache.value as CompanySettingType
     ) as InstanceType<typeof CompanySetting>;
@@ -51,12 +65,12 @@ export async function getCompanySetting(): Promise<InstanceType<typeof CompanySe
     | null;
 
   if (doc) {
-    cache = { value: doc.toObject() as CompanySettingType, at: Date.now() };
+    cache = { value: doc.toObject() as CompanySettingType, at: Date.now(), key };
     return doc;
   }
 
   const fresh = new CompanySetting({} as CompanySettingType) as InstanceType<typeof CompanySetting>;
-  cache = { value: fresh.toObject() as CompanySettingType, at: Date.now() };
+  cache = { value: fresh.toObject() as CompanySettingType, at: Date.now(), key };
   return fresh;
 }
 

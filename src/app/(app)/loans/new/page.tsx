@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { LoanForm, type LoanTypeOption } from "@/components/loan-form";
 import { dbConnect } from "@/lib/db";
+import { readSession } from "@/lib/auth";
+import { runForSession } from "@/lib/tenant";
 import { getAppConfig, DEFAULT_LOAN_TYPES } from "@/models/AppConfig";
 
 export const metadata: Metadata = { title: "New Loan" };
@@ -28,7 +30,8 @@ async function loadLoanTypes(): Promise<LoanTypeOption[]> {
 }
 
 export default async function NewLoanPage() {
-  const loanTypes = await loadLoanTypes();
+  const session = await readSession();
+  const loanTypes = await runForSession(session?.tenantId, () => loadLoanTypes());
   return (
     <div className="space-y-6">
       <div>

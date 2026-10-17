@@ -4,7 +4,7 @@ import { Customer } from "@/models/Customer";
 import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { CompanySetting } from "@/models/CompanySetting";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { calcLoanSummary, generateSchedule } from "@/lib/emi";
 import { validateCustomerShape, validateFinancialShape } from "@/lib/validators";
 import { sanitizeSearch } from "@/lib/search";
@@ -13,9 +13,7 @@ import { invalidateCustomersListCache } from "@/lib/customers";
 import type { LoanFormPayload } from "@/types";
 
 export async function GET(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const url = new URL(req.url);
   const search = sanitizeSearch(url.searchParams.get("search"));
   const statusParam = url.searchParams.get("status");
@@ -25,12 +23,11 @@ export async function GET(req: Request) {
   await dbConnect();
   const loans = await listLoans({ search, status, limit });
   return NextResponse.json({ loans });
+  });
 }
 
 export async function POST(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   let payload: LoanFormPayload;
   try {
     payload = (await req.json()) as LoanFormPayload;
@@ -236,4 +233,5 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }
+  });
 }

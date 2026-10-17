@@ -4,6 +4,7 @@ import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Payment } from "@/models/Payment";
 import { startOfToday } from "@/lib/dates";
+import { currentTenantId } from "@/lib/tenant";
 import { buildEmiRows, type EmiRow, type LoanDetail, type RawEmi } from "@/lib/loans";
 
 interface RawLoanLean {
@@ -80,7 +81,7 @@ export function calcLoanFromEmis(
 const CUSTOMERS_LIST_CACHE_TTL_MS = 60_000;
 
 let customersListCache: { key: string; value: CustomerWithLoans[]; at: number } | null = null;
-let customersListInFlight: Promise<CustomerWithLoans[]> | null = null;
+const customersListInFlight = new Map<string, Promise<CustomerWithLoans[]>>();
 
 export function invalidateCustomersListCache(): void {
   customersListCache = null;
@@ -91,7 +92,7 @@ export async function listCustomers(input: { search?: string; limit?: number; to
   const limit = input.limit ?? 200;
 
   const q = search?.trim();
-  const cacheKey = JSON.stringify({ limit });
+  const cacheKey = JSON.stringify({ limit, tenant: currentTenantId() ?? "global" });
 
   // Only the unsorted full list (no search / no query) is cacheable.
   const cacheable = !q;
@@ -230,19 +231,22 @@ export async function listCustomers(input: { search?: string; limit?: number; to
 
   if (!cacheable) return load();
 
-  // Coalesce simultaneous cache misses so the full list is only computed once.
-  if (customersListInFlight) return customersListInFlight;
-  customersListInFlight = load()
+  // Coalesce simultaneous cache misses so the full list is only computed once
+  // per tenant.
+  const existing = customersListInFlight.get(cacheKey);
+  if (existing) return existing;
+  const pending = load()
     .then((value) => {
       customersListCache = { key: cacheKey, value, at: Date.now() };
-      customersListInFlight = null;
+      customersListInFlight.delete(cacheKey);
       return value;
     })
     .catch((err) => {
-      customersListInFlight = null;
+      customersListInFlight.delete(cacheKey);
       throw err;
     });
-  return customersListInFlight;
+  customersListInFlight.set(cacheKey, pending);
+  return pending;
 }
 
 export interface CustomerPaymentRow {

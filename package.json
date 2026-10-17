@@ -11,6 +11,7 @@
     "test": "node --test --import tsx src/lib/*.test.ts",
     "seed": "tsx scripts/seed.ts",
     "set-role": "tsx scripts/set-role.ts",
+    "migrate-tenant": "tsx scripts/migrate-tenant.ts",
     "demo": "node scripts/dev-demo.mjs"
   },
   "dependencies": {

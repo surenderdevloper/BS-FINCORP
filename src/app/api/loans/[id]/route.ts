@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Customer } from "@/models/Customer";
@@ -14,9 +14,7 @@ import type { LoanFormPayload } from "@/types";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id } = await ctx.params;
   await dbConnect();
 
@@ -34,12 +32,11 @@ export async function GET(_req: Request, ctx: RouteContext) {
   if (!loan) return NextResponse.json({ error: "Loan not found." }, { status: 404 });
 
   return NextResponse.json({ loan });
+  });
 }
 
 export async function PUT(req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id } = await ctx.params;
 
   let body: Partial<LoanFormPayload>;
@@ -210,4 +207,5 @@ export async function PUT(req: Request, ctx: RouteContext) {
   await loan.save();
 
   return NextResponse.json({ loan: await getLoanDetail(loan.loanNo) });
+  });
 }

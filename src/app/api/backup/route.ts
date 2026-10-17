@@ -8,12 +8,10 @@ import { User } from "@/models/User";
 import { CompanySetting } from "@/models/CompanySetting";
 import { PenaltyRule } from "@/models/PenaltyRule";
 import { CustomerDocument } from "@/models/CustomerDocument";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   await dbConnect();
 
   const [customers, loans, emis, payments, users, companySettings, penaltyRules, customerDocuments] =
@@ -46,8 +44,8 @@ export async function GET() {
 
   return NextResponse.json(
     {
+      app: "BS-FINCORP",
       exportedAt: new Date().toISOString(),
-      app,
       counts: {
         customers: customers.length,
         loans: loans.length,
@@ -66,4 +64,5 @@ export async function GET() {
       },
     }
   );
+  });
 }

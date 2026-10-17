@@ -1,4 +1,5 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const customerDocumentSchema = new mongoose.Schema(
   {
@@ -16,9 +17,12 @@ const customerDocumentSchema = new mongoose.Schema(
     // serverless filesystem.
     data: { type: String, required: true },
     description: { type: String, default: "", trim: true },
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true }
 );
+
+customerDocumentSchema.plugin(tenantPlugin);
 
 customerDocumentSchema.index({ customerId: 1, createdAt: -1 });
 

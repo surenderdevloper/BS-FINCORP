@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { hasDeveloperAccess } from "@/lib/developer-access";
 import { isValidHex, DEFAULT_PRIMARY } from "@/lib/brand";
 import { CompanySetting, getCompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
@@ -343,7 +343,7 @@ export async function POST(req: Request) {
   const summary = str(body.summary, 200);
   if (!summary) return NextResponse.json({ error: "Nothing to log." }, { status: 400 });
 
-  const session = await readSession();
+  return withTenant(async (session) => {
   const by = session?.email ?? "developer";
 
   await dbConnect();
@@ -357,4 +357,5 @@ export async function POST(req: Request) {
   );
   invalidateAppConfigCache();
   return NextResponse.json({ audit: cfg.audit.slice(-30).reverse() });
+  });
 }

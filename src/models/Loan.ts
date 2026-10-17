@@ -1,8 +1,10 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { multiTenantEnabled } from "@/lib/tenant";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const loanSchema = new mongoose.Schema(
   {
-    loanNo: { type: String, required: true, unique: true },
+    loanNo: { type: String, required: true },
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
     vehicle: {
       name: { type: String, required: true },
@@ -40,14 +42,23 @@ const loanSchema = new mongoose.Schema(
     advance: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "closed"], default: "active" },
     closedAt: { type: Date },
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true }
 );
+
+loanSchema.plugin(tenantPlugin);
 
 loanSchema.index({ customerId: 1 });
 loanSchema.index({ status: 1, createdAt: -1 });
 loanSchema.index({ "financial.startDate": 1 });
 loanSchema.index({ closedAt: 1 });
+
+if (multiTenantEnabled()) {
+  loanSchema.index({ tenantId: 1, loanNo: 1 }, { unique: true });
+} else {
+  loanSchema.index({ loanNo: 1 }, { unique: true });
+}
 
 export type LoanType = InferSchemaType<typeof loanSchema>;
 export type LoanDocument = mongoose.HydratedDocument<LoanType>;

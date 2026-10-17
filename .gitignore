@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# database backups (written by the tenant migration)
+/backups
+
 # next.js
 /.next/
 /out/

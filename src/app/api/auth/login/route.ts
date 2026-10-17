@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
-import { signSessionToken, sessionCookieOptions, SESSION_COOKIE } from "@/lib/auth";
+import { signSessionToken, sessionCookieOptions, SESSION_COOKIE, normalizeRole } from "@/lib/auth";
+import { runUnscoped } from "@/lib/tenant";
 import { clientKey, rateLimit, rateLimitReset } from "@/lib/rate-limit";
 
 const MAX_ATTEMPTS = 10;
@@ -27,7 +28,8 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
-    const user = await User.findOne({ email });
+    // Login is global: accounts are matched by email across all tenants.
+    const user = await runUnscoped(() => User.findOne({ email }));
 
     if (!user) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
@@ -45,8 +47,9 @@ export async function POST(req: Request) {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
-      role: user.role === "developer" ? "developer" : "admin",
+      role: normalizeRole(user.role),
       tokenVersion: user.tokenVersion ?? 0,
+      tenantId: user.tenantId ?? null,
     });
 
     const res = NextResponse.json({ name: user.name, email: user.email });

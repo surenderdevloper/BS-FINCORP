@@ -3,12 +3,10 @@ import { dbConnect } from "@/lib/db";
 import { CompanySetting } from "@/models/CompanySetting";
 import { PenaltyRule, invalidatePenaltyRuleCache, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { getCompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   await dbConnect();
   const [company, penalty] = await Promise.all([getCompanySetting(), getPenaltyRuleObj()]);
 
@@ -33,13 +31,12 @@ export async function GET() {
       maxPenaltyAmount: penalty?.maxPenaltyAmount ?? null,
     },
   });
+  });
 }
 
 export async function PUT(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  let body: { section?: "company" | "penalty"; company?: Record<string, unknown>; penalty?: Record<string, unknown> };
+  return withTenant(async () => {
+    let body: { section?: "company" | "penalty"; company?: Record<string, unknown>; penalty?: Record<string, unknown> };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -108,4 +105,5 @@ export async function PUT(req: Request) {
   }
 
   return NextResponse.json({ error: "Unknown settings section." }, { status: 400 });
+  });
 }

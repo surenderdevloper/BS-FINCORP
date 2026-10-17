@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
 import { dbConnect } from "@/lib/db";
 import { readSession } from "@/lib/auth";
+import { runUnscoped } from "@/lib/tenant";
 import { getCompanySetting } from "@/models/CompanySetting";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,8 @@ async function getBranding() {
   const envName = process.env.NEXT_PUBLIC_APP_NAME ?? "";
   try {
     await dbConnect();
-    const company = await getCompanySetting();
+    // No tenant yet on the login page: branding falls back to the global settings.
+    const company = await runUnscoped(() => getCompanySetting());
     return {
       logo: envLogo || (company.logo ?? ""),
       companyName: envName || company.companyName || "Gigabyte Finance Manager",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { findOwnedDocument, parseDataUrl, sanitizeFileName } from "@/lib/customerDocuments";
 
 type RouteContext = { params: Promise<{ id: string; documentId: string }> };
@@ -9,9 +9,7 @@ type RouteContext = { params: Promise<{ id: string; documentId: string }> };
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id, documentId } = await ctx.params;
   await dbConnect();
 
@@ -36,5 +34,6 @@ export async function GET(_req: Request, ctx: RouteContext) {
       "Cache-Control": "private, no-store, must-revalidate",
       "X-Content-Type-Options": "nosniff",
     },
+  });
   });
 }

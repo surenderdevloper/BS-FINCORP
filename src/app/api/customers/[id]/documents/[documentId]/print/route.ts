@@ -1,6 +1,6 @@
 import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { findOwnedDocument, sanitizeFileName } from "@/lib/customerDocuments";
 
 type RouteContext = { params: Promise<{ id: string; documentId: string }> };
@@ -17,9 +17,7 @@ function escapeHtml(value: string): string {
 }
 
 export async function GET(_req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return new Response("Unauthorized", { status: 401, headers: { "Content-Type": "text/plain" } });
-
+  return withTenant(async () => {
   const { id, documentId } = await ctx.params;
   await dbConnect();
 
@@ -64,5 +62,6 @@ export async function GET(_req: Request, ctx: RouteContext) {
       "Cache-Control": "private, no-store, must-revalidate",
       "X-Content-Type-Options": "nosniff",
     },
+  });
   });
 }

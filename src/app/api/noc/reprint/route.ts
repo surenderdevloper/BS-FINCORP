@@ -4,12 +4,10 @@ import { Loan } from "@/models/Loan";
 import { Customer } from "@/models/Customer";
 import { Payment } from "@/models/Payment";
 import { nextReceiptNumber } from "@/models/CompanySetting";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 
 export async function POST(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async (session) => {
   let body: { loanNo?: string; charge?: number; mode?: string; notes?: string };
   try {
     body = (await req.json()) as typeof body;
@@ -68,4 +66,5 @@ export async function POST(req: Request) {
     },
     { status: 201 }
   );
+  });
 }

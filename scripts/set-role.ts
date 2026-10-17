@@ -16,7 +16,7 @@ import { User } from "../src/models/User";
  *   npm run set-role -- --email owner@example.com --role developer --name "Owner" --password "secret123"
  */
 
-type Role = "admin" | "developer";
+type Role = "admin" | "developer" | "superadmin";
 
 function arg(name: string): string | undefined {
   const prefix = `--${name}=`;
@@ -37,8 +37,8 @@ async function main() {
   const password = arg("password") ?? "";
 
   if (!email) throw new Error("Provide --email <address>.");
-  if (role !== "admin" && role !== "developer") {
-    throw new Error("Provide --role <admin|developer>.");
+  if (role !== "admin" && role !== "developer" && role !== "superadmin") {
+    throw new Error("Provide --role <admin|developer|superadmin>.");
   }
 
   await mongoose.connect(uri);

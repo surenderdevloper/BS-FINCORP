@@ -77,6 +77,21 @@ async function fetchJson<T>(url: string): Promise<T> {
       window.location.assign(`/login${next ? `?next=${next}` : ""}`);
       throw new Error(`Request to ${url} failed (${res.status}).`);
     }
+    if (res.status === 403) {
+      // Only a suspended tenant gets a 403 with this code — send the user to
+      // the suspension notice instead of showing a raw error banner.
+      const body = await res.clone().json().catch(() => null);
+      if (
+        body &&
+        (body as { code?: string }).code === "TENANT_SUSPENDED" &&
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/account-suspended"
+      ) {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/account-suspended");
+        throw new Error(`Request to ${url} failed (403).`);
+      }
+    }
     if (!res.ok) throw new Error(`Request to ${url} failed (${res.status}).`);
     const data = (await res.json()) as T;
     memory.set(url, { data, at: Date.now() });

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return NextResponse.json({ user: session });
+  return withTenant(async (session) => {
+    return NextResponse.json({ user: session });
+  });
 }

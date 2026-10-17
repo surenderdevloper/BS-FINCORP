@@ -1,8 +1,10 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { multiTenantEnabled } from "@/lib/tenant";
+import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const paymentSchema = new mongoose.Schema(
   {
-    receiptNo: { type: String, required: true, unique: true },
+    receiptNo: { type: String, required: true },
     loanId: { type: mongoose.Schema.Types.ObjectId, ref: "Loan", required: true },
     loanNo: { type: String, required: true },
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
@@ -24,12 +26,21 @@ const paymentSchema = new mongoose.Schema(
     receivedBy: { type: String, default: "" },
     notes: { type: String, default: "" },
     type: { type: String, enum: ["EMI", "NOC_REPRINT"], default: "EMI" },
+    tenantId: { type: String, trim: true },
   },
   { timestamps: true }
 );
 
+paymentSchema.plugin(tenantPlugin);
+
 paymentSchema.index({ createdAt: 1 });
 paymentSchema.index({ loanId: 1 });
+
+if (multiTenantEnabled()) {
+  paymentSchema.index({ tenantId: 1, receiptNo: 1 }, { unique: true });
+} else {
+  paymentSchema.index({ receiptNo: 1 }, { unique: true });
+}
 
 export type PaymentType = InferSchemaType<typeof paymentSchema>;
 

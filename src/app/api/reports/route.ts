@@ -4,7 +4,7 @@ import { dbConnect } from "@/lib/db";
 import { Loan } from "@/models/Loan";
 import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { endOfISTDay, isoDateIST, startOfISTDay } from "@/lib/dates";
 
 type ReportRow = Record<string, string | number>;
@@ -20,9 +20,7 @@ interface RawLoanLean {
 }
 
 export async function GET(req: Request) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const url = new URL(req.url);
   const type = url.searchParams.get("type") ?? "loans-active";
   const from = url.searchParams.get("from");
@@ -102,5 +100,6 @@ export async function GET(req: Request) {
     columns: ["Loan No", "Customer", "Mobile", "Vehicle", "Loan Date", "Loan Amount", "Monthly EMI", "Tenure (months)", "Status"],
     rows,
     summary: { count: loans.length, totalAmount },
+  });
   });
 }

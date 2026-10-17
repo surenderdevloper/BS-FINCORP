@@ -6,7 +6,7 @@ import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
 import { nextReceiptNumber } from "@/models/CompanySetting";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { startOfToday } from "@/lib/dates";
 import { invalidateCustomersListCache } from "@/lib/customers";
 import { allocatePayment, type AllocEmi } from "@/lib/payment-allocation";
@@ -24,9 +24,7 @@ interface Payload {
 }
 
 export async function POST(req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async (session) => {
   const { id } = await ctx.params;
 
   let body: Payload = {};
@@ -151,5 +149,6 @@ export async function POST(req: Request, ctx: RouteContext) {
     discount: allocation.discount,
     advanceUsed: allocation.advanceUsed,
     receiptNo,
+  });
   });
 }

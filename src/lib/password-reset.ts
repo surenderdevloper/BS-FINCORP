@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { Types } from "mongoose";
+import { runUnscoped } from "@/lib/tenant";
 import { User } from "@/models/User";
 import { PasswordReset } from "@/models/PasswordReset";
 
@@ -90,7 +91,8 @@ export async function createResetForUserIfExists(
   email: string,
   resetBaseUrl: string
 ): Promise<string | null> {
-  const user = await User.findOne({ email }).select("_id email").lean();
+  // Accounts are global (looked up by email), so this read is never scoped.
+  const user = await runUnscoped(() => User.findOne({ email }).select("_id email").lean());
   if (!user) return null;
   const token = await createPasswordReset(user._id);
   const base = resetBaseUrl.replace(/\/+$/, "");
@@ -113,7 +115,7 @@ export async function changeUserPassword(
   userId: Types.ObjectId,
   newPassword: string
 ): Promise<boolean> {
-  const user = await User.findById(userId);
+  const user = await runUnscoped(() => User.findById(userId));
   if (!user) return false;
   user.passwordHash = await bcrypt.hash(newPassword, 10);
   user.tokenVersion = (user.tokenVersion ?? 0) + 1;

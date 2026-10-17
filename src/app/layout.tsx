@@ -2,6 +2,8 @@ import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { dbConnect } from "@/lib/db";
+import { readSession } from "@/lib/auth";
+import { runForSession } from "@/lib/tenant";
 import { getAppConfig } from "@/models/AppConfig";
 import { brandStyleVars } from "@/lib/brand";
 import "./globals.css";
@@ -45,7 +47,8 @@ export const viewport: Viewport = {
 async function themeStyle(): Promise<CSSProperties> {
   try {
     await dbConnect();
-    const config = await getAppConfig();
+    const session = await readSession();
+    const config = await runForSession(session?.tenantId, () => getAppConfig());
     const docs = config.documents;
     return {
       ...brandStyleVars(config.theme?.primary || "#059669"),

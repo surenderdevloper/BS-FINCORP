@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Types } from "mongoose";
 import { dbConnect } from "@/lib/db";
+import { readSession } from "@/lib/auth";
+import { runForSession } from "@/lib/tenant";
 import { getPaymentReceipt } from "@/lib/customers";
 import { getCompanySetting } from "@/models/CompanySetting";
 import { getAppConfig } from "@/models/AppConfig";
@@ -27,19 +29,24 @@ export default async function ReceiptPage({
   const { id, paymentId } = await params;
 
   await dbConnect();
-  const [payment, company, config, msgs] = await Promise.all([
-    getPaymentReceipt(paymentId, id),
-    getCompanySetting(),
-    getAppConfig(),
-    getMessageSettings(),
-  ]);
+  const session = await readSession();
+  const [payment, company, config, msgs] = await runForSession(session?.tenantId, () =>
+    Promise.all([
+      getPaymentReceipt(paymentId, id),
+      getCompanySetting(),
+      getAppConfig(),
+      getMessageSettings(),
+    ])
+  );
   if (!payment) notFound();
 
   const docs = config.documents;
 
   const customer =
     Types.ObjectId.isValid(id)
-      ? await Customer.findById(id).select("mobile name").lean()
+      ? await runForSession(session?.tenantId, () =>
+          Customer.findById(id).select("mobile name").lean()
+        )
       : null;
 
   const emiTotal = payment.principal + payment.interest;

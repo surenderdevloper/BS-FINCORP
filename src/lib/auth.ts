@@ -2,11 +2,13 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/money";
 import { dbConnect } from "@/lib/db";
+import { multiTenantEnabled, runUnscoped } from "@/lib/tenant";
 import { User } from "@/models/User";
+import { Tenant } from "@/models/Tenant";
 
 export { SESSION_COOKIE };
 
-export type UserRole = "admin" | "developer";
+export type UserRole = "admin" | "developer" | "superadmin";
 
 export interface SessionUser {
   id: string;
@@ -14,11 +16,35 @@ export interface SessionUser {
   email: string;
   role: UserRole;
   tokenVersion?: number;
+  tenantId?: string | null;
+  /** True when the tenant's plan is suspended (multi-tenant mode only). */
+  suspended?: boolean;
+}
+
+/** Coerce an arbitrary stored value to a known role, defaulting to "admin". */
+export function normalizeRole(value: unknown): UserRole {
+  return value === "developer" || value === "superadmin" ? value : "admin";
 }
 
 /** A session is a developer (owner-level) account when its role says so. */
 export function isDeveloper(user: SessionUser | null): boolean {
   return user?.role === "developer";
+}
+
+/** A session is a superadmin (SaaS owner) account when its role says so. */
+export function isSuperadmin(user: SessionUser | null): boolean {
+  return user?.role === "superadmin";
+}
+
+/** True when the tenant's plan is suspended (never true in single-tenant mode). */
+export function isSuspended(user: SessionUser | null): boolean {
+  return user?.suspended === true;
+}
+
+/** Read the current session and require the superadmin role. */
+export async function requireSuperadmin(): Promise<SessionUser | null> {
+  const user = await readSession();
+  return isSuperadmin(user) ? user : null;
 }
 
 /**
@@ -47,6 +73,7 @@ export async function signSessionToken(user: SessionUser): Promise<string> {
     email: user.email,
     role: user.role,
     v: user.tokenVersion ?? 0,
+    ...(user.tenantId ? { tenantId: user.tenantId } : {}),
   } as JWTPayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -62,13 +89,13 @@ export async function verifySessionToken(
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (!payload.sub) return null;
-    const role = payload.role === "developer" ? "developer" : "admin";
     return {
       id: payload.sub,
       name: (payload.name as string) ?? "",
       email: (payload.email as string) ?? "",
-      role,
+      role: normalizeRole(payload.role),
       tokenVersion: (payload.v as number | undefined) ?? 0,
+      tenantId: (payload.tenantId as string | undefined) ?? null,
     };
   } catch {
     return null;
@@ -84,12 +111,29 @@ export async function readSession(): Promise<SessionUser | null> {
     // instance buffers the query (mongoose bufferTimeoutMS) until it throws,
     // which turns a slow start into a bogus 401 / forced logout.
     await dbConnect();
-    const current = await User.findById(user.id).select("tokenVersion role").lean();
+    // Login is global: users are looked up by id regardless of tenant, so this
+    // read must never be tenant-scoped.
+    const current = await runUnscoped(() =>
+      User.findById(user.id).select("tokenVersion role tenantId").lean()
+    );
     if (!current) return null;
     if ((current.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) return null;
-    // Role is read from the database on every request so a role change takes
-    // effect immediately without waiting for the session token to expire.
-    user.role = current.role === "developer" ? "developer" : "admin";
+    // Role and tenant are read from the database on every request so a change
+    // takes effect immediately without waiting for the session token to expire.
+    user.role = normalizeRole(current.role);
+    user.tenantId = current.tenantId ?? null;
+
+    // Suspension is checked on every request so a suspend takes effect without
+    // waiting for the session token to expire. Developers/superadmins (no
+    // tenant) and single-tenant deployments are never suspended.
+    user.suspended = false;
+    if (multiTenantEnabled() && user.tenantId) {
+      // Tenant is a global registry collection (not plugin-scoped).
+      const tenant = await Tenant.findOne({ tenantId: user.tenantId })
+        .select("planStatus")
+        .lean();
+      user.suspended = tenant?.planStatus === "suspended";
+    }
   } catch {
     return null;
   }

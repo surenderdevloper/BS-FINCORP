@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { dbConnect } from "@/lib/db";
+import { readSession } from "@/lib/auth";
+import { runForSession } from "@/lib/tenant";
 import { getCustomerDetail } from "@/lib/customers";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
@@ -25,12 +27,13 @@ export default async function CustomerDetailPage({
   const { print, tab } = await searchParams;
 
   await dbConnect();
-  const customer = await getCustomerDetail(id);
+  const session = await readSession();
+  const customer = await runForSession(session?.tenantId, () => getCustomerDetail(id));
   if (!customer) notFound();
 
   const activeTab = tab === "documents" ? "documents" : "statement";
 
-  const msgs = await getMessageSettings();
+  const msgs = await runForSession(session?.tenantId, () => getMessageSettings());
   const whatsAppTemplates = [
     { key: "chat", label: "Direct chat", message: buildCustomChatMessage(customer.name, msgs.brand, msgs.wa.chat) },
     {

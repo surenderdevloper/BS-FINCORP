@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ForgotPasswordForm } from "./forgot-password-form";
 import { dbConnect } from "@/lib/db";
+import { runUnscoped } from "@/lib/tenant";
 import { getCompanySetting } from "@/models/CompanySetting";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 async function getBranding() {
   try {
     await dbConnect();
-    const company = await getCompanySetting();
+    const company = await runUnscoped(() => getCompanySetting());
     return {
       logo: company.logo ?? "",
       companyName: company.companyName ?? "Gigabyte Finance Manager",

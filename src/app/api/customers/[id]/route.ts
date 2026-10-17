@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { validateCustomerShape } from "@/lib/validators";
 import { invalidateCustomersListCache } from "@/lib/customers";
 import type { CustomerFormData } from "@/types";
@@ -9,9 +9,7 @@ import type { CustomerFormData } from "@/types";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PUT(req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id } = await ctx.params;
 
   let body: Partial<CustomerFormData>;
@@ -75,12 +73,11 @@ export async function PUT(req: Request, ctx: RouteContext) {
       state: customer.state,
     },
   });
+  });
 }
 
 export async function GET(req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id } = await ctx.params;
   await dbConnect();
 
@@ -101,5 +98,6 @@ export async function GET(req: Request, ctx: RouteContext) {
       city: customer.city,
       state: customer.state,
     },
+  });
   });
 }

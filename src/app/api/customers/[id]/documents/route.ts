@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Customer } from "@/models/Customer";
 import { CustomerDocument } from "@/models/CustomerDocument";
-import { readSession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-route";
 import { listCustomerDocuments, toDocumentMeta, validateDocumentUpload, type CustomerDocumentDoc } from "@/lib/customerDocuments";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id } = await ctx.params;
   await dbConnect();
 
@@ -19,12 +17,11 @@ export async function GET(_req: Request, ctx: RouteContext) {
 
   const documents = await listCustomerDocuments(id);
   return NextResponse.json({ documents });
+  });
 }
 
 export async function POST(req: Request, ctx: RouteContext) {
-  const session = await readSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  return withTenant(async () => {
   const { id } = await ctx.params;
 
   let body: unknown;
@@ -69,4 +66,5 @@ export async function POST(req: Request, ctx: RouteContext) {
     { document: toDocumentMeta(doc.toObject() as unknown as CustomerDocumentDoc) },
     { status: 201 }
   );
+  });
 }

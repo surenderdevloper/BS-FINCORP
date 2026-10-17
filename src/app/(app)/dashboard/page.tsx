@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { dbConnect } from "@/lib/db";
+import { readSession } from "@/lib/auth";
+import { runForSession } from "@/lib/tenant";
 import { getDashboardData } from "@/lib/dashboard";
 import { inr, formatDate, APP_TIME_ZONE } from "@/lib/money";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
@@ -19,14 +21,15 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   let data;
   let error: string | null = null;
+  const session = await readSession();
   try {
     await dbConnect();
-    data = await getDashboardData();
+    data = await runForSession(session?.tenantId, () => getDashboardData());
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load dashboard data.";
   }
 
-  const msgs = await getMessageSettings();
+  const msgs = await runForSession(session?.tenantId, () => getMessageSettings());
   const brandingName = msgs.brand;
   const officePhone = msgs.officePhone;
 
