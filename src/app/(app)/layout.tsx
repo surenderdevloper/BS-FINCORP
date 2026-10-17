@@ -28,8 +28,9 @@ export default async function AppLayout({
   let maintenance = { enabled: false, message: "" };
   try {
     const tenantSettings = await runForSession(session.tenantId, async () => {
-      const company = await getCompanySetting();
-      const config = await getAppConfig();
+      // Both lookups are independent, so run them together: one round-trip of
+      // latency instead of two.
+      const [company, config] = await Promise.all([getCompanySetting(), getAppConfig()]);
       return {
         branding: {
           logo: company.logo ?? "",

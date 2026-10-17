@@ -1,0 +1,287 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Badge, Button, Card } from "@/components/ui";
+import { Input } from "@/components/form";
+import { Icon } from "@/components/icons";
+import { downloadExcel } from "@/lib/excel";
+import { cachedGet, peekCached } from "@/lib/client-fetch";
+import { formatDate, inr } from "@/lib/money";
+import type { CustomerWithLoans } from "@/lib/customers";
+
+const FULL_LIST_URL = "/api/customers?all=1";
+const PAGE_SIZE = 50;
+
+export function CustomersList({ initialCustomers }: { initialCustomers: CustomerWithLoans[] }) {
+  const router = useRouter();
+  const [customers, setCustomers] = useState<CustomerWithLoans[]>(initialCustomers);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(initialCustomers.length === 0);
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const load = useCallback(async () => {
+    // Full list: reuse whatever we already have instantly (server-rendered
+    // payload or a previous fetch), then refresh quietly in the background.
+    // No loading indicator when data is already on screen.
+    const cached = peekCached<{ customers: CustomerWithLoans[] }>(FULL_LIST_URL);
+    const instant = cached?.data.customers ?? initialCustomers;
+    if (instant.length) {
+      setCustomers(instant);
+      setError(null);
+      setLoading(false);
+    }
+
+    try {
+      const { data } = await cachedGet<{ customers: CustomerWithLoans[] }>(FULL_LIST_URL);
+      setCustomers(data.customers);
+      setError(null);
+      setLoading(false);
+    } catch (err) {
+      if (!instant.length) setError(err instanceof Error ? err.message : "Failed to load customers.");
+      setLoading(false);
+    }
+  }, [initialCustomers]);
+
+  useEffect(() => {
+    document.title = "All Customers";
+    const t = setTimeout(() => void load(), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onSearchChange = (v: string) => {
+    setSearch(v);
+    setPage(1);
+  };
+
+  const visibleCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter(
+      (c) =>
+        String(c.name ?? "").toLowerCase().includes(q) ||
+        String(c.mobile ?? "").toLowerCase().includes(q) ||
+        String(c.aadhaar ?? "").toLowerCase().includes(q) ||
+        String(c.pan ?? "").toLowerCase().includes(q)
+    );
+  }, [customers, search]);
+
+  const pageCount = Math.max(1, Math.ceil(visibleCustomers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageCustomers = visibleCustomers.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const onExport = async () => {
+    setExporting(true);
+    try {
+      const rows = visibleCustomers.flatMap((c) =>
+        c.loans.length
+          ? c.loans.map((l) => ({
+              "Customer": c.name,
+              "Mobile": c.mobile,
+              "Aadhaar": c.aadhaar ?? "",
+              "Father Name": c.fatherName ?? "",
+              "Loan No": l.loanNo,
+              "Vehicle": l.vehicle,
+              "Loan Amount": l.loanAmount,
+              "Monthly EMI": l.monthlyEmi,
+              "Start Date": formatDate(l.startDate ?? ""),
+              "Status": l.status,
+              "EMIs Paid": l.paidCount,
+              "EMIs Pending": l.pendingCount,
+              "EMIs Overdue": l.overdueCount,
+            }))
+          : [
+              {
+                "Customer": c.name,
+                "Mobile": c.mobile,
+                "Aadhaar": c.aadhaar ?? "",
+                "Father Name": c.fatherName ?? "",
+                "Loan No": "",
+                "Vehicle": "",
+                "Loan Amount": 0,
+                "Monthly EMI": 0,
+                "Start Date": "",
+                "Status": "no loan",
+                "EMIs Paid": 0,
+                "EMIs Pending": 0,
+                "EMIs Overdue": 0,
+              },
+            ]
+      );
+      if (!rows.length) return;
+      await downloadExcel("customers", Object.keys(rows[0]), rows);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const activeCount = customers.filter((c) => c.loans.some((l) => l.status === "active")).length;
+  const totalLoans = customers.reduce((n, c) => n + c.loans.length, 0);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-zinc-900">All Customers</h1>
+          <p className="text-sm text-zinc-500">Search, review loan status and export to Excel.</p>
+        </div>
+        <Button variant="secondary" onClick={onExport} disabled={exporting || visibleCustomers.length === 0}>
+          <Icon name="print" size={16} />
+          {exporting ? "Exporting…" : "Export to Excel"}
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400">
+            <Icon name="search" size={16} />
+          </span>
+          <Input
+            placeholder="Search name, mobile or Aadhaar…"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {loading && <span className="text-sm text-zinc-400">Loading…</span>}
+        {!loading && !search && (
+          <span className="text-xs text-zinc-500">
+            {customers.length} customers · {totalLoans} loans · {activeCount} active
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <Icon name="alert" size={16} /> {error}
+        </div>
+      )}
+
+      <Card>
+        {visibleCustomers.length === 0 && !loading ? (
+          <p className="px-5 py-12 text-center text-sm text-zinc-500">
+            {search ? "No customers match your search." : "No customers yet. Register the first loan in New Loan."}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[880px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mobile</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Loan No</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Vehicle</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Loan Amount</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">EMIs Paid / Pending</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">Overdue</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Status</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium sm:px-5">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50">
+                {pageCustomers.map((c) => {
+                  const latest = c.loans[0];
+                  return (
+                    <tr
+                      key={c._id}
+                      onClick={() => router.push(`/customers/${c._id}`)}
+                      className="cursor-pointer hover:bg-zinc-50/60"
+                    >
+                      <td className="px-3 py-3 sm:px-5">
+                        <p className="font-medium text-zinc-900">{c.name}</p>
+                        <p className="text-[11px] text-zinc-400">{c.aadhaar || "No Aadhaar"}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-600">{c.mobile}</td>
+                      <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">{latest?.loanNo ?? "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{latest?.vehicle || "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">
+                        {latest ? inr(latest.loanAmount) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">
+                        {latest ? `${latest.paidCount} / ${latest.pendingCount}` : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-center">
+                        {latest && latest.overdueCount > 0 ? (
+                          <Badge tone="red">{latest.overdueCount}</Badge>
+                        ) : (
+                          <span className="text-zinc-300">—</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        {latest ? (
+                          latest.status === "closed" ? (
+                            <Badge tone="zinc">Closed</Badge>
+                          ) : (
+                            <Badge tone="green">Active</Badge>
+                          )
+                        ) : (
+                          <Badge tone="blue">No loan</Badge>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-center sm:px-5">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Link
+                            href={`/customers/${c._id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`View ${c.name}`}
+                            title="View full details"
+                            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300 transition-colors hover:bg-zinc-50"
+                          >
+                            <Icon name="view" size={14} /> View
+                          </Link>
+                          <Link
+                            href={`/customers/${c._id}?print=1`}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Print statement for ${c.name}`}
+                            title="Print full statement"
+                            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300 transition-colors hover:bg-zinc-50"
+                          >
+                            <Icon name="print" size={14} /> Print
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {visibleCustomers.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-4 py-3 sm:px-5">
+            <span className="text-xs text-zinc-500">
+              Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, visibleCustomers.length)} of{" "}
+              {visibleCustomers.length}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5 text-xs"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-zinc-500">
+                {currentPage} / {pageCount}
+              </span>
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5 text-xs"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

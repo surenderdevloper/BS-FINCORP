@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/money";
 import { dbConnect } from "@/lib/db";
@@ -102,7 +103,7 @@ export async function verifySessionToken(
   }
 }
 
-export async function readSession(): Promise<SessionUser | null> {
+async function readSessionUncached(): Promise<SessionUser | null> {
   const store = await cookies();
   const user = await verifySessionToken(store.get(SESSION_COOKIE)?.value);
   if (!user) return null;
@@ -145,6 +146,15 @@ export async function readSession(): Promise<SessionUser | null> {
   }
   return user;
 }
+
+/**
+ * Read the current session, memoized for the duration of a single request.
+ *
+ * The root layout, the (app) layout and each page all need the session. React's
+ * `cache()` collapses those into one database lookup per request, which removes
+ * four round-trips (user + tenant) from every page render.
+ */
+export const readSession = cache(readSessionUncached);
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
