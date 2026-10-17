@@ -1,3 +1,28 @@
+import { APP_TIME_ZONE } from "@/lib/money";
+
+// India has no daylight saving, so IST is a fixed UTC+05:30.
+const IST_OFFSET = "+05:30";
+
+/** The IST calendar date (yyyy-mm-dd) of a moment — the app's business day. */
+export function isoDateIST(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** First instant of the given IST calendar day (yyyy-mm-dd), inclusive. */
+export function startOfISTDay(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00.000${IST_OFFSET}`);
+}
+
+/** Last instant of the given IST calendar day (yyyy-mm-dd), inclusive. */
+export function endOfISTDay(isoDate: string): Date {
+  return new Date(`${isoDate}T23:59:59.999${IST_OFFSET}`);
+}
+
 export function startOfToday(d: Date): Date {
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }

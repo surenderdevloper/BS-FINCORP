@@ -6,7 +6,8 @@ import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
 import { cachedGet, peekCached } from "@/lib/client-fetch";
-import { APP_TIME_ZONE, inr } from "@/lib/money";
+import { inr } from "@/lib/money";
+import { isoDateIST } from "@/lib/dates";
 
 type ReportType = "loans-active" | "loans-closed" | "collections";
 
@@ -24,13 +25,7 @@ const TYPES: { value: ReportType; label: string }[] = [
 
 // Current business day (IST) as a yyyy-mm-dd string, so the default range
 // always matches the running day regardless of the server's timezone.
-const today = () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: APP_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+const today = () => isoDateIST(new Date());
 
 // Columns holding money values (formatted with ₹, right-aligned) vs. plain
 // numeric columns that must stay centered and unformatted (e.g. tenure).

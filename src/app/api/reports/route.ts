@@ -5,6 +5,7 @@ import { Loan } from "@/models/Loan";
 import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
 import { readSession } from "@/lib/auth";
+import { endOfISTDay, isoDateIST, startOfISTDay } from "@/lib/dates";
 
 type ReportRow = Record<string, string | number>;
 
@@ -27,8 +28,11 @@ export async function GET(req: Request) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
-  const start = new Date(from ? `${from}T00:00:00Z` : "1970-01-01T00:00:00Z");
-  const end = to ? new Date(`${to}T23:59:59.999Z`) : new Date();
+  // From/To are plain calendar dates picked by the user; the range must be
+  // interpreted as IST days (00:00:00–23:59:59 IST) so a payment made just
+  // after midnight IST still counts on the correct business day.
+  const start = from ? startOfISTDay(from) : new Date("1970-01-01T00:00:00Z");
+  const end = to ? endOfISTDay(to) : new Date();
 
   await dbConnect();
 
@@ -44,7 +48,7 @@ export async function GET(req: Request) {
       totalPenalty += p.penalty ?? 0;
       return {
         "Receipt No": p.receiptNo,
-        "Date": p.createdAt!.toISOString().slice(0, 10),
+        "Date": p.createdAt ? isoDateIST(p.createdAt) : "",
         "Loan No": p.loanNo,
         "Customer": p.customerName,
         "Amount": p.amount,
@@ -86,7 +90,7 @@ export async function GET(req: Request) {
       "Customer": c?.name ?? "",
       "Mobile": c?.mobile ?? "",
       "Vehicle": l.vehicle.name,
-      "Loan Date": l.financial.startDate.toISOString().slice(0, 10),
+      "Loan Date": isoDateIST(l.financial.startDate),
       "Loan Amount": l.financial.loanAmount,
       "Monthly EMI": l.paymentPlan.monthlyEmi,
       "Tenure (months)": l.financial.tenureMonths,

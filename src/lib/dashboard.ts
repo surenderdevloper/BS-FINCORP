@@ -3,6 +3,7 @@ import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Payment } from "@/models/Payment";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
+import { isoDateIST, startOfISTDay } from "@/lib/dates";
 import type { DashboardData, OverdueRow, ReminderRow, TodayCollectionRow } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -16,15 +17,14 @@ const DASHBOARD_CACHE_TTL_MS = 10_000;
 let dashboardCache: { value: DashboardData; at: number; day: string } | null = null;
 let dashboardInFlight: Promise<DashboardData> | null = null;
 
+// "Today" is the IST business day: IST midnight → next IST midnight. India has
+// no DST, so a day is always exactly 24h. Without this, a payment made just
+// after midnight IST would fall on the previous (UTC) day and be missed.
 function startOfToday(today: Date): Date {
-  return new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  return startOfISTDay(isoDateIST(today));
 }
 
-const tomorrow = (today: Date) => {
-  const t = startOfToday(today);
-  t.setUTCDate(t.getUTCDate() + 1);
-  return t;
-};
+const tomorrow = (today: Date) => new Date(startOfToday(today).getTime() + DAY_MS);
 
 type LeanCustomer = { name: string; mobile: string };
 
