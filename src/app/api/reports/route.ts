@@ -66,13 +66,12 @@ export async function GET(req: Request) {
     });
   }
 
-  // Loan reports: status is enforced by `type`, financial.startDate / closedAt by range.
+  // Active loans are a current snapshot, so the From/To range does not apply —
+  // every active loan is listed. Closed loans are filtered by the closing date.
   const isClosed = type === "loans-closed";
-  const dateField = isClosed ? "closedAt" : "financial.startDate";
-  const loans = (await Loan.find({
-    status: isClosed ? "closed" : "active",
-    [dateField]: { $gte: start, $lte: end },
-  })
+  const query: Record<string, unknown> = { status: isClosed ? "closed" : "active" };
+  if (isClosed) query.closedAt = { $gte: start, $lte: end };
+  const loans = (await Loan.find(query)
     .sort({ createdAt: -1 })
     .lean()
     .exec()) as unknown as RawLoanLean[];
