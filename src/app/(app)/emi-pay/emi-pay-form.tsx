@@ -514,7 +514,7 @@ export function EmiPayForm({
               {documents.showLogoOnPrint && documents.printLogo ? (
                 <img src={documents.printLogo} alt="" className="print-logo mx-auto mb-2" />
               ) : null}
-              <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+              <p className="print-letterhead-name">{company?.companyName ?? "Gigabyte Finance Manager"}</p>
               {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
               {company?.phone && <p className="print-letterhead-detail mt-0.5 text-xs">Ph: {company.phone}</p>}
             </div>

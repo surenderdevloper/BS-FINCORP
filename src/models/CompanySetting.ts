@@ -3,7 +3,7 @@ import mongoose, { type InferSchemaType } from "mongoose";
 const companySettingSchema = new mongoose.Schema(
   {
     singleton: { type: String, default: "company", unique: true, required: true },
-    companyName: { type: String, required: true, default: "BS FINCORP" },
+    companyName: { type: String, required: true, default: "Gigabyte Finance Manager" },
     address: { type: String, default: "" },
     gst: { type: String, default: "" },
     phone: { type: String, default: "" },

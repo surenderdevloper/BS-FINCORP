@@ -45,7 +45,7 @@ export function SidebarContent({
 }) {
   const pathname = usePathname();
   const logo = branding?.logo ?? "";
-  const companyName = branding?.companyName || "BS FINCORP";
+  const companyName = branding?.companyName || "Gigabyte Finance Manager";
   const sections = NAV_SECTIONS;
 
   return (
@@ -58,13 +58,13 @@ export function SidebarContent({
             className="h-9 w-9 rounded-lg object-contain ring-1 ring-zinc-200"
           />
         ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-sm font-extrabold text-white">
-            BF
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-xs font-extrabold text-white">
+            GFM
           </span>
         )}
         <div>
           <p className="text-sm font-bold text-zinc-900">{companyName}</p>
-          <p className="text-[11px] text-zinc-500">Loan Management</p>
+          <p className="text-[11px] text-zinc-500">Loan & EMI Management</p>
         </div>
       </div>
 

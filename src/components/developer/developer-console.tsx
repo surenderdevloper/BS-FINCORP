@@ -894,7 +894,7 @@ function MessagesTab({
                         .replace(/\{amount\}/g, "₹4,917")
                         .replace(/\{loan\}/g, "BF-0001")
                         .replace(/\{date\}/g, "13/10/2026")
-                        .replace(/\{brand\}/g, "BS FINCORP")
+                        .replace(/\{brand\}/g, "Gigabyte Finance Manager")
                         .replace(/\{phone\}/g, "+91 98765 43210")
                         .replace(/\{receipt\}/g, "RCPT-0001")
                         .replace(/\{total_loan\}/g, "2")

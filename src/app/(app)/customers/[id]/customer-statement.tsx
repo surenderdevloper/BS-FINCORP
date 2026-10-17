@@ -287,7 +287,7 @@ export function CustomerStatement({
 
       <Card className="print-doc overflow-hidden p-0">
         <div className="print-letterhead px-6 pb-5 pt-6 text-center">
-          <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+          <p className="print-letterhead-name">{company?.companyName ?? "Gigabyte Finance Manager"}</p>
           {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
           <div className="print-letterhead-detail mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-xs">
             {company?.phone && <span>Ph: {company.phone}</span>}

@@ -14,12 +14,12 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  let branding = { logo: "", companyName: "BS FINCORP" };
+  let branding = { logo: "", companyName: "Gigabyte Finance Manager" };
   try {
     const company = await getCompanySetting();
     branding = {
       logo: company.logo ?? "",
-      companyName: company.companyName || "BS FINCORP",
+      companyName: company.companyName || "Gigabyte Finance Manager",
     };
   } catch {
     // Keep fallback branding if settings cannot be read right now.

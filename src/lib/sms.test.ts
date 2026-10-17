@@ -35,7 +35,7 @@ test("upcoming reminder is in Hindi with name, EMI amount, due date, loan and br
   assert.match(msg, /देय है/);
   assert.match(msg, /15\/10\/2026/);
   assert.match(msg, /BF-0001/);
-  assert.match(msg, /BS FINCORP/);
+  assert.match(msg, /Gigabyte Finance Manager/);
 });
 
 test("overdue reminder shares the same EMI amount, not a summed balance", () => {

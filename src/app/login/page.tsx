@@ -15,10 +15,10 @@ async function getBranding() {
     const company = await getCompanySetting();
     return {
       logo: envLogo || (company.logo ?? ""),
-      companyName: envName || company.companyName || "BS FINCORP",
+      companyName: envName || company.companyName || "Gigabyte Finance Manager",
     };
   } catch {
-    return { logo: envLogo, companyName: envName || "BS FINCORP" };
+    return { logo: envLogo, companyName: envName || "Gigabyte Finance Manager" };
   }
 }
 

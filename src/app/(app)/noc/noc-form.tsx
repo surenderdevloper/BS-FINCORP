@@ -245,7 +245,7 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
           <Card className={`print-doc mx-auto max-w-3xl overflow-hidden p-0 sm:p-0 ${reprintReceipt ? "print:hidden" : ""}`}>
             <div className="print-letterhead px-6 pb-5 pt-6 text-center sm:px-10">
-              <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+              <p className="print-letterhead-name">{company?.companyName ?? "Gigabyte Finance Manager"}</p>
               {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
               <div className="print-letterhead-detail mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-xs">
                 {company?.phone && <span>Ph: {company.phone}</span>}
@@ -262,7 +262,7 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
               <div className="mt-6 space-y-4 text-sm leading-relaxed text-zinc-800">
               <p>
-                <span className="font-semibold">{company?.companyName ?? "BS FINCORP"}</span> hereby
+                <span className="font-semibold">{company?.companyName ?? "Gigabyte Finance Manager"}</span> hereby
                 declares that the loan availed by the borrower under the following details has been
                 <span className="font-semibold"> fully settled and repaid</span> in accordance with
                 the agreed repayment schedule. The company raises <span className="font-semibold">no objection</span>{" "}
@@ -345,7 +345,7 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
               <div className="text-right">
                 <p className="font-semibold">Authorised Signatory</p>
                 <p className="mt-8 inline-block border-t border-zinc-300 px-6 pt-1 text-xs text-zinc-500">
-                  {company?.companyName ?? "BS FINCORP"}
+                  {company?.companyName ?? "Gigabyte Finance Manager"}
                 </p>
               </div>
             </div>
@@ -390,7 +390,7 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
 
               <Card className="print-doc mx-auto max-w-md overflow-hidden p-0 sm:p-0">
                 <div className="print-letterhead px-6 pb-5 pt-6 text-center">
-                  <p className="print-letterhead-name">{company?.companyName ?? "BS FINCORP"}</p>
+                  <p className="print-letterhead-name">{company?.companyName ?? "Gigabyte Finance Manager"}</p>
                   {company?.address && <p className="print-letterhead-detail mt-1 text-xs">{company.address}</p>}
                   {company?.phone && <p className="print-letterhead-detail mt-0.5 text-xs">Ph: {company.phone}</p>}
                 </div>

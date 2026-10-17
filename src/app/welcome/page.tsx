@@ -5,7 +5,7 @@ import { Icon, type IconName } from "@/components/icons";
 export const metadata: Metadata = {
   title: "Loan & EMI Management Software",
   description:
-    "BS FINCORP by Gigabyte Brothers — loan and EMI management software. Customers, loans, EMIs, collections, receipts and reports, all in one app.",
+    "Gigabyte Finance Manager by Gigabyte Brothers — loan and EMI management software. Customers, loans, EMIs, collections, receipts and reports, all in one app.",
 };
 
 const FEATURES: { icon: IconName; title: string; desc: string }[] = [
@@ -117,10 +117,13 @@ export default function WelcomePage() {
       <header className="sticky top-0 z-40 border-b border-zinc-100 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-sm font-extrabold tracking-tight text-white">
-              BS
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-xs font-extrabold tracking-tight text-white">
+              GFM
             </span>
-            <span className="text-lg font-extrabold tracking-wide text-zinc-900">BS FINCORP</span>
+            <span className="text-base font-extrabold tracking-wide text-zinc-900 sm:text-lg">
+              <span className="sm:hidden">GFM</span>
+              <span className="hidden sm:inline">Gigabyte Finance Manager</span>
+            </span>
           </div>
           <nav className="hidden items-center gap-7 text-sm font-medium text-zinc-600 md:flex">
             <a className="transition-colors hover:text-emerald-700" href="#features">
@@ -197,7 +200,7 @@ export default function WelcomePage() {
                 <span className="h-3 w-3 rounded-full bg-amber-400" />
                 <span className="h-3 w-3 rounded-full bg-emerald-400" />
                 <span className="ml-3 truncate rounded-md bg-zinc-100 px-3 py-1 text-[11px] text-zinc-500">
-                  bsfincorp.app/dashboard
+                  gfm.app/dashboard
                 </span>
               </div>
               <div className="space-y-3 p-4 sm:p-5">
@@ -295,9 +298,9 @@ export default function WelcomePage() {
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <Icon name="dashboard" size={22} />
               </span>
-              <h3 className="mt-4 text-xl font-bold text-zinc-900">BS FINCORP — the software</h3>
+              <h3 className="mt-4 text-xl font-bold text-zinc-900">Gigabyte Finance Manager — the software</h3>
               <p className="mt-3 text-sm leading-relaxed text-zinc-600">
-                BS FINCORP is our loan and EMI management software made for finance and vehicle-loan
+                Gigabyte Finance Manager is our loan and EMI management software made for finance and vehicle-loan
                 businesses. It keeps your entire business in one place — customers, loans, EMI schedules,
                 collections, receipts and reports.
               </p>
@@ -315,7 +318,7 @@ export default function WelcomePage() {
       <section id="why" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16">
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900">Why Choose BS FINCORP</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900">Why Choose Gigabyte Finance Manager</h2>
             <p className="mt-3 text-base leading-relaxed text-zinc-600">
               Most loan apps do not support advance payments or part payments. Here, your whole business —
               exactly the way you run it — becomes digital.
@@ -461,9 +464,9 @@ export default function WelcomePage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-zinc-500 sm:flex-row">
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-xs font-extrabold text-white">
-              BS
+              GFM
             </span>
-            <span className="font-bold text-zinc-800">BS FINCORP</span>
+            <span className="font-bold text-zinc-800">Gigabyte Finance Manager</span>
             <span className="hidden sm:inline">— by Gigabyte Brothers, Sri Ganganagar.</span>
           </div>
           <div className="flex items-center gap-5">

@@ -20,7 +20,7 @@ interface CompanyData {
 }
 
 const emptyCompany: CompanyData = {
-  companyName: "BS FINCORP",
+  companyName: "Gigabyte Finance Manager",
   address: "",
   gst: "",
   phone: "",

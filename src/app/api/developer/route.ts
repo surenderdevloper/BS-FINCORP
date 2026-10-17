@@ -67,7 +67,7 @@ export async function GET() {
   const [company, config] = await Promise.all([getCompanySetting(), getAppConfig()]);
 
   const today = new Date();
-  const brand = company.companyName || "BS FINCORP";
+  const brand = company.companyName || "Gigabyte Finance Manager";
   const officePhone = company.phone || "";
   const sampleLoan = "BF-0001";
   const sampleAmount = 4917;
@@ -152,7 +152,7 @@ export async function PUT(req: Request) {
         { singleton: "company" },
         {
           $set: {
-            companyName: str(data.companyName, 120) || "BS FINCORP",
+            companyName: str(data.companyName, 120) || "Gigabyte Finance Manager",
             address: str(data.address, 300),
             gst: str(data.gst, 60),
             phone: str(data.phone, 40),

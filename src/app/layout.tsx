@@ -21,14 +21,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const appTitle = process.env.NEXT_PUBLIC_APP_NAME || "BS FINCORP";
+const appTitle = process.env.NEXT_PUBLIC_APP_NAME || "Gigabyte Finance Manager";
 
 export const metadata: Metadata = {
   title: {
-    default: `${appTitle} | Loan Management`,
+    default: appTitle,
     template: `%s | ${appTitle}`,
   },
-  description: `Loan management system for ${appTitle} microfinance business.`,
+  description:
+    "Loan and EMI management software — customers, loans, collections, receipts and reports in one app.",
 };
 
 export const viewport: Viewport = {

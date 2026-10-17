@@ -12,7 +12,7 @@ export interface SmsMessageInput {
   brandingName?: string;
 }
 
-export const SMS_BRANDING = "BS FINCORP";
+export const SMS_BRANDING = "Gigabyte Finance Manager";
 
 /**
  * Normalize an Indian mobile number to a 10-digit national number.

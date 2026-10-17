@@ -83,7 +83,7 @@ export async function PUT(req: Request) {
       { singleton: "company" },
       {
         $set: {
-          companyName: String(c.companyName ?? "BS FINCORP").trim(),
+          companyName: String(c.companyName ?? "Gigabyte Finance Manager").trim(),
           address: String(c.address ?? "").trim(),
           gst: String(c.gst ?? "").trim(),
           phone: String(c.phone ?? "").trim(),

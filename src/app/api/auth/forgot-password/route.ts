@@ -12,9 +12,9 @@ import { sendPasswordResetEmail, isSmtpConfigured } from "@/lib/email";
 async function companyName(): Promise<string> {
   try {
     const company = await getCompanySetting();
-    return company.companyName || "BS FINCORP";
+    return company.companyName || "Gigabyte Finance Manager";
   } catch {
-    return "BS FINCORP";
+    return "Gigabyte Finance Manager";
   }
 }
 

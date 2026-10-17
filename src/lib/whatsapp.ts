@@ -2,7 +2,7 @@ import { inr, APP_TIME_ZONE } from "@/lib/money";
 import { normalizeMobile } from "@/lib/sms";
 import { renderTemplate } from "@/lib/message-templates";
 
-export const WHATSAPP_BRANDING = "BS FINCORP";
+export const WHATSAPP_BRANDING = "Gigabyte Finance Manager";
 
 /**
  * Normalize a stored customer mobile number into the international form

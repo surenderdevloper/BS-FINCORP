@@ -17,7 +17,7 @@ export function Topbar({
   isDeveloper?: boolean;
 }) {
   const router = useRouter();
-  const companyName = branding?.companyName || "BS FINCORP";
+  const companyName = branding?.companyName || "Gigabyte Finance Manager";
 
   async function handleLogout() {
     try {

@@ -43,7 +43,7 @@ test("upcoming EMI reminder is Hindi with amount, date, loan and branding", () =
   assert.match(msg, /15\/10\/2026/);
   assert.match(msg, /BF-0001/);
   assert.match(msg, /देय है/);
-  assert.match(msg, /BS FINCORP/);
+  assert.match(msg, /Gigabyte Finance Manager/);
 });
 
 test("due-today and overdue reminders use the right wording", () => {

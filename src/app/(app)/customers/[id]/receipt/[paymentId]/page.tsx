@@ -89,7 +89,7 @@ export default async function ReceiptPage({
           {docs.showLogoOnPrint && config.printLogo ? (
             <img src={config.printLogo} alt="" className="print-logo mx-auto mb-2" />
           ) : null}
-          <p className="print-letterhead-name break-words">{company.companyName || "BS FINCORP"}</p>
+          <p className="print-letterhead-name break-words">{company.companyName || "Gigabyte Finance Manager"}</p>
           {company.address && (
             <p className="print-letterhead-detail mt-1 break-words text-xs">{company.address}</p>
           )}

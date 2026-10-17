@@ -11,10 +11,10 @@ async function getBranding() {
     const company = await getCompanySetting();
     return {
       logo: company.logo ?? "",
-      companyName: company.companyName ?? "BS FINCORP",
+      companyName: company.companyName ?? "Gigabyte Finance Manager",
     };
   } catch {
-    return { logo: "", companyName: "BS FINCORP" };
+    return { logo: "", companyName: "Gigabyte Finance Manager" };
   }
 }
 
