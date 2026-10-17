@@ -1,36 +1,14 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
-import { CompanySetting } from "@/models/CompanySetting";
-import { PenaltyRule, invalidatePenaltyRuleCache, getPenaltyRuleObj } from "@/models/PenaltyRule";
-import { getCompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
+import { CompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
+import { PenaltyRule, invalidatePenaltyRuleCache } from "@/models/PenaltyRule";
+import { getSettingsSnapshot } from "@/lib/settings";
 import { withTenant } from "@/lib/tenant-route";
 
 export async function GET() {
   return withTenant(async () => {
-  await dbConnect();
-  const [company, penalty] = await Promise.all([getCompanySetting(), getPenaltyRuleObj()]);
-
-  return NextResponse.json({
-    company: {
-      companyName: company.companyName,
-      address: company.address,
-      gst: company.gst,
-      phone: company.phone,
-      email: company.email,
-      logo: company.logo ?? "",
-      receiptPrefix: company.receiptPrefix,
-      nextReceiptNo: company.nextReceiptNo,
-      loanPrefix: company.loanPrefix,
-      nextLoanNo: company.nextLoanNo,
-    },
-    penalty: {
-      enabled: penalty?.enabled ?? true,
-      graceDays: penalty?.graceDays ?? 3,
-      penaltyType: penalty?.penaltyType ?? "fixed",
-      penaltyPerDay: penalty?.penaltyPerDay ?? 10,
-      maxPenaltyAmount: penalty?.maxPenaltyAmount ?? null,
-    },
-  });
+    await dbConnect();
+    return NextResponse.json(await getSettingsSnapshot());
   });
 }
 

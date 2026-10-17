@@ -16,7 +16,7 @@ interface LoanSummaryResult {
   customer: { name: string };
 }
 
-interface Company {
+export interface Company {
   companyName: string;
   address?: string;
   phone?: string;
@@ -77,15 +77,17 @@ export function EmiPayForm({
   preselectedLoan,
   paymentTemplate = "",
   documents = DEFAULT_DOCS,
+  company: initialCompany = null,
 }: {
   preselectedLoan?: string;
   paymentTemplate?: string;
   documents?: ReceiptDocConfig;
+  company?: Company | null;
 }) {
   const [search, setSearch] = useState(preselectedLoan ?? "");
   const [results, setResults] = useState<LoanSummaryResult[]>([]);
   const [loan, setLoan] = useState<LoanDetail | null>(null);
-  const [company, setCompany] = useState<Company | null>(null);
+  const [company, setCompany] = useState<Company | null>(initialCompany);
   const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<"cash" | "online">("cash");
   const [notes, setNotes] = useState("");
@@ -136,12 +138,14 @@ export function EmiPayForm({
 
   useEffect(() => {
     document.title = "EMI Pay";
+    // The server page already provides the branding; only fetch when it did not.
+    if (initialCompany) return;
     void cachedGet<{ company: Company }>("/api/settings")
       .then(({ data }) => setCompany(data.company))
       .catch(() => {
         /* settings optional for payment flow */
       });
-  }, []);
+  }, [initialCompany]);
 
   useEffect(() => {
     if (!preselectedLoan) return;
