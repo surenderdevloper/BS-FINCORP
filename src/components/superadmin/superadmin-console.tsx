@@ -693,11 +693,35 @@ function AccountsTab({
                         <Button
                           variant="ghost"
                           size="sm"
-                          disabled={busy === u.id || u.id === ownerId}
-                          title={u.id === ownerId ? "You cannot delete your own account" : undefined}
-                          onClick={() => removeUser(u)}
+                          disabled={busy === u.id || u.id === ownerId || u.role === "superadmin"}
+                          title={
+                            u.id === ownerId
+                              ? "You cannot impersonate your own account"
+                              : u.role === "superadmin"
+                                ? "Cannot impersonate a superadmin account"
+                                : undefined
+                          }
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                `Login as ${u.email}? You will be signed in as this account.`
+                              )
+                            )
+                              return;
+                            setBusy(u.id);
+                            try {
+                              const res = (await api(`/api/superadmin/users/${u.id}/impersonate`, { method: "POST" })) as { ok?: boolean; error?: string };
+                              if (!res.ok) throw new Error(res.error || "Failed to impersonate");
+                              flash(`Signed in as ${u.email}. Redirecting…`);
+                              window.location.href = "/dashboard";
+                            } catch (e: unknown) {
+                              onError(e instanceof Error ? e.message : "Failed to impersonate account");
+                            } finally {
+                              setBusy(null);
+                            }
+                          }}
                         >
-                          Delete
+                          Login as
                         </Button>
                       </div>
                     </td>
