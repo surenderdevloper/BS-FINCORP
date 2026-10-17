@@ -638,7 +638,7 @@ function DocumentsTab({
               )}
               <div className="space-y-1 text-[11px]">
                 <Row k="Customer" v="Ramesh Kumar" />
-                <Row k="Loan No" v="BF-0001" />
+                <Row k="Loan No" v="GFM-0001" />
                 {documents.showGstOnReceipt && <Row k="GST" v={company.gst || "—"} />}
               </div>
               <div
@@ -892,7 +892,7 @@ function MessagesTab({
                     <pre className="mt-1.5 whitespace-pre-wrap rounded bg-zinc-50 p-2 text-zinc-700 ring-1 ring-zinc-200">
                       {effective.replace(/\{name\}/g, "Ramesh Kumar")
                         .replace(/\{amount\}/g, "₹4,917")
-                        .replace(/\{loan\}/g, "BF-0001")
+                        .replace(/\{loan\}/g, "GFM-0001")
                         .replace(/\{date\}/g, "13/10/2026")
                         .replace(/\{brand\}/g, "Gigabyte Finance Manager")
                         .replace(/\{phone\}/g, "+91 98765 43210")

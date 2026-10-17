@@ -70,7 +70,7 @@ export function LoginForm({
           <Input
             type="email"
             autoComplete="username"
-            placeholder="admin@bsfincorp.com"
+            placeholder="admin@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

@@ -27,7 +27,7 @@ const emptyCompany: CompanyData = {
   email: "",
   logo: "",
   receiptPrefix: "RCPT",
-  loanPrefix: "BF",
+  loanPrefix: "GFM",
 };
 
 export default function SettingsPage() {

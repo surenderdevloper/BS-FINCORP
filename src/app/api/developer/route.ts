@@ -69,7 +69,7 @@ export async function GET() {
   const today = new Date();
   const brand = company.companyName || "Gigabyte Finance Manager";
   const officePhone = company.phone || "";
-  const sampleLoan = "BF-0001";
+  const sampleLoan = "GFM-0001";
   const sampleAmount = 4917;
 
   const defaults = {

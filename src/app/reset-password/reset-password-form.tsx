@@ -84,8 +84,8 @@ export function ResetPasswordForm({
             className="mx-auto mb-3 h-12 w-12 rounded-xl object-contain"
           />
         ) : (
-          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-lg font-extrabold text-white">
-            BF
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-base font-extrabold text-white">
+            GFM
           </span>
         )}
         <h1 className="text-lg font-bold text-zinc-900">Set a New Password</h1>

@@ -41,7 +41,7 @@ export async function GET() {
     customerDocuments: JSON.parse(JSON.stringify(customerDocuments)),
   };
 
-  const app = process.env.CLIENT_NAME ?? "bs-fincorp";
+  const app = process.env.CLIENT_NAME ?? "gfm";
   const stamp = new Date().toISOString().slice(0, 10);
 
   return NextResponse.json(

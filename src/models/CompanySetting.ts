@@ -11,7 +11,7 @@ const companySettingSchema = new mongoose.Schema(
     logo: { type: String, default: "" },
     receiptPrefix: { type: String, default: "RCPT" },
     nextReceiptNo: { type: Number, default: 1 },
-    loanPrefix: { type: String, default: "BF" },
+    loanPrefix: { type: String, default: "GFM" },
     nextLoanNo: { type: Number, default: 1 },
   },
   { timestamps: true }

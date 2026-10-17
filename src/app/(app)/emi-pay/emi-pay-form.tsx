@@ -234,7 +234,7 @@ export function EmiPayForm({
             </span>
             <Input
               className="pl-9"
-              placeholder="e.g. BF-0006 or customer name…"
+              placeholder="e.g. GFM-0006 or customer name…"
               value={search}
               onChange={(e) => onSearch(e.target.value)}
             />

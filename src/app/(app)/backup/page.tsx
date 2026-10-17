@@ -35,7 +35,7 @@ export default function BackupPage() {
       const a = document.createElement("a");
       const stamp = data.exportedAt.slice(0, 10);
       a.href = url;
-      a.download = `${data.app ?? "bsfincorp"}-backup-${stamp}.json`;
+      a.download = `${data.app ?? "gfm"}-backup-${stamp}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setLast(data);

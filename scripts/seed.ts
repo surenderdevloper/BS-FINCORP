@@ -67,14 +67,14 @@ async function main() {
   // Company + penalty settings
   await CompanySetting.create({
     singleton: "company",
-    companyName: "BS FINCORP",
+    companyName: "Gigabyte Finance Manager",
     address: "123 Business Hub, Jaipur, Rajasthan – 302001",
     gst: "GSTIN08ABCDE1234F1Z5",
     phone: "+91 98765 43210",
     email: "contact@bsfincorp.com",
     receiptPrefix: "RCPT",
     nextReceiptNo: 1,
-    loanPrefix: "BF",
+    loanPrefix: "GFM",
     nextLoanNo: 1,
   });
   await PenaltyRule.create({
