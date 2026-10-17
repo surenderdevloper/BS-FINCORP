@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BS FINCORP - Flyer</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, -apple-system, Arial, sans-serif;
+    color: #1f2937;
+    background: #e5e7eb;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: #fff;
+    padding: 11mm 11mm 8mm;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- Header ---------- */
+  .band {
+    background: linear-gradient(135deg, #065f46 0%, #047857 55%, #059669 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .mark {
+    width: 46px; height: 46px; flex: 0 0 auto;
+    border-radius: 12px; background: #ffffff; color: #047857;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20px; letter-spacing: .5px;
+  }
+  .brand h1 { margin: 0; font-size: 25px; letter-spacing: 1.5px; font-weight: 800; }
+  .brand p { margin: 3px 0 0; font-size: 11.5px; color: #d1fae5; letter-spacing: .3px; }
+  .hero-tag {
+    text-align: right; max-width: 235px;
+  }
+  .hero-tag .big { font-size: 14px; font-weight: 700; line-height: 1.25; }
+  .hero-tag .small { margin-top: 4px; font-size: 10.5px; color: #d1fae5; }
+
+  /* ---------- Intro ---------- */
+  .intro { margin: 12px 2px 0; font-size: 11.5px; line-height: 1.5; color: #374151; }
+  .intro b { color: #065f46; }
+
+  /* ---------- Pain strip ---------- */
+  .pain {
+    margin-top: 9px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex; flex-wrap: wrap; gap: 6px 22px;
+    font-size: 10.5px; color: #7f1d1d;
+  }
+  .pain span::before { content: "•"; color: #dc2626; font-weight: 800; margin-right: 6px; }
+
+  /* ---------- Section title ---------- */
+  .sec-title {
+    margin: 13px 2px 7px; display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: #065f46;
+  }
+  .sec-title::after { content: ""; flex: 1; height: 2px; background: #d1fae5; border-radius: 2px; }
+
+  /* ---------- Features ---------- */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+  .feat {
+    display: flex; gap: 9px; align-items: flex-start;
+    border: 1px solid #e5e7eb; border-radius: 9px; padding: 7px 9px; background: #fafafa;
+  }
+  .num {
+    flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px;
+    background: #047857; color: #fff; font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .feat h3 { margin: 0 0 1px; font-size: 11px; font-weight: 700; color: #111827; }
+  .feat p { margin: 0; font-size: 9.8px; line-height: 1.35; color: #4b5563; }
+
+  /* ---------- Why best ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 10px; font-weight: 600; color: #065f46;
+    background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: 4px 10px;
+  }
+
+  /* ---------- CTA ---------- */
+  .cta {
+    margin-top: auto;
+    margin-top: 14px;
+    background: #0f172a; color: #fff; border-radius: 14px;
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  }
+  .cta h2 { margin: 0; font-size: 16px; font-weight: 800; }
+  .cta p { margin: 3px 0 0; font-size: 10.5px; color: #cbd5e1; }
+  .cta .contact { text-align: right; font-size: 11px; line-height: 1.6; }
+  .cta .contact b { color: #6ee7b7; }
+
+  .foot { margin-top: 7px; text-align: center; font-size: 9px; color: #9ca3af; }
+
+  /* ---------- Print button ---------- */
+  .toolbar { position: fixed; top: 14px; right: 14px; z-index: 50; }
+  .toolbar button {
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    background: #047857; color: #fff; border: 0; border-radius: 10px; padding: 10px 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  }
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; width: auto; min-height: auto; padding: 11mm 11mm 6mm; }
+    .toolbar { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar no-print"><button onclick="window.print()">Print / Save as PDF</button></div>
+
+  <div class="page">
+    <!-- Header -->
+    <header class="band">
+      <div class="brand">
+        <div class="mark">BS</div>
+        <div>
+          <h1>BS FINCORP</h1>
+          <p>LOAN &amp; EMI MANAGEMENT SOFTWARE</p>
+        </div>
+      </div>
+      <div class="hero-tag">
+        <div class="big">Aapke Finance Business ka<br />Digital Munshi</div>
+        <div class="small">Mobile + Computer • Sab data ek jagah</div>
+      </div>
+    </header>
+
+    <!-- Intro -->
+    <p class="intro">
+      Gaadi / finance loan ka poora hisaab — <b>customer, loan, EMI, collection, receipt aur report</b> —
+      ab ek hi simple app me. Kharab register, bikhri Excel files aur yaad rakhne wale reminders ki zarurat nahi.
+      EMI schedule, bacha hua amount, late penalty aur WhatsApp/SMS reminder sab <b>automatic</b>.
+    </p>
+
+    <!-- Pain -->
+    <div class="pain">
+      <span>Kaunsa customer, kitni EMI bachi — hisaab milana mushkil</span>
+      <span>Kaun late hai, kitna penalty — yaad rakhna mushkil</span>
+      <span>Receipt / statement / NOC banane me time</span>
+      <span>Purani detail ek jagah nahi milti</span>
+    </div>
+
+    <!-- Features -->
+    <div class="sec-title">Ek App Me Poora Business</div>
+    <div class="grid">
+      <div class="feat"><div class="num">1</div><div><h3>Smart Dashboard</h3><p>Total customer, active/closed loan, aaj ka collection, overdue EMI, pending amount — ek nazar me.</p></div></div>
+      <div class="feat"><div class="num">2</div><div><h3>Customer + KYC</h3><p>Naam, mobile, address, Aadhaar/PAN aur documents upload &amp; print.</p></div></div>
+      <div class="feat"><div class="num">3</div><div><h3>Loan &amp; Auto EMI</h3><p>Gaadi, down payment, flat ya reducing interest, tenure — EMI schedule khud ban jata hai.</p></div></div>
+      <div class="feat"><div class="num">4</div><div><h3>Collection / EMI Pay</h3><p>Cash ya online, aadhi EMI (partial) bhi. Extra paisa agle EMI me advance ban ke save.</p></div></div>
+      <div class="feat"><div class="num">5</div><div><h3>Discount se Loan Close</h3><p>Mauka dekh kar discount dein aur loan turant band karein.</p></div></div>
+      <div class="feat"><div class="num">6</div><div><h3>Receipt / Statement / NOC</h3><p>Har payment ka receipt aur poora statement — turant print ya WhatsApp.</p></div></div>
+      <div class="feat"><div class="num">7</div><div><h3>Late Penalty Auto</h3><p>Aap rule set karein — kitna aur din ka kitna — penalty khud lag jaye.</p></div></div>
+      <div class="feat"><div class="num">8</div><div><h3>WhatsApp &amp; SMS Reminder</h3><p>EMI aane wali / aaj / overdue ka ready message, ek click me — koi extra kharch nahi.</p></div></div>
+      <div class="feat"><div class="num">9</div><div><h3>Reports (Excel)</h3><p>Date range chunein, collection aur loan report seedha Excel me download.</p></div></div>
+      <div class="feat"><div class="num">10</div><div><h3>Backup + Branding</h3><p>Poora data ka safe backup, aur receipt par aapki company ka naam &amp; logo.</p></div></div>
+    </div>
+
+    <!-- Why best -->
+    <div class="sec-title">Kyun BS FINCORP Best Hai</div>
+    <div class="chips">
+      <span class="chip">Advance + partial payment support</span>
+      <span class="chip">Discount se loan close</span>
+      <span class="chip">Free WhatsApp / SMS reminder</span>
+      <span class="chip">Mobile + computer, ek hi data</span>
+      <span class="chip">Staff ke liye alag login</span>
+      <span class="chip">Cloud par data surakshit</span>
+      <span class="chip">Aapke business ke naam se branded</span>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta">
+      <div>
+        <h2>10 Minute ka Free Demo — Aaj Hi</h2>
+        <p>Apne customer aur loan ka data daal kar khud dekhein. Pasand aaye tab aage baat.</p>
+      </div>
+      <div class="contact">
+        <div><b>Call / WhatsApp:</b> +91-XXXXXXXXXX</div>
+        <div><b>Email:</b> yourname@bsfincorp.com</div>
+      </div>
+    </div>
+
+    <div class="foot">BS FINCORP — Aapka Business, Aapka Control. (Ye ek demo flyer hai — apna contact detail bhar dein.)</div>
+  </div>
+</body>
+</html>
