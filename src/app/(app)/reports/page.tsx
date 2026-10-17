@@ -6,7 +6,7 @@ import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
 import { cachedGet, peekCached } from "@/lib/client-fetch";
-import { inr } from "@/lib/money";
+import { APP_TIME_ZONE, inr } from "@/lib/money";
 
 type ReportType = "loans-active" | "loans-closed" | "collections";
 
@@ -22,12 +22,27 @@ const TYPES: { value: ReportType; label: string }[] = [
   { value: "collections", label: "Collections" },
 ];
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Current business day (IST) as a yyyy-mm-dd string, so the default range
+// always matches the running day regardless of the server's timezone.
+const today = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+// Columns holding money values (formatted with ₹, right-aligned) vs. plain
+// numeric columns that must stay centered and unformatted (e.g. tenure).
+const MONEY_COLUMNS = new Set(["Amount", "Principal", "Interest", "Penalty", "Loan Amount", "Monthly EMI"]);
+const CENTER_COLUMNS = new Set(["Tenure (months)", "EMIs"]);
+const alignClass = (c: string) =>
+  MONEY_COLUMNS.has(c) ? "text-right" : CENTER_COLUMNS.has(c) ? "text-center" : "";
 
 export default function ReportsPage() {
   const [type, setType] = useState<ReportType>("loans-active");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState(today());
+  const [from, setFrom] = useState(() => today());
+  const [to, setTo] = useState(() => today());
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +173,10 @@ export default function ReportsPage() {
                 <thead>
                   <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                     {data.columns.map((c) => (
-                      <th key={c} className="whitespace-nowrap px-3 py-2.5 font-medium first:sm:pl-5 last:sm:pr-5">
+                      <th
+                        key={c}
+                        className={`whitespace-nowrap px-3 py-2.5 font-medium first:sm:pl-5 last:sm:pr-5 ${alignClass(c)}`}
+                      >
                         {c}
                       </th>
                     ))}
@@ -169,15 +187,15 @@ export default function ReportsPage() {
                     <tr key={i} className="hover:bg-zinc-50/60">
                       {data.columns.map((c, j) => {
                         const value = row[c];
-                        const isMoney = typeof value === "number";
+                        const isMoney = MONEY_COLUMNS.has(c);
                         return (
                           <td
                             key={c}
                             className={`whitespace-nowrap px-3 py-3 ${j === 0 ? "font-medium text-zinc-900 sm:pl-5" : "text-zinc-600"} ${
                               c === "Status" ? "capitalize" : ""
-                            } ${isMoney ? "text-right font-medium text-zinc-900 first:font-normal last:sm:pr-5" : "last:sm:pr-5"}`}
+                            } ${alignClass(c)} ${isMoney ? "font-medium text-zinc-900" : ""} last:sm:pr-5`}
                           >
-                            {isMoney ? inr(value) : String(value)}
+                            {isMoney ? inr(Number(value) || 0) : String(value)}
                           </td>
                         );
                       })}

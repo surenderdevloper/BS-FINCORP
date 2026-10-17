@@ -88,23 +88,28 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
     return () => clearTimeout(t);
   }, [preselectedLoan, loadLoan]);
 
+  const loadList = useCallback(async (q: string) => {
+    try {
+      const params = new URLSearchParams({ status: "closed", limit: "50" });
+      if (q.trim()) params.set("search", q.trim());
+      const res = await fetch(`/api/loans?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { loans: LoanSummaryResult[] };
+      setResults(data.loans.filter((l) => l.customer.name));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => void loadList(""), 0);
+    return () => clearTimeout(t);
+  }, [loadList]);
+
   const onSearch = (v: string) => {
     setSearch(v);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      if (!v.trim()) {
-        setResults([]);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/loans?search=${encodeURIComponent(v)}&status=closed&limit=10`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { loans: LoanSummaryResult[] };
-        setResults(data.loans.filter((l) => l.customer.name));
-      } catch {
-        /* ignore */
-      }
-    }, 350);
+    timer.current = setTimeout(() => void loadList(v), 350);
   };
 
   const resetCharge = () => {
@@ -161,15 +166,11 @@ export function NocForm({ preselectedLoan }: { preselectedLoan?: string }) {
             />
           </div>
           {results.length > 0 && (
-            <ul className="mt-2 overflow-hidden rounded-lg border border-zinc-200">
+            <ul className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-200">
               {results.map((l) => (
                 <li key={l._id}>
                   <button
-                    onClick={() => {
-                      setSearch(l.loanNo);
-                      setResults([]);
-                      void loadLoan(l.loanNo);
-                    }}
+                    onClick={() => void loadLoan(l.loanNo)}
                     className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-zinc-50"
                   >
                     <span className="min-w-0 truncate font-medium text-zinc-900">{l.customer.name}</span>

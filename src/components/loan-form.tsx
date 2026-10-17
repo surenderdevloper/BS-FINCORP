@@ -14,6 +14,8 @@ import {
 } from "@/lib/validators";
 import { inr } from "@/lib/money";
 import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
+import { StateCityFields } from "@/components/india-address";
+import { formatAadhaar } from "@/lib/india-geo";
 import type { LoanFormPayload } from "@/types";
 
 interface CustomerSearchResult {
@@ -492,12 +494,14 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
                   <Field label="Aadhaar Number" error={fieldErrors.aadhaar}>
                     <Input
                       disabled={!!selectedCustomer}
-                      value={customer.aadhaar}
+                      value={formatAadhaar(customer.aadhaar)}
                       invalid={!!fieldErrors.aadhaar}
                       inputMode="numeric"
-                      maxLength={12}
-                      placeholder="12-digit Aadhaar"
-                      onChange={(e) => setField("customer", "aadhaar", e.target.value.replace(/\D/g, ""))}
+                      maxLength={14}
+                      placeholder="1234 5678 9012"
+                      onChange={(e) =>
+                        setField("customer", "aadhaar", e.target.value.replace(/\D/g, "").slice(0, 12))
+                      }
                     />
                   </Field>
                   <Field label="PAN Number" error={fieldErrors.pan}>
@@ -530,22 +534,13 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
                     </Field>
                   </div>
                   <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2">
-                    <Field label="City">
-                      <Input
-                        disabled={!!selectedCustomer}
-                        value={customer.city}
-                        placeholder="e.g. Jaipur"
-                        onChange={(e) => setField("customer", "city", e.target.value)}
-                      />
-                    </Field>
-                    <Field label="State">
-                      <Input
-                        disabled={!!selectedCustomer}
-                        value={customer.state}
-                        placeholder="e.g. Rajasthan"
-                        onChange={(e) => setField("customer", "state", e.target.value)}
-                      />
-                    </Field>
+                    <StateCityFields
+                      state={customer.state}
+                      city={customer.city}
+                      disabled={!!selectedCustomer}
+                      onStateChange={(v) => setField("customer", "state", v)}
+                      onCityChange={(v) => setField("customer", "city", v)}
+                    />
                   </div>
                 </div>
               </section>

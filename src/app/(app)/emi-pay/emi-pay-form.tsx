@@ -116,6 +116,24 @@ export function EmiPayForm({
     }
   }, []);
 
+  const loadList = useCallback(async (q: string) => {
+    try {
+      const params = new URLSearchParams({ status: "active", limit: "50" });
+      if (q.trim()) params.set("search", q.trim());
+      const res = await fetch(`/api/loans?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { loans: LoanSummaryResult[] };
+      setResults(data.loans.filter((l) => l.customer.name));
+    } catch {
+      setError("Search failed.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => void loadList(""), 0);
+    return () => clearTimeout(t);
+  }, [loadList]);
+
   useEffect(() => {
     document.title = "EMI Pay";
     void cachedGet<{ company: Company }>("/api/settings")
@@ -134,20 +152,7 @@ export function EmiPayForm({
   const onSearch = (v: string) => {
     setSearch(v);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(async () => {
-      if (!v.trim()) {
-        setResults([]);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/loans?search=${encodeURIComponent(v)}&status=active&limit=10`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { loans: LoanSummaryResult[] };
-        setResults(data.loans.filter((l) => l.customer.name));
-      } catch {
-        setError("Search failed.");
-      }
-    }, 350);
+    searchTimer.current = setTimeout(() => void loadList(v), 350);
   };
 
   const selectLoan = useCallback(
@@ -212,6 +217,7 @@ export function EmiPayForm({
     setSelected([]);
     setSearch("");
     setResults([]);
+    void loadList("");
     setNotes("");
     setDiscount("");
     setAmountReceived("");
@@ -226,7 +232,7 @@ export function EmiPayForm({
       </div>
 
       <Card className="no-print">
-        <CardHeader title="Find active loan" subtitle="Search by loan number or customer name" />
+        <CardHeader title="Find active loan" subtitle="Pick from the list below or search by number / customer name" />
         <div className="p-4 sm:p-5">
           <div className="relative">
             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400">
@@ -240,15 +246,11 @@ export function EmiPayForm({
             />
           </div>
           {results.length > 0 && (
-            <ul className="mt-2 overflow-hidden rounded-lg border border-zinc-200">
+            <ul className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-200">
               {results.map((l) => (
                 <li key={l._id}>
                   <button
-                    onClick={() => {
-                      setSearch(l.loanNo);
-                      setResults([]);
-                      void selectLoan(l.loanNo);
-                    }}
+                    onClick={() => void selectLoan(l.loanNo)}
                     className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-zinc-50"
                   >
                     <span className="min-w-0 truncate font-medium text-zinc-900">{l.customer.name}</span>

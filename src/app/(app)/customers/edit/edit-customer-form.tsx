@@ -13,6 +13,8 @@ import {
 import { calcLoanSummary, type InterestType } from "@/lib/emi";
 import { formatDate, inr } from "@/lib/money";
 import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
+import { StateCityFields } from "@/components/india-address";
+import { formatAadhaar } from "@/lib/india-geo";
 import type { CustomerFormData, FinancialFormData, GuarantorFormData, VehicleFormData } from "@/types";
 import type { LoanDetail, LoanSummary } from "@/lib/loans";
 
@@ -143,7 +145,6 @@ export function EditCustomerForm({
     setFinancial(filled.financial);
     setGuarantor(filled.guarantor);
     if (searchText) setSearch(searchText);
-    setResults([]);
     setTab(0);
     setFieldErrors({});
     setError(null);
@@ -157,7 +158,7 @@ export function EditCustomerForm({
         const res = await fetch(`/api/loans/${loanNo}`, { cache: "no-store" });
         if (!res.ok) throw new Error("load failed");
         const data = (await res.json()) as { loan: LoanDetail };
-        applyLoan(data.loan, loanNo);
+        applyLoan(data.loan, "");
       } catch {
         setError("Could not load the loan. Please check the loan number.");
       }
@@ -188,6 +189,24 @@ export function EditCustomerForm({
     setSavedMsg("");
   }, []);
 
+  const loadList = useCallback(async (q: string) => {
+    try {
+      const params = new URLSearchParams({ limit: "50" });
+      if (q.trim()) params.set("search", q.trim());
+      const res = await fetch(`/api/loans?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { loans: LoanSummary[] };
+      setResults(data.loans.filter((l) => l.customer.name));
+    } catch {
+      setError("Search failed.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => void loadList(""), 0);
+    return () => clearTimeout(t);
+  }, [loadList]);
+
   useEffect(() => {
     if (preselectedLoan) {
       const t = setTimeout(() => void loadLoan(preselectedLoan), 0);
@@ -215,22 +234,7 @@ export function EditCustomerForm({
   const onSearch = (v: string) => {
     setSearch(v);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(async () => {
-      if (!v.trim()) {
-        setResults([]);
-        return;
-      }
-      try {
-        const res = await fetch(`/api/loans?search=${encodeURIComponent(v)}&limit=10`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { loans: LoanSummary[] };
-        setResults(data.loans.filter((l) => l.customer.name));
-        setLoan(null);
-        setCustomerOnly(false);
-      } catch {
-        setError("Search failed.");
-      }
-    }, 350);
+    searchTimer.current = setTimeout(() => void loadList(v), 350);
   };
 
   const setField = (group: "personal" | "vehicle" | "financial" | "guarantor", key: string, value: string | number) => {
@@ -338,7 +342,7 @@ export function EditCustomerForm({
       </div>
 
       <Card>
-        <CardHeader title="Find loan" subtitle="Search by loan number or customer name / mobile" />
+        <CardHeader title="Find loan" subtitle="Pick from the list below or search by number / name / mobile" />
         <div className="p-4 sm:p-5">
           <div className="relative">
             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400">
@@ -352,7 +356,7 @@ export function EditCustomerForm({
             />
           </div>
           {results.length > 0 && (
-            <ul className="mt-2 overflow-hidden rounded-lg border border-zinc-200">
+            <ul className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-200">
               {results.map((l) => (
                 <li key={l._id}>
                   <button
@@ -451,7 +455,7 @@ export function EditCustomerForm({
                     <Input value={personal.altMobile} invalid={!!fieldErrors.altMobile} inputMode="numeric" maxLength={10} onChange={(e) => setField("personal", "altMobile", e.target.value.replace(/\D/g, ""))} />
                   </Field>
                   <Field label="Aadhaar Number" error={fieldErrors.aadhaar}>
-                    <Input value={personal.aadhaar} invalid={!!fieldErrors.aadhaar} inputMode="numeric" maxLength={12} onChange={(e) => setField("personal", "aadhaar", e.target.value.replace(/\D/g, ""))} />
+                    <Input value={formatAadhaar(personal.aadhaar)} invalid={!!fieldErrors.aadhaar} inputMode="numeric" maxLength={14} placeholder="1234 5678 9012" onChange={(e) => setField("personal", "aadhaar", e.target.value.replace(/\D/g, "").slice(0, 12))} />
                   </Field>
                   <Field label="PAN Number" error={fieldErrors.pan}>
                     <Input value={personal.pan} invalid={!!fieldErrors.pan} maxLength={10} className="uppercase" onChange={(e) => setField("personal", "pan", e.target.value.toUpperCase())} />
@@ -464,12 +468,12 @@ export function EditCustomerForm({
                       <Input value={personal.address} onChange={(e) => setField("personal", "address", e.target.value)} />
                     </Field>
                   </div>
-                  <Field label="City">
-                    <Input value={personal.city} onChange={(e) => setField("personal", "city", e.target.value)} />
-                  </Field>
-                  <Field label="State">
-                    <Input value={personal.state} onChange={(e) => setField("personal", "state", e.target.value)} />
-                  </Field>
+                  <StateCityFields
+                    state={personal.state}
+                    city={personal.city}
+                    onStateChange={(v) => setField("personal", "state", v)}
+                    onCityChange={(v) => setField("personal", "city", v)}
+                  />
                 </div>
               </section>
             )}
