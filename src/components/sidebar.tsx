@@ -11,6 +11,15 @@ export interface NavItem {
   icon: IconName;
 }
 
+/** Uppercase initials from a company name, e.g. "Khalsa Finance" → "KF". */
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const letters = words
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, "")[0] ?? "")
+    .join("");
+  return (letters || name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 3)).toUpperCase().slice(0, 3) || "GF";
+}
+
 export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   { title: "Overview", items: [{ href: "/dashboard", label: "Dashboard", icon: "dashboard" }] },
   {
@@ -59,7 +68,7 @@ export function SidebarContent({
           />
         ) : (
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-xs font-extrabold text-white">
-            GFM
+            {initials(companyName)}
           </span>
         )}
         <div>
