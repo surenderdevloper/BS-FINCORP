@@ -12,7 +12,7 @@
  * 2. Create a folder in that account's Drive (My Drive) and copy its ID from
  *    the address bar: .../drive/folders/<THIS-IS-THE-ID>.
  * 3. Project Settings → Script properties → add:
- *      APP_BASE_URL    = https://bs-fincorp.vercel.app
+ *      APP_BASE_URL    = https://gb-fincorp.vercel.app
  *      ADMIN_EMAIL     = <BS FINCORP app admin login email>
  *      ADMIN_PASSWORD  = <BS FINCORP app admin login password>
  *      DRIVE_FOLDER_ID = <folder ID from step 2>
