@@ -365,6 +365,12 @@ function statusBadge(t: TenantRow) {
   return <Badge tone="green">active</Badge>;
 }
 
+function expiryLabel(t: TenantRow): string {
+  if (t.expiresAt === null || t.daysLeft === null) return "no expiry";
+  if (t.expired || t.daysLeft <= 0) return "expired";
+  return t.daysLeft === 1 ? "1 day left" : `${t.daysLeft} days left`;
+}
+
 function TenantTableRow({
   row,
   busy,
@@ -397,9 +403,7 @@ function TenantTableRow({
         </td>
         <td className="px-4 py-3 text-zinc-600">{row.planName || "—"}</td>
         <td className="px-4 py-3">{statusBadge(row)}</td>
-        <td className="px-4 py-3 text-xs text-zinc-500">
-          {row.expiresAt ? new Date(row.expiresAt).toLocaleDateString() : "no expiry"}
-        </td>
+        <td className="px-4 py-3 text-xs text-zinc-500">{expiryLabel(row)}</td>
         <td className="px-4 py-3 text-xs text-zinc-500">
           {row.counts.users} users · {row.counts.customers} cust · {row.counts.loans} loans
         </td>
