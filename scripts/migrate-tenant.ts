@@ -67,6 +67,19 @@ const TENANT_OWNED = [
   "appconfigs",
 ];
 
+// Legacy single-tenant unique indexes that must be removed once uniqueness is
+// scoped per tenant. A deploy that runs with MULTI_TENANT *off* re-creates them
+// via autoIndex (autoIndex never drops), so we drop them explicitly here rather
+// than relying on syncIndexes alone.
+const LEGACY_UNIQUE_INDEXES: Record<string, string[]> = {
+  companysettings: ["singleton_1"],
+  penaltyrules: ["singleton_1"],
+  appconfigs: ["singleton_1"],
+  customers: ["mobile_1", "aadhaar_1"],
+  loans: ["loanNo_1"],
+  payments: ["receiptNo_1"],
+};
+
 // Models whose indexes change shape in multi-tenant mode, imported dynamically
 // (after MULTI_TENANT is enabled) so their compound indexes are registered.
 async function scopedModels(): Promise<Array<[string, mongoose.Model<unknown>]>> {
@@ -192,11 +205,22 @@ async function main() {
     .updateMany({ ...missingFilter, role: "admin" }, { $set: { tenantId: options.tenantId } });
   console.log(`  ${"users (admin only)".padEnd(20)} updated ${userResult.modifiedCount}`);
 
-  // 4. Install tenant-aware indexes (drops the old single-tenant unique ones).
+  // 4. Install tenant-aware indexes and remove the legacy global unique ones.
   const models = await scopedModels();
   for (const [modelName, model] of models) {
     await model.syncIndexes();
     console.log(`  indexes synced: ${modelName}`);
+  }
+
+  for (const [collection, indexes] of Object.entries(LEGACY_UNIQUE_INDEXES)) {
+    const existing = new Set(
+      (await db.collection(collection).indexes().catch(() => [])).map((i) => i.name)
+    );
+    for (const name of indexes) {
+      if (!existing.has(name)) continue;
+      await db.collection(collection).dropIndex(name);
+      console.log(`  dropped legacy index: ${collection}.${name}`);
+    }
   }
 
   await mongoose.disconnect();
