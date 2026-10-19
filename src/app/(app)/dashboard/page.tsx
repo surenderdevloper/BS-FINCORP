@@ -149,26 +149,28 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div>
-                <ul className="divide-y divide-zinc-50 xl:hidden">
+                <ul className="divide-y divide-zinc-50 lg:hidden">
                   {data.overdueRows.map((row) => (
-                    <li key={row.emiId} className="flex flex-col gap-1.5 px-4 py-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 truncate text-sm font-medium text-zinc-900">
-                          {row.customerName || "—"}
-                          <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
-                        </span>
+                    <li key={row.emiId} className="space-y-2 px-4 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-900">
+                            {row.customerName || "—"}
+                            <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-zinc-400">{row.mobile || "—"}</p>
+                        </div>
                         <Badge tone="red">{row.daysLate}d late</Badge>
                       </div>
-                      <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
-                        <span className="min-w-0 truncate">
-                          {row.vehicle || "—"} · {formatDate(row.dueDate)}
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="min-w-0 truncate text-zinc-500">
+                          {row.vehicle || "—"} · Due {formatDate(row.dueDate)}
                         </span>
                         <span className="shrink-0 font-semibold text-zinc-900">{inr(row.amount)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-500">{row.mobile || "—"}</span>
-                        <span className="flex flex-wrap items-center justify-end gap-2">
-                          <span className="font-medium text-red-600">+{inr(row.penalty)} penalty</span>
+                      <div className="flex items-center justify-between gap-2 border-t border-zinc-50 pt-2">
+                        <span className="text-xs font-medium text-red-600">+{inr(row.penalty)} penalty</span>
+                        <span className="flex items-center gap-1.5">
                           <SmsComposer
                             type="overdue"
                             customerName={row.customerName}
@@ -191,17 +193,17 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 xl:block">
-                  <table className="w-full min-w-[640px] text-left text-sm">
+                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:block">
+                  <table className="w-full min-w-[600px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mobile</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Vehicle</th>
+                        <th className="hidden whitespace-nowrap px-3 py-2.5 font-medium xl:table-cell">Mobile</th>
+                        <th className="hidden whitespace-nowrap px-3 py-2.5 font-medium xl:table-cell">Vehicle</th>
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium">Due Date</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Days Late</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Penalty</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Penalty</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Contact</th>
                       </tr>
                     </thead>
@@ -212,14 +214,14 @@ export default async function DashboardPage() {
                             {row.customerName || "—"}
                             <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{row.mobile || "—"}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{row.vehicle || "—"}</td>
+                          <td className="hidden whitespace-nowrap px-3 py-3 text-zinc-600 xl:table-cell">{row.mobile || "—"}</td>
+                          <td className="hidden whitespace-nowrap px-3 py-3 text-zinc-600 xl:table-cell">{row.vehicle || "—"}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{formatDate(row.dueDate)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-right">
                             <Badge tone="red">{row.daysLate} days</Badge>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-red-600 sm:px-5">{inr(row.penalty)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-red-600">{inr(row.penalty)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">
                             <div className="flex items-center justify-end gap-1">
                               <SmsComposer
@@ -264,7 +266,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div>
-                <ul className="divide-y divide-zinc-50 xl:hidden">
+                <ul className="divide-y divide-zinc-50 lg:hidden">
                   {data.todayRows.map((row) => (
                     <li key={row.paymentId} className="flex items-center justify-between gap-3 px-4 py-3">
                       <span className="min-w-0">
@@ -286,7 +288,7 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 xl:block">
+                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:block">
                   <table className="w-full min-w-[560px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
