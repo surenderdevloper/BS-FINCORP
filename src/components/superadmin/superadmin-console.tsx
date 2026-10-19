@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
@@ -596,6 +596,7 @@ function AccountsTab({
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -675,63 +676,169 @@ function AccountsTab({
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-4 py-3 text-zinc-900">{u.name}</td>
-                    <td className="px-4 py-3 text-zinc-600">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={u.role === "superadmin" ? "green" : u.role === "developer" ? "blue" : "zinc"}>
-                        {u.role}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-500">{u.tenantId ?? "global"}</td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">{formatDate(u.lastLoginAt)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1.5">
-                        <Button variant="ghost" size="sm" disabled={busy === u.id} onClick={() => resetUser(u)}>
-                          Reset pw
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy === u.id || u.id === ownerId || u.role === "superadmin"}
-                          title={
-                            u.id === ownerId
-                              ? "You cannot impersonate your own account"
-                              : u.role === "superadmin"
-                                ? "Cannot impersonate a superadmin account"
-                                : undefined
-                          }
-                          onClick={async () => {
-                            if (
-                              !window.confirm(
-                                `Login as ${u.email}? You will be signed in as this account.`
-                              )
-                            )
-                              return;
-                            setBusy(u.id);
-                            try {
-                              const res = (await api(`/api/superadmin/users/${u.id}/impersonate`, { method: "POST" })) as { ok?: boolean; error?: string };
-                              if (!res.ok) throw new Error(res.error || "Failed to impersonate");
-                              flash(`Signed in as ${u.email}. Redirecting…`);
-                              window.location.href = "/dashboard";
-                            } catch (e: unknown) {
-                              onError(e instanceof Error ? e.message : "Failed to impersonate account");
-                            } finally {
-                              setBusy(null);
+                  <Fragment key={u.id}>
+                    <tr className="border-b border-zinc-100">
+                      <td className="px-4 py-3 text-zinc-900">{u.name}</td>
+                      <td className="px-4 py-3 text-zinc-600">{u.email}</td>
+                      <td className="px-4 py-3">
+                        <Badge tone={u.role === "superadmin" ? "green" : u.role === "developer" ? "blue" : "zinc"}>
+                          {u.role}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-500">{u.tenantId ?? "global"}</td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">{formatDate(u.lastLoginAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setEditing(editing === u.id ? null : u.id)}
+                          >
+                            {editing === u.id ? "Close" : "Edit"}
+                          </Button>
+                          <Button variant="ghost" size="sm" disabled={busy === u.id} onClick={() => resetUser(u)}>
+                            Reset pw
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={busy === u.id || u.id === ownerId || u.role === "superadmin"}
+                            title={
+                              u.id === ownerId
+                                ? "You cannot impersonate your own account"
+                                : u.role === "superadmin"
+                                  ? "Cannot impersonate a superadmin account"
+                                  : undefined
                             }
-                          }}
-                        >
-                          Login as
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+                            onClick={async () => {
+                              if (
+                                !window.confirm(
+                                  `Login as ${u.email}? You will be signed in as this account.`
+                                )
+                              )
+                                return;
+                              setBusy(u.id);
+                              try {
+                                const res = (await api(`/api/superadmin/users/${u.id}/impersonate`, { method: "POST" })) as { ok?: boolean; error?: string };
+                                if (!res.ok) throw new Error(res.error || "Failed to impersonate");
+                                flash(`Signed in as ${u.email}. Redirecting…`);
+                                window.location.href = "/dashboard";
+                              } catch (e: unknown) {
+                                onError(e instanceof Error ? e.message : "Failed to impersonate account");
+                              } finally {
+                                setBusy(null);
+                              }
+                            }}
+                          >
+                            Login as
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={busy === u.id || u.id === ownerId}
+                            title={u.id === ownerId ? "You cannot delete your own account" : undefined}
+                            onClick={() => removeUser(u)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                    {editing === u.id && (
+                      <tr className="border-b border-zinc-100 bg-zinc-50">
+                        <td colSpan={6} className="px-4 py-4">
+                          <EditUserForm
+                            row={u}
+                            tenants={tenants}
+                            onSaved={() => {
+                              setEditing(null);
+                              flash(`Saved ${u.email}.`);
+                              void load();
+                            }}
+                            onError={onError}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+function EditUserForm({
+  row,
+  tenants,
+  onSaved,
+  onError,
+}: {
+  row: UserRow;
+  tenants: TenantRow[];
+  onSaved: () => void;
+  onError: (message: string) => void;
+}) {
+  const [name, setName] = useState(row.name);
+  const [role, setRole] = useState<UserRow["role"]>(row.role);
+  const [tenantId, setTenantId] = useState(row.tenantId ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (role === "admin" && !tenantId) {
+      onError("Tenant is required for an admin.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api(`/api/superadmin/users/${row.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name,
+          role,
+          ...(role === "admin" ? { tenantId } : {}),
+        }),
+      });
+      onSaved();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      <Field label="Name">
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <Field label="Role">
+        <Select value={role} onChange={(e) => setRole(e.target.value as UserRow["role"])}>
+          <option value="admin">admin (tenant user)</option>
+          <option value="developer">developer (global)</option>
+          <option value="superadmin">superadmin (global)</option>
+        </Select>
+      </Field>
+      {role === "admin" && (
+        <Field label="Tenant" required>
+          <Select value={tenantId} onChange={(e) => setTenantId(e.target.value)}>
+            <option value="">Select a tenant…</option>
+            {tenants.map((t) => (
+              <option key={t.tenantId} value={t.tenantId}>
+                {t.businessName} ({t.tenantId})
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+      <div className="flex items-end">
+        <Button size="sm" disabled={saving || !name} onClick={save}>
+          {saving ? "Saving…" : "Save changes"}
+        </Button>
+      </div>
     </div>
   );
 }
