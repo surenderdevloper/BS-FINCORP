@@ -32,7 +32,7 @@ export function RemindersCard({
 }) {
   function actions(row: ReminderRow) {
     return (
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
         <SmsComposer
           type="upcoming"
           customerName={row.customerName}
@@ -110,7 +110,7 @@ export function RemindersCard({
         </p>
       ) : (
         <div>
-          <ul className="divide-y divide-zinc-50 md:hidden">
+          <ul className="divide-y divide-zinc-50 xl:hidden">
             {reminders.map((row) => (
               <li key={row.emiId} className="flex flex-col gap-2 px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
@@ -133,7 +133,7 @@ export function RemindersCard({
               </li>
             ))}
           </ul>
-          <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 md:block">
+          <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 xl:block">
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">

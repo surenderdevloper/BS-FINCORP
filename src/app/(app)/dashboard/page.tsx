@@ -149,7 +149,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div>
-                <ul className="divide-y divide-zinc-50 md:hidden">
+                <ul className="divide-y divide-zinc-50 xl:hidden">
                   {data.overdueRows.map((row) => (
                     <li key={row.emiId} className="flex flex-col gap-1.5 px-4 py-3">
                       <div className="flex items-center justify-between gap-2">
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 md:block">
+                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 xl:block">
                   <table className="w-full min-w-[640px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div>
-                <ul className="divide-y divide-zinc-50 md:hidden">
+                <ul className="divide-y divide-zinc-50 xl:hidden">
                   {data.todayRows.map((row) => (
                     <li key={row.paymentId} className="flex items-center justify-between gap-3 px-4 py-3">
                       <span className="min-w-0">
@@ -286,7 +286,7 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 md:block">
+                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 xl:block">
                   <table className="w-full min-w-[560px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
