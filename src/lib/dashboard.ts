@@ -49,6 +49,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     todayAgg,
     overdueEmis,
     pendingEmis,
+    partialEmis,
     activeLoanDocs,
     todayPayments,
     penaltyRule,
@@ -64,8 +65,14 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       { $match: { createdAt: { $gte: startToday, $lt: endToday }, type: { $ne: "NOC_REPRINT" } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
-    Emi.countDocuments({ status: { $ne: "paid" }, dueDate: { $lt: startToday } }),
-    Emi.countDocuments({ status: { $ne: "paid" }, dueDate: { $gte: startToday } }),
+    // Overdue = fully-pending EMIs whose due date has passed. Partly-paid EMIs
+    // are tracked separately (see partialEmis) and never counted as overdue.
+    Emi.countDocuments({ status: "pending", dueDate: { $lt: startToday } }),
+    // Pending = every unpaid-in-full EMI (includes overdue), matching the
+    // legacy AVTech software's "EMIs Pending" column.
+    Emi.countDocuments({ status: "pending" }),
+    // Partly-paid EMIs form their own bucket so they don't inflate Pending/Overdue.
+    Emi.countDocuments({ status: "partial" }),
     Loan.find({ status: "active" }).select("_id advance").lean().exec(),
     Payment.find({
       createdAt: { $gte: startToday, $lt: endToday },
@@ -213,6 +220,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     closedLoans,
     pendingEmis,
     overdueEmis,
+    partialEmis,
     todayCollection,
     totalDisbursed,
     pendingAmount,

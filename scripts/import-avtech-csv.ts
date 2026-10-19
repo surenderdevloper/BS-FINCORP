@@ -858,7 +858,8 @@ async function main() {
   await Payment.insertMany(paymentDocs, { ordered: true });
   await CompanySetting.updateOne(
     { tenantId: TENANT, singleton: "company" },
-    { $set: { loanPrefix, nextLoanNo, receiptPrefix, nextReceiptNo: nextReceiptSeq } }
+    { $set: { loanPrefix, nextLoanNo, receiptPrefix, nextReceiptNo: nextReceiptSeq } },
+    { upsert: true, setDefaultsOnInsert: true }
   );
 
   const finalCounts = {

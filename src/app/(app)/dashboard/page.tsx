@@ -82,6 +82,7 @@ export default async function DashboardPage() {
     { label: "Closed Loans", value: String(data.closedLoans), tone: "zinc" as const, icon: <Icon name="close" /> },
     { label: "Pending EMIs", value: String(data.pendingEmis), tone: "amber" as const, icon: <Icon name="calendar" /> },
     { label: "Overdue EMIs", value: String(data.overdueEmis), tone: "red" as const, icon: <Icon name="alert" /> },
+    { label: "Partly Paid EMIs", value: String(data.partialEmis), tone: "amber" as const, icon: <Icon name="cash" /> },
     { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" /> },
     { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" /> },
     { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" /> },

@@ -95,6 +95,7 @@ export interface DashboardData {
   closedLoans: number;
   pendingEmis: number;
   overdueEmis: number;
+  partialEmis: number;
   todayCollection: number;
   totalDisbursed: number;
   pendingAmount: number;
