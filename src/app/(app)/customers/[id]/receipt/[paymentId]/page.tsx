@@ -23,10 +23,14 @@ export const dynamic = "force-dynamic";
 
 export default async function ReceiptPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; paymentId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id, paymentId } = await params;
+  const query = await searchParams;
+  const autoPrint = query.print === "1";
 
   await dbConnect();
   const session = await readSession();
@@ -87,7 +91,7 @@ export default async function ReceiptPage({
               },
             ]}
           />
-          <ReceiptActions />
+          <ReceiptActions autoPrint={autoPrint} />
         </div>
       </div>
 

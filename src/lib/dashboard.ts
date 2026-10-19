@@ -205,6 +205,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
   const todayRows: TodayCollectionRow[] = todayPayments.map((p) => ({
     paymentId: p._id.toString(),
     receiptNo: p.receiptNo,
+    customerId: p.customerId ? p.customerId.toString() : "",
     customerName: p.customerName,
     loanNo: p.loanNo,
     amount: p.amount,

@@ -242,9 +242,21 @@ export default async function DashboardPage() {
                           </Badge>
                         </span>
                       </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-sm font-semibold text-zinc-900">{inr(row.settled)}</span>
-                        {row.advanceUsed > 0 && <Badge tone="amber">Advance</Badge>}
+                      <span className="flex shrink-0 items-center gap-2 text-right">
+                        <span className="text-right">
+                          <span className="block text-sm font-semibold text-zinc-900">{inr(row.settled)}</span>
+                          {row.advanceUsed > 0 && <Badge tone="amber">Advance</Badge>}
+                        </span>
+                        <Link
+                          href={`/customers/${row.customerId}/receipt/${row.paymentId}?print=1`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Print receipt"
+                          aria-label={`Print receipt ${row.receiptNo}`}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                        >
+                          <Icon name="print" size={16} />
+                        </Link>
                       </span>
                     </li>
                   ))}
@@ -257,7 +269,8 @@ export default async function DashboardPage() {
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium">Customer</th>
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mode</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Time</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Time</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Print</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -279,12 +292,24 @@ export default async function DashboardPage() {
                               {row.advanceUsed > 0 && <Badge tone="amber">Advance</Badge>}
                             </span>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right text-zinc-500 sm:px-5">
+                          <td className="whitespace-nowrap px-3 py-3 text-right text-zinc-500">
                             {new Intl.DateTimeFormat("en-IN", {
                               hour: "2-digit",
                               minute: "2-digit",
                               timeZone: APP_TIME_ZONE,
                             }).format(new Date(row.paidAt))}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">
+                            <Link
+                              href={`/customers/${row.customerId}/receipt/${row.paymentId}?print=1`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Print receipt"
+                              aria-label={`Print receipt ${row.receiptNo}`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                            >
+                              <Icon name="print" size={16} />
+                            </Link>
                           </td>
                         </tr>
                       ))}

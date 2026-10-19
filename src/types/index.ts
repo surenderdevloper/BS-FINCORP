@@ -75,6 +75,7 @@ export interface ReminderRow {
 export interface TodayCollectionRow {
   paymentId: string;
   receiptNo: string;
+  customerId: string;
   customerName: string;
   loanNo: string;
   amount: number;
