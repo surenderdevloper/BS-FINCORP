@@ -148,29 +148,36 @@ export default async function DashboardPage() {
                 No overdue EMIs. Everything is on track.
               </p>
             ) : (
-              <div>
-                <ul className="divide-y divide-zinc-50 lg:hidden">
+              <div className="relative">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-4 sm:px-5">
                   {data.overdueRows.map((row) => (
-                    <li key={row.emiId} className="space-y-2 px-4 py-3">
+                    <article
+                      key={row.emiId}
+                      className="flex w-[78%] shrink-0 snap-start flex-col gap-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 shadow-sm sm:w-72"
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-zinc-900">
+                          <p className="truncate text-sm font-semibold text-zinc-900">
                             {row.customerName || "—"}
-                            <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
                           </p>
-                          <p className="mt-0.5 text-[11px] text-zinc-400">{row.mobile || "—"}</p>
+                          <p className="mt-0.5 truncate text-[11px] text-zinc-400">{row.loanNo}</p>
                         </div>
                         <Badge tone="red">{row.daysLate}d late</Badge>
                       </div>
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="min-w-0 truncate text-zinc-500">
-                          {row.vehicle || "—"} · Due {formatDate(row.dueDate)}
-                        </span>
-                        <span className="shrink-0 font-semibold text-zinc-900">{inr(row.amount)}</span>
+
+                      <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
+                        <span className="min-w-0 truncate">{row.vehicle || "—"}</span>
+                        <span className="shrink-0">Due {formatDate(row.dueDate)}</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 border-t border-zinc-50 pt-2">
+
+                      <div className="flex items-center justify-between gap-2 border-t border-zinc-100 pt-2.5">
+                        <span className="text-base font-bold text-zinc-900">{inr(row.amount)}</span>
+                        <span className="text-xs text-zinc-500">{row.mobile || "—"}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <span className="text-xs font-medium text-red-600">+{inr(row.penalty)} penalty</span>
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex flex-wrap items-center justify-end gap-1.5">
                           <SmsComposer
                             type="overdue"
                             customerName={row.customerName}
@@ -188,66 +195,20 @@ export default async function DashboardPage() {
                             subtitle={`${row.loanNo} · overdue EMI`}
                             templates={overdueTemplates(row)}
                           />
+                          <Link
+                            href={`/emi-pay?loan=${row.loanNo}`}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+                          >
+                            <Icon name="cash" size={14} /> Collect
+                          </Link>
                         </span>
                       </div>
-                    </li>
+                    </article>
                   ))}
-                </ul>
-                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:block">
-                  <table className="w-full min-w-[600px] text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
-                        <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
-                        <th className="hidden whitespace-nowrap px-3 py-2.5 font-medium xl:table-cell">Mobile</th>
-                        <th className="hidden whitespace-nowrap px-3 py-2.5 font-medium xl:table-cell">Vehicle</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">Due Date</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Days Late</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Penalty</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Contact</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-50">
-                      {data.overdueRows.map((row) => (
-                        <tr key={row.emiId} className="hover:bg-zinc-50/60">
-                          <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900 sm:px-5">
-                            {row.customerName || "—"}
-                            <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
-                          </td>
-                          <td className="hidden whitespace-nowrap px-3 py-3 text-zinc-600 xl:table-cell">{row.mobile || "—"}</td>
-                          <td className="hidden whitespace-nowrap px-3 py-3 text-zinc-600 xl:table-cell">{row.vehicle || "—"}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{formatDate(row.dueDate)}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right">
-                            <Badge tone="red">{row.daysLate} days</Badge>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-red-600">{inr(row.penalty)}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">
-                            <div className="flex items-center justify-end gap-1">
-                              <SmsComposer
-                                type="overdue"
-                                customerName={row.customerName}
-                                mobile={row.mobile}
-                                loanNo={row.loanNo}
-                                amount={row.amount}
-                                dueDate={row.dueDate}
-                                template={msgs.sms.overdue}
-                                brandingName={brandingName}
-                              />
-                              <WhatsAppShare
-                                recipientName={row.customerName}
-                                mobile={row.mobile}
-                                title="WhatsApp Reminder"
-                                subtitle={`${row.loanNo} · overdue EMI`}
-                                templates={overdueTemplates(row)}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
+                {data.overdueRows.length > 1 && (
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+                )}
               </div>
             )}
           </div>
