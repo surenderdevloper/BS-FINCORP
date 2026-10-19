@@ -106,8 +106,8 @@ test("alternative header spellings and phone formats are accepted", () => {
   assert.equal(record.payload.customer?.name, "Sunita Devi");
   assert.equal(record.payload.customer?.mobile, "9811122333");
   assert.equal(record.payload.vehicle.name, "TVS Jupiter");
-  assert.equal(record.payload.financial.vehiclePrice, 60000);
-  assert.equal(record.payload.financial.downPayment, 10000);
+    assert.equal(record.payload.financial.vehiclePrice, 60000 + 10000);
+    assert.equal(record.payload.financial.downPayment, 10000);
   assert.equal(record.payload.financial.interestRate, 15);
   assert.equal(record.payload.financial.tenureMonths, 24);
   assert.equal(record.payload.financial.startDate, "2026-04-01");

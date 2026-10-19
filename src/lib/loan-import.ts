@@ -100,6 +100,7 @@ const FIELD_ALIASES: Record<string, string> = {
   contactno: "mobile",
   contactnumber: "mobile",
   contact: "mobile",
+  fathename: "fatherName",
   fathername: "fatherName",
   father: "fatherName",
   parentname: "fatherName",
@@ -113,6 +114,7 @@ const FIELD_ALIASES: Record<string, string> = {
   aadhaar: "aadhaar",
   aadharnumber: "aadhaar",
   aadhaarno: "aadhaar",
+  aadhaarnumber: "aadhaar",
   uidai: "aadhaar",
   pan: "pan",
   pannumber: "pan",
@@ -121,6 +123,7 @@ const FIELD_ALIASES: Record<string, string> = {
   dob: "dob",
   dateofbirth: "dob",
   birthdate: "dob",
+  date_of_birth: "dob",
   address: "address",
   fulladdress: "address",
   permanentaddress: "address",
@@ -130,6 +133,7 @@ const FIELD_ALIASES: Record<string, string> = {
   state: "state",
   statename: "state",
   vehiclename: "vehicleName",
+  vehicle_name: "vehicleName",
   vehicle: "vehicleName",
   vehiclemake: "vehicleName",
   make: "vehicleName",
@@ -137,19 +141,26 @@ const FIELD_ALIASES: Record<string, string> = {
   productname: "vehicleName",
   product: "vehicleName",
   vehiclemodel: "vehicleModel",
+  vehicle_model: "vehicleModel",
   model: "vehicleModel",
   variant: "vehicleModel",
   engineno: "engineNo",
+  engine_no: "engineNo",
+  enginenumber: "engineNo",
   engine: "engineNo",
   enginesrno: "engineNo",
   chassisno: "chassisNo",
+  chassis_no: "chassisNo",
+  chassisnumber: "chassisNo",
   chassis: "chassisNo",
   regno: "regNo",
+  reg_no: "regNo",
   registrationno: "regNo",
   registrationnumber: "regNo",
   vehicleregno: "regNo",
   vehicleregistrationno: "regNo",
   rcno: "regNo",
+  rc_number: "regNo",
   rcnumber: "regNo",
   numberplate: "regNo",
   loantype: "loanType",
@@ -160,6 +171,7 @@ const FIELD_ALIASES: Record<string, string> = {
   showroom: "dealerName",
   showroomname: "dealerName",
   vehicleprice: "vehiclePrice",
+  vehicle_price: "vehiclePrice",
   price: "vehiclePrice",
   exshowroomprice: "vehiclePrice",
   exprice: "vehiclePrice",
@@ -168,27 +180,33 @@ const FIELD_ALIASES: Record<string, string> = {
   saleprice: "vehiclePrice",
   invoiceprice: "vehiclePrice",
   downpayment: "downPayment",
+  down_payment: "downPayment",
   advancepayment: "downPayment",
   downpaymentamount: "downPayment",
   dp: "downPayment",
   loanamount: "loanAmount",
+  loan_amount: "loanAmount",
   loanfinanced: "loanAmount",
+  loan_financed: "loanAmount",
   financedamount: "loanAmount",
   financeamount: "loanAmount",
   principal: "loanAmount",
   disbursedamount: "loanAmount",
   interestrate: "interestRate",
+  interest_rate: "interestRate",
   rateofinterest: "interestRate",
   rate: "interestRate",
   ratepercent: "interestRate",
   roi: "interestRate",
   interest: "interestRate",
   interesttype: "interestType",
+  interest_type: "interestType",
   ratetype: "interestType",
   calculationtype: "interestType",
   interestcalculation: "interestType",
   interestmethod: "interestType",
   tenuremonths: "tenureMonths",
+  tenure_months: "tenureMonths",
   tenureinmonths: "tenureMonths",
   tenure: "tenureMonths",
   termmonths: "tenureMonths",
@@ -198,12 +216,14 @@ const FIELD_ALIASES: Record<string, string> = {
   noofemis: "tenureMonths",
   numberofemis: "tenureMonths",
   emiday: "emiDay",
+  emi_day: "emiDay",
   emidate: "emiDay",
   instalmentday: "emiDay",
   installmentday: "emiDay",
   paymentday: "emiDay",
   dueday: "emiDay",
   startdate: "startDate",
+  start_date: "startDate",
   disbursedate: "startDate",
   disbursedon: "startDate",
   disbursementdate: "startDate",
@@ -211,13 +231,17 @@ const FIELD_ALIASES: Record<string, string> = {
   issuancedate: "startDate",
   start: "startDate",
   guarantorname: "guarantorName",
+  guarantor_name: "guarantorName",
   guarantor: "guarantorName",
   guarantormobile: "guarantorMobile",
+  guarantor_mobile: "guarantorMobile",
   guarantorphone: "guarantorMobile",
   guarantormobileno: "guarantorMobile",
   guarantorrelation: "guarantorRelation",
+  guarantor_relation: "guarantorRelation",
   relation: "guarantorRelation",
   guarantoraddress: "guarantorAddress",
+  guarantor_address: "guarantorAddress",
 };
 
 const REQUIRED_HEADERS: { field: string; label: string }[] = [
@@ -362,6 +386,23 @@ export function parseLoanImportSheet(
     let downPayment = importNumber(cell(row, "downPayment"));
     if (!Number.isFinite(vehiclePrice) && Number.isFinite(financedAmount)) vehiclePrice = financedAmount;
     if (!Number.isFinite(downPayment)) downPayment = 0;
+    if (Number.isFinite(financedAmount) && financedAmount >= 0) {
+      const hasLoanFinCol = colByField.has("loanAmount");
+      const hasPriceCol = colByField.has("vehiclePrice");
+      const hasDpCol = colByField.has("downPayment");
+      if (hasLoanFinCol && hasPriceCol && hasDpCol && Number.isFinite(priceFromSheet)) {
+        // AVTech gives Loan_Financed=principal, Vehicle Price may be On-Road; we want loanAmount = principal
+        vehiclePrice = financedAmount + downPayment;
+      } else if (hasLoanFinCol && !hasPriceCol && hasDpCol) {
+        vehiclePrice = financedAmount + downPayment;
+      } else if (hasLoanFinCol && hasPriceCol && !hasDpCol) {
+        downPayment = Math.max(0, priceFromSheet - financedAmount);
+        vehiclePrice = priceFromSheet;
+      } else if (hasLoanFinCol && !hasPriceCol && !hasDpCol) {
+        downPayment = 0;
+        vehiclePrice = financedAmount;
+      }
+    }
 
     const payload: LoanFormPayload = {
       customer: {
