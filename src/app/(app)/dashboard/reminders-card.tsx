@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -31,7 +30,66 @@ export function RemindersCard({
   waDuetoday?: string;
   smsUpcoming?: string;
 }) {
-  const [open, setOpen] = useState<string | null>(null);
+  function actions(row: ReminderRow) {
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        <SmsComposer
+          type="upcoming"
+          customerName={row.customerName}
+          mobile={row.mobile}
+          loanNo={row.loanNo}
+          amount={row.amount}
+          dueDate={row.dueDate}
+          template={smsUpcoming}
+          brandingName={brandingName}
+        />
+        <WhatsAppShare
+          recipientName={row.customerName}
+          mobile={row.mobile}
+          title="WhatsApp Reminder"
+          subtitle={`${row.loanNo} · EMI #${row.emiNo}`}
+          templates={[
+            {
+              key: "upcoming",
+              label: "Upcoming reminder",
+              message: buildEmiReminderMessage(
+                "upcoming",
+                {
+                  customerName: row.customerName,
+                  loanNo: row.loanNo,
+                  amount: row.amount,
+                  dueDate: row.dueDate,
+                  brandingName,
+                },
+                waUpcoming
+              ),
+            },
+            {
+              key: "duetoday",
+              label: "Due today / now",
+              message: buildEmiReminderMessage(
+                "duetoday",
+                {
+                  customerName: row.customerName,
+                  loanNo: row.loanNo,
+                  amount: row.amount,
+                  dueDate: row.dueDate,
+                  brandingName,
+                },
+                waDuetoday
+              ),
+            },
+          ]}
+        />
+        <Link
+          href={`/emi-pay?loan=${row.loanNo}`}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+        >
+          <Icon name="cash" size={14} /> Collect
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -51,117 +109,66 @@ export function RemindersCard({
           No EMIs due in the next 7 days.
         </p>
       ) : (
-        <ul className="divide-y divide-zinc-50">
-          {reminders.map((row) => {
-            const isOpen = open === row.emiId;
-            return (
-              <li key={row.emiId}>
-                <button
-                  type="button"
-                  onClick={() => setOpen(isOpen ? null : row.emiId)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50/70 sm:px-5"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-zinc-900">
+        <div>
+          <ul className="divide-y divide-zinc-50 md:hidden">
+            {reminders.map((row) => (
+              <li key={row.emiId} className="flex flex-col gap-2 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm font-medium text-zinc-900">
+                    {row.customerName || "—"}
+                    <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
+                  </span>
+                  <Badge tone={row.daysLeft <= 1 ? "red" : "amber"}>{daysLabel(row.daysLeft)}</Badge>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
+                  <span className="min-w-0 truncate">
+                    {row.vehicle || "—"} · EMI #{row.emiNo} · Due {formatDate(row.dueDate)}
+                  </span>
+                  <span className="shrink-0 font-semibold text-zinc-900">{inr(row.amount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-500">{row.mobile || "—"}</span>
+                  {actions(row)}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 md:block">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mobile</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Vehicle</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">EMI</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 font-medium">Due Date</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Due In</th>
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Contact</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50">
+                {reminders.map((row) => (
+                  <tr key={row.emiId} className="hover:bg-zinc-50/60">
+                    <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900 sm:px-5">
                       {row.customerName || "—"}
                       <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
-                    </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500">
-                      EMI #{row.emiNo} · Due {formatDate(row.dueDate)}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-3">
-                    <span className="hidden text-right sm:block">
-                      <span className="block text-sm font-semibold text-zinc-900">{inr(row.amount)}</span>
-                      <span className={row.daysLeft <= 1 ? "text-xs font-medium text-red-600" : "text-xs font-medium text-amber-600"}>
-                        {daysLabel(row.daysLeft)}
-                      </span>
-                    </span>
-                    <Badge tone={row.daysLeft <= 1 ? "red" : "amber"}>{row.daysLeft}d</Badge>
-                    <Icon
-                      name="chevron"
-                      size={16}
-                      className={`text-zinc-400 transition-transform ${isOpen ? "rotate-90" : ""}`}
-                    />
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="grid gap-3 border-t border-zinc-100 bg-zinc-50/50 px-4 py-3 sm:grid-cols-4 sm:px-5">
-                    <div>
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Customer</p>
-                      <p className="text-sm font-medium text-zinc-900">{row.customerName || "—"}</p>
-                      {row.mobile && <p className="text-xs text-zinc-500">{row.mobile}</p>}
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Vehicle</p>
-                      <p className="text-sm font-medium text-zinc-900">{row.vehicle || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Due amount</p>
-                      <p className="text-sm font-semibold text-emerald-700">{inr(row.amount)}</p>
-                    </div>
-                    <div className="flex flex-wrap items-end justify-end gap-2">
-                      <SmsComposer
-                        type="upcoming"
-                        customerName={row.customerName}
-                        mobile={row.mobile}
-                        loanNo={row.loanNo}
-                        amount={row.amount}
-                        dueDate={row.dueDate}
-                        template={smsUpcoming}
-                        brandingName={brandingName}
-                      />
-                      <WhatsAppShare
-                        recipientName={row.customerName}
-                        mobile={row.mobile}
-                        title="WhatsApp Reminder"
-                        subtitle={`${row.loanNo} · EMI #${row.emiNo}`}
-                        templates={[
-                          {
-                            key: "upcoming",
-                            label: "Upcoming reminder",
-                            message: buildEmiReminderMessage(
-                              "upcoming",
-                              {
-                                customerName: row.customerName,
-                                loanNo: row.loanNo,
-                                amount: row.amount,
-                                dueDate: row.dueDate,
-                                brandingName,
-                              },
-                              waUpcoming
-                            ),
-                          },
-                          {
-                            key: "duetoday",
-                            label: "Due today / now",
-                            message: buildEmiReminderMessage(
-                              "duetoday",
-                              {
-                                customerName: row.customerName,
-                                loanNo: row.loanNo,
-                                amount: row.amount,
-                                dueDate: row.dueDate,
-                                brandingName,
-                              },
-                              waDuetoday
-                            ),
-                          },
-                        ]}
-                      />
-                      <Link
-                        href={`/emi-pay?loan=${row.loanNo}`}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
-                      >
-                        <Icon name="cash" size={15} /> Collect
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{row.mobile || "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{row.vehicle || "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">#{row.emiNo}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">{formatDate(row.dueDate)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-zinc-900">{inr(row.amount)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right">
+                      <Badge tone={row.daysLeft <= 1 ? "red" : "amber"}>{daysLabel(row.daysLeft)}</Badge>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">{actions(row)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </Card>
   );

@@ -129,7 +129,7 @@ export default async function DashboardPage() {
         smsUpcoming={msgs.sms.upcoming}
       />
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6">
         <Card>
           <CardHeader
             title="Overdue EMIs"
