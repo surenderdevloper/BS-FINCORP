@@ -130,7 +130,7 @@ export default async function DashboardPage() {
       />
 
       <div className="grid gap-6">
-        <Card>
+        <Card className="min-w-0">
           <CardHeader
             title="Overdue EMIs"
             subtitle="Unpaid installments past their due date"
@@ -148,7 +148,7 @@ export default async function DashboardPage() {
                 No overdue EMIs. Everything is on track.
               </p>
             ) : (
-              <div className="relative">
+              <div className="relative min-w-0">
                 <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-4 sm:px-5">
                   {data.overdueRows.map((row) => (
                     <article
@@ -214,7 +214,7 @@ export default async function DashboardPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader
             title="Today's Collections"
             subtitle="Payments received today"
