@@ -10,6 +10,7 @@ import {
   SESSION_COOKIE,
 } from "@/lib/auth";
 import { runUnscoped } from "@/lib/tenant";
+import { revokeUserSessions } from "@/lib/sessions";
 import { recordAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -63,14 +64,25 @@ export async function POST(req: Request) {
     details: "Changed own superadmin password",
   });
 
-  const token = await signSessionToken({
-    id: session.id,
-    name: session.name,
-    email: session.email,
-    role: "superadmin",
-    tokenVersion: nextVersion,
-    tenantId: null,
-  });
+  // Revoke every other device row; the tokenVersion bump above already ends
+  // their cookies, this just makes the device list accurate.
+  try {
+    await revokeUserSessions(session.id, session.sid ?? null);
+  } catch {
+    // Best-effort.
+  }
+
+  const token = await signSessionToken(
+    {
+      id: session.id,
+      name: session.name,
+      email: session.email,
+      role: "superadmin",
+      tokenVersion: nextVersion,
+      tenantId: null,
+    },
+    session.sid ?? ""
+  );
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());

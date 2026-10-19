@@ -5,6 +5,7 @@ import { User } from "@/models/User";
 import { Tenant } from "@/models/Tenant";
 import { normalizeRole } from "@/lib/auth";
 import { withSuperadmin } from "@/lib/tenant-route";
+import { DeviceSession } from "@/models/DeviceSession";
 import { recordAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +14,17 @@ export async function GET() {
   return withSuperadmin(async () => {
     await dbConnect();
     const users = await User.find({})
-      .select("name email role tenantId createdAt lastLoginAt")
+      .select("name email role tenantId createdAt lastLoginAt lastLoginDevice lastLoginIp")
       .sort({ createdAt: 1 })
       .lean();
+
+    // One query gives the active device count for every account in the list.
+    const live = await DeviceSession.find({ revokedAt: null, userId: { $in: users.map((u) => String(u._id)) } })
+      .select("userId")
+      .lean();
+    const devices = new Map<string, number>();
+    for (const s of live) devices.set(s.userId, (devices.get(s.userId) ?? 0) + 1);
+
     return NextResponse.json({
       users: users.map((u) => ({
         id: String(u._id),
@@ -25,6 +34,9 @@ export async function GET() {
         tenantId: u.tenantId ?? null,
         createdAt: u.createdAt?.toISOString(),
         lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : null,
+        lastLoginDevice: u.lastLoginDevice ?? "",
+        lastLoginIp: u.lastLoginIp ?? "",
+        activeDevices: devices.get(String(u._id)) ?? 0,
       })),
     });
   });

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { signSessionToken, sessionCookieOptions, SESSION_COOKIE, normalizeRole } from "@/lib/auth";
+import { clientIp, parseDevice, startSession } from "@/lib/sessions";
 import { runUnscoped } from "@/lib/tenant";
 import { clientKey, rateLimit, rateLimitReset } from "@/lib/rate-limit";
 
@@ -43,22 +44,39 @@ export async function POST(req: Request) {
 
     rateLimitReset(`login:${clientKey(req)}:${email}`);
 
-    // Best-effort "last seen" so the superadmin panel can show when each
-    // account was last used. Never blocks the login itself.
+    // Register this device so the superadmin panel can show where the account is
+    // signed in (and sign a specific device out later). The session id goes into
+    // the cookie, so without one no valid session can be issued.
+    const userAgent = req.headers.get("user-agent") ?? "";
+    const ip = clientIp(req);
+    const sid = await startSession({
+      userId: user._id.toString(),
+      tenantId: user.tenantId ?? null,
+      userAgent,
+      ip,
+    });
     try {
-      await runUnscoped(() => User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } }));
+      await runUnscoped(() =>
+        User.updateOne(
+          { _id: user._id },
+          { $set: { lastLoginAt: new Date(), lastLoginDevice: parseDevice(userAgent), lastLoginIp: ip } }
+        )
+      );
     } catch {
-      // ignore
+      // Best-effort "last seen" for the superadmin panel; never blocks login.
     }
 
-    const token = await signSessionToken({
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: normalizeRole(user.role),
-      tokenVersion: user.tokenVersion ?? 0,
-      tenantId: user.tenantId ?? null,
-    });
+    const token = await signSessionToken(
+      {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: normalizeRole(user.role),
+        tokenVersion: user.tokenVersion ?? 0,
+        tenantId: user.tenantId ?? null,
+      },
+      sid
+    );
 
     const res = NextResponse.json({ name: user.name, email: user.email });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());

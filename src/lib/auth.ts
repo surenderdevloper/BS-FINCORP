@@ -6,6 +6,8 @@ import { dbConnect } from "@/lib/db";
 import { multiTenantEnabled, runUnscoped } from "@/lib/tenant";
 import { User } from "@/models/User";
 import { Tenant } from "@/models/Tenant";
+import { DeviceSession } from "@/models/DeviceSession";
+import { touchSession } from "@/lib/sessions";
 
 export { SESSION_COOKIE };
 
@@ -18,6 +20,8 @@ export interface SessionUser {
   role: UserRole;
   tokenVersion?: number;
   tenantId?: string | null;
+  /** Device session id (`sid` claim) backing this cookie. */
+  sid?: string;
   /** True when the tenant's plan is suspended (multi-tenant mode only). */
   suspended?: boolean;
 }
@@ -68,12 +72,13 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret ?? "bs-fincorp-insecure-dev-secret");
 }
 
-export async function signSessionToken(user: SessionUser): Promise<string> {
+export async function signSessionToken(user: SessionUser, sid: string): Promise<string> {
   return new SignJWT({
     name: user.name,
     email: user.email,
     role: user.role,
     v: user.tokenVersion ?? 0,
+    sid,
     ...(user.tenantId ? { tenantId: user.tenantId } : {}),
   } as JWTPayload)
     .setProtectedHeader({ alg: "HS256" })
@@ -96,6 +101,7 @@ export async function verifySessionToken(
       email: (payload.email as string) ?? "",
       role: normalizeRole(payload.role),
       tokenVersion: (payload.v as number | undefined) ?? 0,
+      sid: (payload.sid as string | undefined) ?? "",
       tenantId: (payload.tenantId as string | undefined) ?? null,
     };
   } catch {
@@ -113,12 +119,25 @@ async function readSessionUncached(): Promise<SessionUser | null> {
     // which turns a slow start into a bogus 401 / forced logout.
     await dbConnect();
     // Login is global: users are looked up by id regardless of tenant, so this
-    // read must never be tenant-scoped.
-    const current = await runUnscoped(() =>
-      User.findById(user.id).select("tokenVersion role tenantId").lean()
-    );
+    // read must never be tenant-scoped. The device session is checked in the
+    // same round-trip so a revoked device costs no extra query.
+    const [current, active] = await Promise.all([
+      runUnscoped(() => User.findById(user.id).select("tokenVersion role tenantId").lean()),
+      user.sid
+        ? runUnscoped(() =>
+            DeviceSession.findOne({ sid: user.sid, revokedAt: null })
+              .select("sid lastSeenAt")
+              .lean()
+          )
+        : Promise.resolve(null),
+    ]);
     if (!current) return null;
     if ((current.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) return null;
+    // A cookie whose device session was revoked (or that predates session
+    // tracking) is no longer accepted, so "log out this device" takes effect
+    // on the very next request.
+    if (!user.sid || !active) return null;
+    void touchSession(user.sid, active.lastSeenAt ? new Date(active.lastSeenAt) : null);
     // Role and tenant are read from the database on every request so a change
     // takes effect immediately without waiting for the session token to expire.
     user.role = normalizeRole(current.role);

@@ -26,6 +26,17 @@ interface UserRow {
   role: "admin" | "developer" | "superadmin";
   tenantId: string | null;
   lastLoginAt: string | null;
+  lastLoginDevice?: string;
+  lastLoginIp?: string;
+  activeDevices?: number;
+}
+
+interface DeviceRow {
+  sid: string;
+  device: string;
+  ip: string;
+  createdAt: string;
+  lastSeenAt: string;
 }
 
 interface AuditRow {
@@ -597,6 +608,8 @@ function AccountsTab({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [openDevices, setOpenDevices] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -639,12 +652,32 @@ function AccountsTab({
     }
   }
 
-  async function removeUser(row: UserRow) {
-    if (!window.confirm(`Delete account ${row.email}? This cannot be undone.`)) return;
+  async function removeUser(row: UserRow, scope: "account" | "data" | "both") {
+    const label =
+      scope === "account"
+        ? `Delete ONLY the login ${row.email}? Their tenant data stays.`
+        : scope === "data"
+          ? `Delete ALL data of tenant "${row.tenantId}" (customers, loans, EMIs, payments)? Logins stay.`
+          : `Delete ${row.email} AND all data of tenant "${row.tenantId}"? This cannot be undone.`;
+    if (!window.confirm(`${label}\n\nType-less confirm: press OK to proceed.`)) return;
     setBusy(row.id);
     try {
-      await api(`/api/superadmin/users/${row.id}`, { method: "DELETE" });
-      flash(`Deleted ${row.email}.`);
+      await api(`/api/superadmin/users/${row.id}?scope=${scope}`, { method: "DELETE" });
+      flash(scope === "account" ? `Deleted ${row.email}.` : scope === "data" ? `Wiped data for ${row.tenantId}.` : `Deleted ${row.email} and all ${row.tenantId} data.`);
+      setConfirmDelete(null);
+      await load();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revokeDevice(row: UserRow, params: string, message: string) {
+    setBusy(row.id);
+    try {
+      await api(`/api/superadmin/users/${row.id}/sessions?${params}`, { method: "DELETE" });
+      flash(message);
       await load();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Failed.");
@@ -671,6 +704,7 @@ function AccountsTab({
                   <th className="px-4 py-2">Role</th>
                   <th className="px-4 py-2">Tenant</th>
                   <th className="px-4 py-2">Last login</th>
+                  <th className="px-4 py-2">Devices</th>
                   <th className="px-4 py-2"></th>
                 </tr>
               </thead>
@@ -686,7 +720,27 @@ function AccountsTab({
                         </Badge>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-zinc-500">{u.tenantId ?? "global"}</td>
-                      <td className="px-4 py-3 text-xs text-zinc-500">{formatDate(u.lastLoginAt)}</td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">
+                        {formatDate(u.lastLoginAt)}
+                        {u.lastLoginDevice ? (
+                          <span className="mt-0.5 block text-[11px] text-zinc-400">
+                            {u.lastLoginDevice}
+                            {u.lastLoginIp ? ` · ${u.lastLoginIp}` : ""}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">
+                        <div className="flex items-center gap-1.5">
+                          <Badge tone={u.activeDevices ? "blue" : "zinc"}>{u.activeDevices ?? 0} live</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setOpenDevices(openDevices === u.id ? null : u.id)}
+                          >
+                            {openDevices === u.id ? "Hide" : "Where"}
+                          </Button>
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1.5">
                           <Button
@@ -737,16 +791,72 @@ function AccountsTab({
                             size="sm"
                             disabled={busy === u.id || u.id === ownerId}
                             title={u.id === ownerId ? "You cannot delete your own account" : undefined}
-                            onClick={() => removeUser(u)}
+                            onClick={() => setConfirmDelete(confirmDelete === u.id ? null : u.id)}
                           >
-                            Delete
+                            {confirmDelete === u.id ? "Cancel" : "Delete"}
                           </Button>
                         </div>
                       </td>
                     </tr>
+                    {confirmDelete === u.id && (
+                      <tr className="border-b border-zinc-100 bg-red-50">
+                        <td colSpan={7} className="px-4 py-4">
+                          <p className="mb-2 text-xs font-semibold text-red-700">
+                            Choose what to delete for {u.email}:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={busy === u.id}
+                              onClick={() => removeUser(u, "account")}
+                            >
+                              1. User only
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={busy === u.id || !u.tenantId}
+                              title={
+                                u.tenantId
+                                  ? "Delete all business data of this tenant, keep every login"
+                                  : "This account has no tenant data"
+                              }
+                              onClick={() => removeUser(u, "data")}
+                            >
+                              2. Data only{u.tenantId ? ` (${u.tenantId})` : ""}
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={busy === u.id || !u.tenantId}
+                              title={u.tenantId ? "Delete this login and the whole tenant's data" : "No tenant attached"}
+                              onClick={() => removeUser(u, "both")}
+                            >
+                              3. Both
+                            </Button>
+                          </div>
+                          <p className="mt-2 text-[11px] text-red-600">
+                            Data-only and Both wipe customers, loans, EMIs and payments and restart
+                            numbering. Every action is written to the audit log.
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                    {openDevices === u.id && (
+                      <tr className="border-b border-zinc-100 bg-zinc-50">
+                        <td colSpan={7} className="px-4 py-4">
+                          <DevicePanel
+                            row={u}
+                            busy={busy === u.id}
+                            onRevoke={(params, message) => revokeDevice(u, params, message)}
+                          />
+                        </td>
+                      </tr>
+                    )}
                     {editing === u.id && (
                       <tr className="border-b border-zinc-100 bg-zinc-50">
-                        <td colSpan={6} className="px-4 py-4">
+                        <td colSpan={7} className="px-4 py-4">
                           <EditUserForm
                             row={u}
                             tenants={tenants}
@@ -767,6 +877,75 @@ function AccountsTab({
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+function DevicePanel({
+  row,
+  busy,
+  onRevoke,
+}: {
+  row: UserRow;
+  busy: boolean;
+  onRevoke: (params: string, message: string) => void;
+}) {
+  const [devices, setDevices] = useState<DeviceRow[] | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      api<{ sessions: DeviceRow[] }>(`/api/superadmin/users/${row.id}/sessions`)
+        .then((r) => setDevices(r.sessions))
+        .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed."));
+    }, 0);
+    return () => clearTimeout(id);
+  }, [row.id]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-zinc-700">
+          Signed-in devices — {row.email}
+          {row.lastLoginDevice ? ` (last: ${row.lastLoginDevice})` : ""}
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy || !devices || devices.length < 2}
+          title={devices && devices.length < 2 ? "Only one device is signed in" : "Sign this account out everywhere else"}
+          onClick={() => onRevoke("all=1", `Signed out all devices of ${row.email}.`)}
+        >
+          Logout all devices
+        </Button>
+      </div>
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {devices === null ? (
+        <p className="text-xs text-zinc-500">Loading devices…</p>
+      ) : devices.length === 0 ? (
+        <p className="text-xs text-zinc-500">No active session. The account is signed out everywhere.</p>
+      ) : (
+        <ul className="divide-y divide-zinc-200 rounded border border-zinc-200 bg-white">
+          {devices.map((d) => (
+            <li key={d.sid} className="flex items-center justify-between gap-3 px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-zinc-800">{d.device}</p>
+                <p className="text-[11px] text-zinc-500">
+                  {d.ip ? `${d.ip} · ` : ""}last seen {formatDate(d.lastSeenAt)} · joined {formatDate(d.createdAt)}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={() => onRevoke(`sid=${encodeURIComponent(d.sid)}`, `Signed out ${d.device}.`)}
+              >
+                Logout
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

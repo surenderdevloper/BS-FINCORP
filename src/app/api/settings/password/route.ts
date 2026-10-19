@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { SESSION_COOKIE, signSessionToken, sessionCookieOptions, normalizeRole } from "@/lib/auth";
+import { revokeUserSessions } from "@/lib/sessions";
 import { runUnscoped } from "@/lib/tenant";
 import { withTenant } from "@/lib/tenant-route";
 
@@ -54,15 +55,25 @@ export async function PUT(req: Request) {
   // password is not logged out, while all other sessions are revoked.
   user.tokenVersion = (user.tokenVersion ?? 0) + 1;
   await user.save();
+  // The tokenVersion bump kills every other cookie on its next request; marking
+  // their device rows revoked too keeps the superadmin device list truthful.
+  try {
+    await revokeUserSessions(String(user._id), session.sid ?? null);
+  } catch {
+    // Best-effort: the tokenVersion bump already ended those sessions.
+  }
 
-  const token = await signSessionToken({
-    id: String(user._id),
-    name: user.name,
-    email: user.email,
-    role: normalizeRole(user.role),
-    tokenVersion: user.tokenVersion,
-    tenantId: user.tenantId ?? null,
-  });
+  const token = await signSessionToken(
+    {
+      id: String(user._id),
+      name: user.name,
+      email: user.email,
+      role: normalizeRole(user.role),
+      tokenVersion: user.tokenVersion,
+      tenantId: user.tenantId ?? null,
+    },
+    session.sid ?? ""
+  );
   const store = await cookies();
   store.set(SESSION_COOKIE, token, sessionCookieOptions());
 

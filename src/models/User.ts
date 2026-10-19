@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema(
     tokenVersion: { type: Number, default: 0 },
     tenantId: { type: String, trim: true },
     lastLoginAt: { type: Date, default: null },
+    /** Human readable device of the most recent login, e.g. "Chrome · Windows". */
+    lastLoginDevice: { type: String, default: "" },
+    lastLoginIp: { type: String, default: "" },
   },
   { timestamps: true }
 );

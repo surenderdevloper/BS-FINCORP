@@ -5,13 +5,14 @@ import { User } from "@/models/User";
 import { withSuperadmin } from "@/lib/tenant-route";
 import { recordAudit } from "@/lib/audit";
 import { normalizeRole, signSessionToken, sessionCookieOptions, SESSION_COOKIE } from "@/lib/auth";
+import { clientIp, startSession } from "@/lib/sessions";
 import { runUnscoped } from "@/lib/tenant";
 
 interface RouteContext {
   params: Promise<{ userId: string }>;
 }
 
-export async function POST(_req: Request, ctx: RouteContext) {
+export async function POST(req: Request, ctx: RouteContext) {
   return withSuperadmin(async (session) => {
     const { userId } = await ctx.params;
     if (!mongoose.isValidObjectId(userId)) {
@@ -38,14 +39,26 @@ export async function POST(_req: Request, ctx: RouteContext) {
       details: `Impersonating ${role} account`,
     });
 
-    const token = await signSessionToken({
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role,
-      tokenVersion: user.tokenVersion ?? 0,
+    // This browser is now acting as the target account: register it as a real
+    // device session so it can be tracked and signed out like any other login.
+    const sid = await startSession({
+      userId: user._id.toString(),
       tenantId: user.tenantId ?? null,
+      userAgent: req.headers.get("user-agent") ?? "",
+      ip: clientIp(req),
     });
+
+    const token = await signSessionToken(
+      {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role,
+        tokenVersion: user.tokenVersion ?? 0,
+        tenantId: user.tenantId ?? null,
+      },
+      sid
+    );
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
