@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoanForm, type LoanTypeOption } from "@/components/loan-form";
+import { LoanExcelImport } from "@/components/loan-import";
 import { dbConnect } from "@/lib/db";
 import { readSession } from "@/lib/auth";
 import { runForSession } from "@/lib/tenant";
@@ -34,11 +35,14 @@ export default async function NewLoanPage() {
   const loanTypes = await runForSession(session?.tenantId, () => loadLoanTypes());
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-900">New Loan</h1>
-        <p className="text-sm text-zinc-500">
-          Register a customer, vehicle and repayment plan to disburse a new loan.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-zinc-900">New Loan</h1>
+          <p className="text-sm text-zinc-500">
+            Register a customer, vehicle and repayment plan to disburse a new loan.
+          </p>
+        </div>
+        <LoanExcelImport loanTypes={loanTypes} />
       </div>
       <LoanForm loanTypes={loanTypes} />
     </div>
