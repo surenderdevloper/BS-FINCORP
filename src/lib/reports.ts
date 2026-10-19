@@ -73,11 +73,11 @@ export async function buildReport(input: {
     };
   }
 
-  // Active loans are a current snapshot, so the From/To range does not apply —
-  // every active loan is listed. Closed loans are filtered by the closing date.
+  // Active and closed loan reports are both current snapshots — the From/To
+  // range only applies to the Collections report, so every matching loan is
+  // listed regardless of date.
   const isClosed = type === "loans-closed";
   const query: Record<string, unknown> = { status: isClosed ? "closed" : "active" };
-  if (isClosed) query.closedAt = { $gte: start, $lte: end };
   const loans = (await Loan.find(query)
     .sort({ createdAt: -1 })
     .lean()

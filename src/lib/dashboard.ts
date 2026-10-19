@@ -55,6 +55,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     penaltyRule,
   ] = await Promise.all([
     Loan.aggregate<{ total: number }>([
+      { $match: { status: "active" } },
       { $group: { _id: null, total: { $sum: "$financial.loanAmount" } } },
     ]),
     Payment.aggregate<{ total: number }>([

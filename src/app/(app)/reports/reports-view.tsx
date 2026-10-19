@@ -117,11 +117,7 @@ export function ReportsView({
               </button>
             ))}
           </div>
-          {type === "loans-active" ? (
-            <p className="max-w-xs text-xs text-zinc-500">
-              All active loans are listed. The date range applies to Closed Loans and Collections.
-            </p>
-          ) : (
+          {type === "collections" ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="From">
                 <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -130,6 +126,12 @@ export function ReportsView({
                 <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
               </Field>
             </div>
+          ) : (
+            <p className="max-w-xs text-xs text-zinc-500">
+              {type === "loans-active"
+                ? "All active loans are listed. The date range applies to Collections."
+                : "All closed loans are listed. The date range applies to Collections."}
+            </p>
           )}
         </div>
       </Card>
@@ -144,7 +146,11 @@ export function ReportsView({
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
           <Card className="p-4">
             <p className="text-xs text-zinc-500">
-              {type === "collections" ? "Payments in range" : type === "loans-active" ? "Active loans" : "Loans in range"}
+              {type === "collections"
+                ? "Payments in range"
+                : type === "loans-active"
+                  ? "Active loans"
+                  : "Closed loans"}
             </p>
             <p className="mt-1 text-xl font-bold text-zinc-900">{data.summary.count}</p>
           </Card>
@@ -166,13 +172,23 @@ export function ReportsView({
           <p className="px-5 py-12 text-center text-sm text-zinc-500">Loading report…</p>
         ) : data && data.rows.length === 0 ? (
           <p className="px-5 py-12 text-center text-sm text-zinc-500">
-            {type === "loans-active" ? "No active loans." : "No records in the selected range."}
+            {type === "loans-active"
+              ? "No active loans."
+              : type === "loans-closed"
+                ? "No closed loans."
+                : "No records in the selected range."}
           </p>
         ) : data ? (
           <>
             <CardHeader
               title={`${type === "collections" ? "Collection" : "Loan"} detail`}
-              subtitle={type === "loans-active" ? "All active loans" : `${from || "All history"} to ${to}`}
+              subtitle={
+                type === "loans-active"
+                  ? "All active loans"
+                  : type === "loans-closed"
+                    ? "All closed loans"
+                    : `${from || "All history"} to ${to}`
+              }
             />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
