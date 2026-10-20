@@ -149,7 +149,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div className="relative min-w-0">
-                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 pt-2 sm:pl-5 sm:pr-4">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pl-5 pr-4 pb-4 pt-2">
                   {data.overdueRows.map((row) => (
                     <article
                       key={row.emiId}
