@@ -227,7 +227,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div>
-                <ul className="divide-y divide-zinc-50 lg:hidden">
+                <ul className="max-h-[280px] divide-y divide-zinc-50 overflow-y-auto lg:hidden">
                   {data.todayRows.map((row) => (
                     <li key={row.paymentId} className="flex items-center justify-between gap-3 px-4 py-3">
                       <span className="min-w-0">
@@ -274,7 +274,7 @@ export default async function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
-                  {data.todayRows.slice(0, 5).map((row) => (
+                        {data.todayRows.map((row) => (
                         <tr key={row.paymentId} className="hover:bg-zinc-50/60">
                           <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500 sm:px-5">{row.receiptNo}</td>
                           <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900">
