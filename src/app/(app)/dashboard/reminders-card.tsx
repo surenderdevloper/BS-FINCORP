@@ -132,10 +132,15 @@ export function RemindersCard({
                 </div>
               </li>
             ))}
+            {reminders.length > 5 ? (
+              <li key="more" className="border-t border-dashed border-zinc-100 pt-2 text-center text-xs text-zinc-500">
+                +{reminders.length - 5} more
+              </li>
+            ) : null}
           </ul>
           <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 xl:block">
             <table className="w-full min-w-[820px] text-left text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-white">
                 <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                   <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Customer</th>
                   <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mobile</th>
@@ -147,8 +152,11 @@ export function RemindersCard({
                   <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Contact</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-50">
-                {reminders.map((row) => (
+            </table>
+            <div className="max-h-[280px] overflow-y-auto">
+              <table className="w-full min-w-[820px] text-left text-sm">
+                <tbody className="divide-y divide-zinc-50">
+                  {reminders.slice(0, 5).map((row) => (
                   <tr key={row.emiId} className="hover:bg-zinc-50/60">
                     <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900 sm:px-5">
                       {row.customerName || "—"}
@@ -164,9 +172,17 @@ export function RemindersCard({
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-right sm:px-5">{actions(row)}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                  ))}
+                  {reminders.length > 5 && (
+                    <tr>
+                      <td colSpan={8} className="px-3 py-2 text-center text-xs text-zinc-500 sm:px-5">
+                        +{reminders.length - 5} more
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

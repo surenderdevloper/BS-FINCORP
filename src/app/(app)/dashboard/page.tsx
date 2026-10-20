@@ -86,7 +86,7 @@ export default async function DashboardPage() {
     { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" /> },
     { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" /> },
     { label: "Total Collection", value: inr(data.totalCollection), tone: "emerald" as const, icon: <Icon name="cash" /> },
-    { label: "Upcoming EMIs (7d)", value: String(data.upcomingEmis), tone: "sky" as const, icon: <Icon name="calendar" /> },
+    { label: "Closed Loan Amount", value: inr(data.closedLoanAmount), tone: "zinc" as const, icon: <Icon name="close" /> },
   ];
 
   return (
@@ -274,7 +274,7 @@ export default async function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
-                      {data.todayRows.map((row) => (
+                  {data.todayRows.slice(0, 5).map((row) => (
                         <tr key={row.paymentId} className="hover:bg-zinc-50/60">
                           <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500 sm:px-5">{row.receiptNo}</td>
                           <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900">

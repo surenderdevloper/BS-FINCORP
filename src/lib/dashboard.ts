@@ -45,6 +45,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
 
   const [
     disbursedAgg,
+    closedLoanAgg,
     collectedAgg,
     todayAgg,
     overdueEmis,
@@ -56,6 +57,10 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
   ] = await Promise.all([
     Loan.aggregate<{ total: number }>([
       { $match: { status: "active" } },
+      { $group: { _id: null, total: { $sum: "$financial.loanAmount" } } },
+    ]),
+    Loan.aggregate<{ total: number }>([
+      { $match: { status: "closed" } },
       { $group: { _id: null, total: { $sum: "$financial.loanAmount" } } },
     ]),
     Payment.aggregate<{ total: number }>([
@@ -86,6 +91,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
   ]);
 
   const totalDisbursed = disbursedAgg[0]?.total ?? 0;
+  const closedLoanAmount = closedLoanAgg[0]?.total ?? 0;
   const totalCollection = collectedAgg[0]?.total ?? 0;
   const todayCollection = todayAgg[0]?.total ?? 0;
 
@@ -220,6 +226,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     totalCustomers,
     activeLoans,
     closedLoans,
+    closedLoanAmount,
     pendingEmis,
     overdueEmis,
     partialEmis,
