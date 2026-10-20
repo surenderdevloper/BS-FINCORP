@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import Link from "next/link";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 type Size = "sm" | "md";
@@ -98,12 +99,14 @@ export function StatCard({
   icon,
   tone = "emerald",
   sub,
+  href,
 }: {
   label: string;
   value: string;
   icon: ReactNode;
   tone?: "emerald" | "red" | "amber" | "sky" | "zinc";
   sub?: string;
+  href?: string;
 }) {
   const tones = {
     emerald: "bg-emerald-50 text-emerald-600",
@@ -112,8 +115,8 @@ export function StatCard({
     sky: "bg-sky-50 text-sky-600",
     zinc: "bg-zinc-100 text-zinc-600",
   } as const;
-  return (
-    <Card className="p-3 sm:p-4">
+  const content = (
+    <Card className={`p-3 sm:p-4 ${href ? "transition-colors hover:bg-zinc-50" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-[11px] font-medium uppercase tracking-wide text-zinc-500 sm:text-xs sm:normal-case sm:tracking-normal">
           {label}
@@ -129,4 +132,12 @@ export function StatCard({
       {sub && <p className="mt-0.5 text-[11px] text-zinc-400">{sub}</p>}
     </Card>
   );
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    );
+  }
+  return content;
 }

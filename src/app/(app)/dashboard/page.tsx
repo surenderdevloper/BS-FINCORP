@@ -77,16 +77,16 @@ export default async function DashboardPage() {
   if (!data) return null;
 
   const metrics = [
-    { label: "Total Customers", value: String(data.totalCustomers), tone: "emerald" as const, icon: <Icon name="users" /> },
-    { label: "Active Loans", value: String(data.activeLoans), tone: "sky" as const, icon: <Icon name="dashboard" /> },
-    { label: "Closed Loans", value: String(data.closedLoans), tone: "zinc" as const, icon: <Icon name="close" /> },
-    { label: "Pending EMIs", value: String(data.pendingEmis), tone: "amber" as const, icon: <Icon name="calendar" /> },
-    { label: "Overdue EMIs", value: String(data.overdueEmis), tone: "red" as const, icon: <Icon name="alert" /> },
-    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" /> },
-    { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" /> },
-    { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" /> },
-    { label: "Total Collection", value: inr(data.totalCollection), tone: "emerald" as const, icon: <Icon name="cash" /> },
-    { label: "Closed Loan Amount", value: inr(data.closedLoanAmount), tone: "zinc" as const, icon: <Icon name="close" /> },
+    { label: "Total Customers", value: String(data.totalCustomers), tone: "emerald" as const, icon: <Icon name="users" />, href: "/customers" },
+    { label: "Active Loans", value: String(data.activeLoans), tone: "sky" as const, icon: <Icon name="dashboard" />, href: "/loans" },
+    { label: "Closed Loans", value: String(data.closedLoans), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
+    { label: "Pending EMIs", value: String(data.pendingEmis), tone: "amber" as const, icon: <Icon name="calendar" />, href: "/emi-pay" },
+    { label: "Overdue EMIs", value: String(data.overdueEmis), tone: "red" as const, icon: <Icon name="alert" />, href: "/emi-pay" },
+    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
+    { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" />, href: "/loans" },
+    { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" />, href: "/emi-pay" },
+    { label: "Total Collection", value: inr(data.totalCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
+    { label: "Closed Loan Amount", value: inr(data.closedLoanAmount), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
   ];
 
   return (
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
         {metrics.map((m) => (
-          <StatCard key={m.label} label={m.label} value={m.value} icon={m.icon} tone={m.tone} />
+          <StatCard key={m.label} label={m.label} value={m.value} icon={m.icon} tone={m.tone} href={(m as any).href} />
         ))}
       </div>
 
@@ -149,7 +149,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div className="relative min-w-0">
-                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 pt-2 sm:px-5">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 pt-2 sm:pl-5 sm:pr-4">
                   {data.overdueRows.map((row) => (
                     <article
                       key={row.emiId}
@@ -261,9 +261,9 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="-mx-4 hidden overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:block">
+                <div className="hidden lg:block">
                   <table className="w-full min-w-[560px] text-left text-sm">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-white">
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Receipt</th>
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium">Customer</th>
@@ -273,7 +273,10 @@ export default async function DashboardPage() {
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium sm:px-5">Print</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-50">
+                  </table>
+                  <div className="max-h-[280px] overflow-y-auto">
+                    <table className="w-full min-w-[560px] text-left text-sm">
+                      <tbody className="divide-y divide-zinc-50">
                         {data.todayRows.map((row) => (
                         <tr key={row.paymentId} className="hover:bg-zinc-50/60">
                           <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500 sm:px-5">{row.receiptNo}</td>
@@ -313,8 +316,9 @@ export default async function DashboardPage() {
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
