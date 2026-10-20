@@ -132,12 +132,5 @@ export function StatCard({
       {sub && <p className="mt-0.5 text-[11px] text-zinc-400">{sub}</p>}
     </Card>
   );
-  if (href) {
-    return (
-      <Link href={href} className="block">
-        {content}
-      </Link>
-    );
-  }
   return content;
 }

@@ -116,7 +116,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
         {metrics.map((m) => (
-          <StatCard key={m.label} label={m.label} value={m.value} icon={m.icon} tone={m.tone} href={(m as any).href} />
+          <StatCard key={m.label} label={m.label} value={m.value} icon={m.icon} tone={m.tone} />
         ))}
       </div>
 
