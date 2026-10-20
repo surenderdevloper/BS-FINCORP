@@ -149,11 +149,11 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div className="relative min-w-0">
-                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pl-5 pr-4 pb-4 pt-2">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pl-4 pr-4 pb-4 pt-2 sm:pl-5">
                   {data.overdueRows.map((row) => (
                     <article
                       key={row.emiId}
-                      className="flex w-[78%] shrink-0 snap-start flex-col gap-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 shadow-sm sm:w-72"
+                      className="ml-1 flex w-[78%] shrink-0 snap-start flex-col gap-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 shadow-sm sm:w-72"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
