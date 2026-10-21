@@ -17,6 +17,9 @@ const emiSchema = new mongoose.Schema(
     status: { type: String, enum: ["pending", "partial", "paid"], default: "pending" },
     paidOn: { type: Date },
     penalty: { type: Number, default: 0 },
+    // Amount that was left unpaid on this EMI and moved to the next
+    // instalment of the same loan (carry-forward). The EMI itself is settled.
+    carriedForward: { type: Number, default: 0 },
     paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
     tenantId: { type: String, trim: true },
   },

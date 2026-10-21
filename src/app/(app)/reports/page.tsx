@@ -12,8 +12,17 @@ export const metadata = { title: "Reports" };
  * the server so the table is part of the first paint. Changing the type or the
  * date range still fetches client-side, as before.
  */
-export default async function ReportsPage() {
-  const type: ReportType = "loans-active";
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const params = await searchParams;
+  const requested = params?.tab;
+  const type: ReportType =
+    requested === "loans-closed" || requested === "collections" || requested === "loans-active"
+      ? requested
+      : "loans-active";
   const today = isoDateIST(new Date());
   let initialData: ReportData | null = null;
   try {

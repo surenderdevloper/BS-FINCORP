@@ -10,6 +10,7 @@ import { withTenant } from "@/lib/tenant-route";
 import { parseCalendarDate } from "@/lib/dates";
 import { invalidateCustomersListCache } from "@/lib/customers";
 import { allocatePayment, type AllocEmi } from "@/lib/payment-allocation";
+import { planCarryForward, type CarryEmi } from "@/lib/carry-forward";
 
 interface Payload {
   loanNo: string;
@@ -23,6 +24,9 @@ interface Payload {
   amount?: number;
   /** Calendar date (YYYY-MM-DD) on which this payment is being made. Used as the authoritative penalty date. */
   paymentDate?: string;
+  /** When true (default), an EMI left partly unpaid is settled and its
+   *  remaining balance is moved to the next instalment of the same loan. */
+  carryForward?: boolean;
 }
 
 export async function POST(req: Request) {
@@ -126,6 +130,50 @@ export async function POST(req: Request) {
     );
   }
 
+  // Carry-forward: when an EMI is left partly unpaid, settle that month and
+  // move the remaining balance to the next instalment of the same loan.
+  const carryForwardEnabled = body.carryForward !== false;
+  let carryPlan = null;
+  if (carryForwardEnabled) {
+    const allocById = new Map(finalAlloc.emis.map((e) => [e._id, e]));
+    // Only EMIs that actually received money in this payment can carry a
+    // balance forward.
+    const touchedEmis: CarryEmi[] = emis
+      .map((emi) => {
+        const alloc = allocById.get(emi._id.toString());
+        if (!alloc) return null;
+        if (alloc.appliedBase <= 0 && alloc.appliedPenalty <= 0) return null;
+        return {
+          _id: emi._id.toString(),
+          emiNo: emi.emiNo,
+          amount: emi.amount,
+          principal: emi.principal,
+          interest: emi.interest,
+          paidAmount: alloc.paidAmount,
+          status: alloc.status,
+          penalty: alloc.penalty,
+        } satisfies CarryEmi;
+      })
+      .filter((e): e is CarryEmi => e !== null);
+
+    if (touchedEmis.length) {
+      const loanEmis = await Emi.find({ loanId: loan._id })
+        .sort({ emiNo: 1 })
+        .lean();
+      const allEmis: CarryEmi[] = loanEmis.map((emi) => ({
+        _id: emi._id.toString(),
+        emiNo: emi.emiNo,
+        amount: emi.amount,
+        principal: emi.principal,
+        interest: emi.interest,
+        paidAmount: Math.max(0, emi.paidAmount ?? 0),
+        status: emi.status,
+        penalty: Math.max(0, emi.penalty ?? 0),
+      }));
+      carryPlan = planCarryForward(touchedEmis, allEmis);
+    }
+  }
+
   // Allocate receipt number (atomic increment — a genuine write only here).
   const receiptNo = await nextReceiptNumber();
 
@@ -143,6 +191,8 @@ export async function POST(req: Request) {
     discount: finalAlloc.discount,
     advanceUsed: finalAlloc.advanceUsed,
     advanceAdded: finalAlloc.advanceAdded,
+    carriedForward: carryPlan?.totalCarried ?? 0,
+    carriedToEmiNo: carryPlan?.toEmiNo ?? 0,
     mode: body.mode === "online" ? "online" : "cash",
     receivedBy: body.receivedBy?.trim() ?? session.name,
     notes: body.notes?.trim() ?? "",
@@ -167,6 +217,40 @@ export async function POST(req: Request) {
       )
   );
 
+  // Apply the carry-forward on top of the regular allocation: the settled EMI
+  // keeps only what was collected, the next instalment absorbs the balance.
+  if (carryPlan) {
+    await Promise.all([
+      Emi.updateOne(
+        { _id: carryPlan.fromEmiId },
+        {
+          $set: {
+            amount: carryPlan.source.amount,
+            principal: carryPlan.source.principal,
+            interest: carryPlan.source.interest,
+            penalty: carryPlan.source.penalty,
+            paidAmount: carryPlan.source.amount,
+            status: carryPlan.source.status,
+            paidOn: today,
+            carriedForward: carryPlan.totalCarried,
+            paymentId: payment._id,
+          },
+        }
+      ),
+      Emi.updateOne(
+        { _id: carryPlan.toEmiId },
+        {
+          $set: {
+            amount: carryPlan.target.amount,
+            principal: carryPlan.target.principal,
+            interest: carryPlan.target.interest,
+            penalty: carryPlan.target.penalty,
+          },
+        }
+      ),
+    ]);
+  }
+
   loan.advance = finalAlloc.newAdvance;
   await loan.save();
 
@@ -186,6 +270,8 @@ export async function POST(req: Request) {
         discount: finalAlloc.discount,
         advanceUsed: finalAlloc.advanceUsed,
         advanceAdded: finalAlloc.advanceAdded,
+        carriedForward: carryPlan?.totalCarried ?? 0,
+        carriedToEmiNo: carryPlan?.toEmiNo ?? 0,
         paidCount: finalAlloc.emis.filter((e) => e.appliedBase > 0 || e.appliedPenalty > 0).length,
         mode: payment.mode,
         paidAt: payment.createdAt?.toISOString(),

@@ -265,6 +265,8 @@ export interface CustomerPaymentRow {
   discount: number;
   advanceUsed: number;
   advanceAdded: number;
+  carriedForward: number;
+  carriedToEmiNo: number;
   receivedBy?: string;
 }
 
@@ -339,6 +341,8 @@ interface RawPaymentLean {
   discount?: number;
   advanceUsed?: number;
   advanceAdded?: number;
+  carriedForward?: number;
+  carriedToEmiNo?: number;
   mode: string;
   notes: string;
   type?: string;
@@ -369,12 +373,14 @@ function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
     discount,
     advanceUsed: Math.max(0, p.advanceUsed ?? 0),
     advanceAdded: Math.max(0, p.advanceAdded ?? 0),
+    carriedForward: Math.max(0, p.carriedForward ?? 0),
+    carriedToEmiNo: p.carriedToEmiNo ?? 0,
     receivedBy: p.receivedBy ?? "",
   };
 }
 
 const PAYMENT_RECEIPT_FIELDS =
-  "receiptNo loanNo loanId amount principal interest penalty discount advanceUsed advanceAdded mode notes type createdAt customerName emiIds receivedBy";
+  "receiptNo loanNo loanId amount principal interest penalty discount advanceUsed advanceAdded carriedForward carriedToEmiNo mode notes type createdAt customerName emiIds receivedBy";
 
 /** Load a single payment as a receipt row, scoped to its customer. */
 export async function getPaymentReceipt(

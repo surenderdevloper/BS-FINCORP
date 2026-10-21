@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select, SectionHeading } from "@/components/form";
 import { Icon } from "@/components/icons";
-import { calcLoanSummary, type InterestType } from "@/lib/emi";
+import { calcLoanSummary, generateSchedule, type InterestType } from "@/lib/emi";
 import {
   isValidAadhaar,
   isValidMobile,
@@ -35,6 +35,17 @@ interface CustomerSearchResult {
 interface ApiError {
   error?: string;
   fieldErrors?: Record<string, string>;
+}
+
+function formatEmiDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 const emptyCustomer = {
@@ -131,6 +142,29 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
 
   const canCalculate =
     Object.keys(finError).length === 0 && loanAmount > 0 && interestRate > 0 && tenureMonths > 0;
+
+  // Live EMI schedule preview so the tenure/months can be checked before the
+  // loan is actually created.
+  const previewRows = useMemo(() => {
+    if (!canCalculate) return [];
+    const start = financial.startDate || new Date().toISOString().slice(0, 10);
+    return generateSchedule({
+      principal: Math.max(0, loanAmount),
+      interestRate,
+      tenureMonths,
+      interestType: financial.interestType,
+      startDate: start,
+      emiDay,
+    });
+  }, [
+    canCalculate,
+    loanAmount,
+    interestRate,
+    tenureMonths,
+    financial.interestType,
+    financial.startDate,
+    emiDay,
+  ]);
 
   const sections = ["Customer", "Vehicle", "Financial", "Guarantor"];
 
@@ -848,6 +882,55 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
               </dd>
             </div>
           </dl>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="EMI Preview"
+            subtitle={
+              previewRows.length
+                ? `${previewRows.length} instalments · first due ${formatEmiDate(previewRows[0].dueDate)}`
+                : "Enter a valid amount, rate and tenure to preview the schedule"
+            }
+          />
+          {previewRows.length > 0 ? (
+            <div className="max-h-[22rem] overflow-y-auto px-4 pb-4">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10 bg-white text-left text-xs uppercase text-zinc-500">
+                  <tr>
+                    <th className="border-b border-zinc-200 py-2 pr-2 font-medium">#</th>
+                    <th className="border-b border-zinc-200 py-2 pr-2 font-medium">Due</th>
+                    <th className="border-b border-zinc-200 py-2 pr-2 text-right font-medium">Principal</th>
+                    <th className="border-b border-zinc-200 py-2 pr-2 text-right font-medium">Interest</th>
+                    <th className="border-b border-zinc-200 py-2 text-right font-medium">EMI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row) => (
+                    <tr key={row.emiNo} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-1.5 pr-2 text-zinc-500">{row.emiNo}</td>
+                      <td className="whitespace-nowrap py-1.5 pr-2 text-zinc-700">
+                        {formatEmiDate(row.dueDate)}
+                      </td>
+                      <td className="whitespace-nowrap py-1.5 pr-2 text-right text-zinc-600">
+                        {inr(row.principal)}
+                      </td>
+                      <td className="whitespace-nowrap py-1.5 pr-2 text-right text-zinc-600">
+                        {inr(row.interest)}
+                      </td>
+                      <td className="whitespace-nowrap py-1.5 text-right font-semibold text-zinc-900">
+                        {inr(row.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="px-4 pb-4 text-sm text-zinc-500">
+              EMI schedule preview yahan aayega.
+            </p>
+          )}
         </Card>
 
         <Card className="p-4">

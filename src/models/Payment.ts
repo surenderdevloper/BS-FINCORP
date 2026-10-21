@@ -22,6 +22,10 @@ const paymentSchema = new mongoose.Schema(
     advanceUsed: { type: Number, default: 0 },
     // Overpayment received on this payment, stored as new credit balance.
     advanceAdded: { type: Number, default: 0 },
+    // Unpaid balance of the settled EMI that was moved to the next instalment.
+    carriedForward: { type: Number, default: 0 },
+    // EMI number that received the carried-forward balance.
+    carriedToEmiNo: { type: Number, default: 0 },
     mode: { type: String, enum: ["cash", "online"], required: true },
     receivedBy: { type: String, default: "" },
     notes: { type: String, default: "" },

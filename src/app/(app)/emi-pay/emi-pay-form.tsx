@@ -53,6 +53,8 @@ interface ReceiptResult {
   discount: number;
   advanceUsed: number;
   advanceAdded: number;
+  carriedForward: number;
+  carriedToEmiNo: number;
   paidCount: number;
   mode: string;
   paidAt: string;
@@ -93,6 +95,7 @@ export function EmiPayForm({
   const [notes, setNotes] = useState("");
   const [discount, setDiscount] = useState("");
   const [amountReceived, setAmountReceived] = useState("");
+  const [carryForward, setCarryForward] = useState(true);
   const [paymentDate, setPaymentDate] = useState(() => localDateStr());
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collecting, setCollecting] = useState(false);
@@ -198,6 +201,7 @@ export function EmiPayForm({
           discount: discountValue,
           amount: amountReceivedValue,
           paymentDate,
+          carryForward,
         }),
       });
       const data = (await res.json()) as { error?: string; payment?: ReceiptResult };
@@ -349,6 +353,11 @@ export function EmiPayForm({
                           ) : (
                             <Badge tone="zinc">Due</Badge>
                           )}
+                          {e.carriedForward > 0 && (
+                            <span className="block text-[10px] font-normal text-sky-600">
+                              {inr(e.carriedForward)} carried to next EMI
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -400,8 +409,25 @@ export function EmiPayForm({
                   )}
                   {shortfall > 0 && (
                     <p className="mt-3 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
-                      Short by {inr(shortfall)} — the selected EMI(s) will be marked partially paid.
+                      Short by {inr(shortfall)} —{" "}
+                      {carryForward
+                        ? "this month will be marked paid and the balance will be added to the next EMI."
+                        : "the selected EMI(s) will be marked partially paid."}
                     </p>
+                  )}
+                  {shortfall > 0 && (
+                    <label className="mt-2 flex items-start gap-2 text-xs text-zinc-600">
+                      <input
+                        type="checkbox"
+                        checked={carryForward}
+                        onChange={(e) => setCarryForward(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-zinc-300 accent-emerald-600"
+                      />
+                      <span>
+                        Carry the unpaid balance to the next EMI (this month is settled and the
+                        remaining amount is added to the next instalment).
+                      </span>
+                    </label>
                   )}
                 </div>
               )}
@@ -572,6 +598,14 @@ export function EmiPayForm({
                   <div className="flex justify-between">
                     <dt className="text-zinc-500">Advance Saved</dt>
                     <dd className="text-zinc-800">{inr(receipt.advanceAdded)}</dd>
+                  </div>
+                )}
+                {receipt.carriedForward > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-zinc-500">
+                      Carried Forward{receipt.carriedToEmiNo ? ` to EMI ${receipt.carriedToEmiNo}` : ""}
+                    </dt>
+                    <dd className="text-zinc-800">{inr(receipt.carriedForward)}</dd>
                   </div>
                 )}
               </dl>

@@ -21,6 +21,8 @@ export interface EmiRow {
   status: "pending" | "partial" | "paid";
   paidOn?: string;
   penalty: number;
+  /** Balance moved from this EMI to the next instalment (carry-forward). */
+  carriedForward: number;
 }
 
 export interface LoanDetail {
@@ -120,6 +122,7 @@ export interface RawEmi {
   status: "pending" | "partial" | "paid";
   paidOn?: Date;
   penalty?: number;
+  carriedForward?: number;
 }
 
 interface RawLoan {
@@ -197,6 +200,7 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
       status: emi.status,
       paidOn: emi.paidOn?.toISOString(),
       penalty,
+      carriedForward: Math.max(0, emi.carriedForward ?? 0),
     });
 
     if (emi.status === "paid") {

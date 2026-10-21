@@ -78,12 +78,12 @@ export default async function DashboardPage() {
 
   const metrics = [
     { label: "Total Customers", value: String(data.totalCustomers), tone: "emerald" as const, icon: <Icon name="users" />, href: "/customers" },
-    { label: "Active Loans", value: String(data.activeLoans), tone: "sky" as const, icon: <Icon name="dashboard" />, href: "/loans" },
+    { label: "Active Loans", value: String(data.activeLoans), tone: "sky" as const, icon: <Icon name="dashboard" />, href: "/reports?tab=loans-active" },
     { label: "Closed Loans", value: String(data.closedLoans), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
     { label: "Pending EMIs", value: String(data.pendingEmis), tone: "amber" as const, icon: <Icon name="calendar" />, href: "/emi-pay" },
     { label: "Overdue EMIs", value: String(data.overdueEmis), tone: "red" as const, icon: <Icon name="alert" />, href: "/emi-pay" },
-    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
-    { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" />, href: "/loans" },
+    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/emi-pay" },
+    { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" />, href: "/reports?tab=loans-active" },
     { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" />, href: "/emi-pay" },
     { label: "Total Collection", value: inr(data.totalCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
     { label: "Closed Loan Amount", value: inr(data.closedLoanAmount), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
@@ -149,7 +149,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div className="relative min-w-0">
-                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pl-4 pr-4 pb-4 pt-2 sm:pl-5">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pl-4 pr-4 pb-4 pt-2 sm:pl-5 ml-3">
                   {data.overdueRows.map((row) => (
                     <article
                       key={row.emiId}

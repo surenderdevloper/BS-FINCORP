@@ -169,6 +169,14 @@ export default async function ReceiptPage({
                 <dd className="text-right text-zinc-800">{inr(payment.advanceAdded)}</dd>
               </div>
             )}
+            {payment.carriedForward > 0 && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">
+                  Carried Forward{payment.carriedToEmiNo ? ` to EMI ${payment.carriedToEmiNo}` : ""}
+                </dt>
+                <dd className="text-right text-zinc-800">{inr(payment.carriedForward)}</dd>
+              </div>
+            )}
           </dl>
 
           <div className="print-total mt-4 flex items-center justify-between gap-3 rounded-lg px-4 py-3">
