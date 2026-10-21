@@ -170,11 +170,17 @@ export default async function ReceiptPage({
               </div>
             )}
             {payment.carriedForward > 0 && (
-              <div className="flex justify-between gap-4">
-                <dt className="text-zinc-500">
-                  Carried Forward{payment.carriedToEmiNo ? ` to EMI ${payment.carriedToEmiNo}` : ""}
-                </dt>
-                <dd className="text-right text-zinc-800">{inr(payment.carriedForward)}</dd>
+              <div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-zinc-500">
+                    Balance carried to{" "}
+                    {payment.carriedToEmiNo ? `EMI ${payment.carriedToEmiNo}` : "next EMI"}
+                  </dt>
+                  <dd className="text-right text-zinc-800">{inr(payment.carriedForward)}</dd>
+                </div>
+                <dd className="text-[11px] leading-snug text-zinc-500">
+                  This instalment is settled; the unpaid part is added to the next EMI.
+                </dd>
               </div>
             )}
           </dl>

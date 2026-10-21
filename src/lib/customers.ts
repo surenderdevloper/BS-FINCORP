@@ -53,20 +53,28 @@ interface Calcs {
 }
 
 export function calcLoanFromEmis(
-  emis: { status: string; amount: number; paidAmount?: number; dueDate: Date }[],
+  emis: {
+    status: string;
+    amount: number;
+    paidAmount?: number;
+    dueDate: Date;
+    carriedIn?: { amount?: number | null } | null;
+  }[],
   today: Date
 ): Calcs {
   const start = startOfToday(today);
   const calcs: Calcs = { totalPaid: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, pendingAmount: 0 };
   for (const emi of emis) {
+    const totalDue = emi.amount + (emi.carriedIn?.amount ?? 0);
+    const storedPaid = Math.max(0, emi.paidAmount ?? 0);
     if (emi.status === "paid") {
       calcs.paidCount++;
-      calcs.totalPaid += emi.amount;
+      // Legacy paid EMIs carry no paidAmount; treat the whole payable as paid.
+      calcs.totalPaid += storedPaid > 0 ? storedPaid : totalDue;
     } else {
-      const paid = Math.max(0, emi.paidAmount ?? 0);
       calcs.pendingCount++;
-      calcs.totalPaid += paid;
-      calcs.pendingAmount += Math.max(0, emi.amount - paid);
+      calcs.totalPaid += storedPaid;
+      calcs.pendingAmount += Math.max(0, totalDue - storedPaid);
       if (new Date(emi.dueDate) < start) calcs.overdueCount++;
     }
   }
@@ -173,7 +181,15 @@ export async function listCustomers(input: { search?: string; limit?: number; to
             $sum: {
               $cond: [
                 { $eq: ["$status", "paid"] },
-                "$amount",
+                {
+                  // A settled EMI keeps whatever it actually collected; legacy
+                  // paid EMIs store nothing, so the payable is read instead.
+                  $cond: [
+                    { $gt: [{ $ifNull: ["$paidAmount", 0] }, 0] },
+                    { $ifNull: ["$paidAmount", 0] },
+                    { $add: ["$amount", { $ifNull: ["$carriedIn.amount", 0] }] },
+                  ],
+                },
                 { $ifNull: ["$paidAmount", 0] },
               ],
             },
@@ -183,7 +199,12 @@ export async function listCustomers(input: { search?: string; limit?: number; to
               $cond: [
                 { $eq: ["$status", "paid"] },
                 0,
-                { $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] },
+                {
+                  $subtract: [
+                    { $add: ["$amount", { $ifNull: ["$carriedIn.amount", 0] }] },
+                    { $ifNull: ["$paidAmount", 0] },
+                  ],
+                },
               ],
             },
           },

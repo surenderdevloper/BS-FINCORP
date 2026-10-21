@@ -13,6 +13,7 @@
 
 export interface AllocEmi {
   _id: string;
+  /** Decided instalment amount (principal + interest). */
   amount: number;
   principal: number;
   interest: number;
@@ -21,6 +22,10 @@ export interface AllocEmi {
   status: "pending" | "partial" | "paid";
   /** Penalty already charged and still due on this EMI. */
   penalty: number;
+  /** Balance of earlier EMIs carried into this one (carry-forward). */
+  carriedInAmount?: number;
+  carriedInPrincipal?: number;
+  carriedInInterest?: number;
 }
 
 export interface AllocEmiResult {
@@ -61,8 +66,15 @@ export interface AllocationResult {
   amount: number;
 }
 
+/**
+ * Payable this month: the decided instalment plus any balance carried into it
+ * from earlier instalments.
+ */
+export const totalDueFor = (emi: AllocEmi): number =>
+  emi.amount + Math.max(0, emi.carriedInAmount ?? 0);
+
 const remainingFor = (emi: AllocEmi): number =>
-  emi.status === "paid" ? 0 : Math.max(0, emi.amount - emi.paidAmount);
+  emi.status === "paid" ? 0 : Math.max(0, totalDueFor(emi) - emi.paidAmount);
 
 export function allocatePayment(input: AllocationInput): AllocationResult {
   const cash = Math.max(0, Math.round(input.cash));
@@ -103,12 +115,17 @@ export function allocatePayment(input: AllocationInput): AllocationResult {
     const penaltyApply = Math.min(penaltyDue, pool);
     pool -= penaltyApply;
 
-    const paidAmount = emi.status === "paid" ? emi.amount : emi.paidAmount + baseApply;
+    const totalDue = totalDueFor(emi);
+    const paidAmount = emi.status === "paid" ? totalDue : emi.paidAmount + baseApply;
     const status: AllocEmiResult["status"] =
-      paidAmount >= emi.amount ? "paid" : paidAmount > 0 ? "partial" : "pending";
+      paidAmount >= totalDue ? "paid" : paidAmount > 0 ? "partial" : "pending";
 
-    const base = emi.principal + emi.interest;
-    const principalPortion = base > 0 ? Math.round(baseApply * (emi.principal / base)) : 0;
+    // Split the collected money across principal/interest using the full
+    // payable mix (decided schedule + anything carried in from earlier EMIs).
+    const basePrincipal = emi.principal + (emi.carriedInPrincipal ?? 0);
+    const baseInterest = emi.interest + (emi.carriedInInterest ?? 0);
+    const base = basePrincipal + baseInterest;
+    const principalPortion = base > 0 ? Math.round(baseApply * (basePrincipal / base)) : 0;
     principal += principalPortion;
     interest += baseApply - principalPortion;
     penalty += penaltyApply;

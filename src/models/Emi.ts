@@ -17,9 +17,20 @@ const emiSchema = new mongoose.Schema(
     status: { type: String, enum: ["pending", "partial", "paid"], default: "pending" },
     paidOn: { type: Date },
     penalty: { type: Number, default: 0 },
-    // Amount that was left unpaid on this EMI and moved to the next
+    // Balance that was left unpaid on this EMI and moved to the next
     // instalment of the same loan (carry-forward). The EMI itself is settled.
+    // `amount` above is always the *decided* instalment — carried money never
+    // inflates it; it is tracked separately through `carriedIn` on the target.
     carriedForward: { type: Number, default: 0 },
+    // Balance of earlier instalments that was moved into this EMI. The EMI's
+    // own `amount` stays as decided at loan creation; the payable for this
+    // month is `amount + carriedIn.amount`.
+    carriedIn: {
+      amount: { type: Number, default: 0 },
+      principal: { type: Number, default: 0 },
+      interest: { type: Number, default: 0 },
+      penalty: { type: Number, default: 0 },
+    },
     paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
     tenantId: { type: String, trim: true },
   },

@@ -9,7 +9,7 @@ import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { withTenant } from "@/lib/tenant-route";
 import { startOfToday } from "@/lib/dates";
 import { invalidateCustomersListCache } from "@/lib/customers";
-import { allocatePayment, type AllocEmi } from "@/lib/payment-allocation";
+import { allocatePayment, totalDueFor, type AllocEmi } from "@/lib/payment-allocation";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -63,22 +63,26 @@ export async function POST(req: Request, ctx: RouteContext) {
     paidAmount: Math.max(0, emi.paidAmount ?? 0),
     status: emi.status,
     penalty: Math.max(0, emi.penalty ?? 0),
+    carriedInAmount: Math.max(0, emi.carriedIn?.amount ?? 0),
+    carriedInPrincipal: Math.max(0, emi.carriedIn?.principal ?? 0),
+    carriedInInterest: Math.max(0, emi.carriedIn?.interest ?? 0),
   }));
 
   const penaltyCache = new Map<string, number>();
   for (let i = 0; i < allocEmis.length; i++) {
     const e = allocEmis[i];
     const emi = pendingEmis[i];
-    if (e.status === "paid" || e.amount - e.paidAmount <= 0) continue;
+    if (e.status === "paid" || totalDueFor(e) - e.paidAmount <= 0) continue;
     if (e.penalty > 0) continue;
     if (new Date(emi.dueDate) < todayStart) {
-      const { penalty } = await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, today, rule);
+      const { penalty } = await computePenaltyForEmi(emi.dueDate.toISOString(), totalDueFor(e), today, rule);
       penaltyCache.set(e._id, penalty);
     }
   }
 
   const totalNeed = allocEmis.reduce(
-    (n, e) => n + Math.max(0, e.amount - e.paidAmount) + Math.max(e.penalty, penaltyCache.get(e._id) ?? 0),
+    (n, e) =>
+      n + Math.max(0, totalDueFor(e) - e.paidAmount) + Math.max(e.penalty, penaltyCache.get(e._id) ?? 0),
     0
   );
   const discountInput = typeof body.discount === "number" && Number.isFinite(body.discount) ? Math.max(0, Math.round(body.discount)) : 0;

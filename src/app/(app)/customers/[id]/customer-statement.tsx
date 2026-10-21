@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { CustomerDetail } from "@/lib/customers";
 import { Button, Card, CardHeader, Badge } from "@/components/ui";
+import { EmiAmount } from "@/components/emi-amount";
 import { Icon } from "@/components/icons";
 import { inr, formatDate, formatDateTime } from "@/lib/money";
 import { cachedGet } from "@/lib/client-fetch";
@@ -133,11 +134,14 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                       <td className="py-2 pr-3 text-zinc-600">{formatDate(e.dueDate)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.principal)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(e.interest)}</td>
-                      <td className="py-2 pr-3 text-right font-medium text-zinc-900">
-                        {e.status === "partial" ? inr(e.remaining) : inr(e.amount)}
-                        {e.status === "partial" && (
-                          <span className="block text-[10px] font-normal text-amber-600">{inr(e.paidAmount)} paid</span>
-                        )}
+                      <td className="py-2 pr-3 text-right">
+                        <EmiAmount
+                          amount={e.amount}
+                          carriedIn={e.carriedIn}
+                          totalDue={e.totalDue}
+                          status={e.status}
+                          remaining={e.remaining}
+                        />
                       </td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{e.penalty ? inr(e.penalty) : "—"}</td>
                       <td className="py-2 pr-3">

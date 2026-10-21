@@ -9,7 +9,7 @@ import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { withTenant } from "@/lib/tenant-route";
 import { parseCalendarDate } from "@/lib/dates";
 import { invalidateCustomersListCache } from "@/lib/customers";
-import { allocatePayment, type AllocEmi } from "@/lib/payment-allocation";
+import { allocatePayment, totalDueFor, type AllocEmi } from "@/lib/payment-allocation";
 import { planCarryForward, type CarryEmi } from "@/lib/carry-forward";
 
 interface Payload {
@@ -86,18 +86,26 @@ export async function POST(req: Request) {
     paidAmount: Math.max(0, emi.paidAmount ?? 0),
     status: emi.status,
     penalty: Math.max(0, emi.penalty ?? 0),
+    carriedInAmount: Math.max(0, emi.carriedIn?.amount ?? 0),
+    carriedInPrincipal: Math.max(0, emi.carriedIn?.principal ?? 0),
+    carriedInInterest: Math.max(0, emi.carriedIn?.interest ?? 0),
   }));
 
   const discountInput = typeof body.discount === "number" && Number.isFinite(body.discount) ? Math.max(0, Math.round(body.discount)) : 0;
 
   // Compute + cache penalties up-front (async) so the pure allocator stays sync.
   for (const e of allocEmis) {
-    if (e.status === "paid" || e.amount - e.paidAmount <= 0) continue;
+    if (e.status === "paid" || totalDueFor(e) - e.paidAmount <= 0) continue;
     if (e.penalty > 0) continue;
     const emi = emis.find((x) => x._id.toString() === e._id);
     if (!emi) continue;
     if (new Date(emi.dueDate) < penaltyDate) {
-      const { penalty } = await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, penaltyDate, rule);
+      const { penalty } = await computePenaltyForEmi(
+        emi.dueDate.toISOString(),
+        totalDueFor(e),
+        penaltyDate,
+        rule
+      );
       penaltyCache.set(e._id, penalty);
     }
   }
@@ -105,7 +113,8 @@ export async function POST(req: Request) {
   // When the client omits the exact cash received, assume the customer paid the
   // full remaining due after discount and any existing advance credit.
   const totalNeed = allocEmis.reduce(
-    (n, e) => n + Math.max(0, e.amount - e.paidAmount) + Math.max(e.penalty, penaltyCache.get(e._id) ?? 0),
+    (n, e) =>
+      n + Math.max(0, totalDueFor(e) - e.paidAmount) + Math.max(e.penalty, penaltyCache.get(e._id) ?? 0),
     0
   );
   const advance = Math.max(0, loan.advance ?? 0);
@@ -139,7 +148,7 @@ export async function POST(req: Request) {
     // Only EMIs that actually received money in this payment can carry a
     // balance forward.
     const touchedEmis: CarryEmi[] = emis
-      .map((emi) => {
+      .map((emi): CarryEmi | null => {
         const alloc = allocById.get(emi._id.toString());
         if (!alloc) return null;
         if (alloc.appliedBase <= 0 && alloc.appliedPenalty <= 0) return null;
@@ -152,6 +161,10 @@ export async function POST(req: Request) {
           paidAmount: alloc.paidAmount,
           status: alloc.status,
           penalty: alloc.penalty,
+          carriedInAmount: Math.max(0, emi.carriedIn?.amount ?? 0),
+          carriedInPrincipal: Math.max(0, emi.carriedIn?.principal ?? 0),
+          carriedInInterest: Math.max(0, emi.carriedIn?.interest ?? 0),
+          carriedInPenalty: Math.max(0, emi.carriedIn?.penalty ?? 0),
         } satisfies CarryEmi;
       })
       .filter((e): e is CarryEmi => e !== null);
@@ -169,6 +182,10 @@ export async function POST(req: Request) {
         paidAmount: Math.max(0, emi.paidAmount ?? 0),
         status: emi.status,
         penalty: Math.max(0, emi.penalty ?? 0),
+        carriedInAmount: Math.max(0, emi.carriedIn?.amount ?? 0),
+        carriedInPrincipal: Math.max(0, emi.carriedIn?.principal ?? 0),
+        carriedInInterest: Math.max(0, emi.carriedIn?.interest ?? 0),
+        carriedInPenalty: Math.max(0, emi.carriedIn?.penalty ?? 0),
       }));
       carryPlan = planCarryForward(touchedEmis, allEmis);
     }
@@ -225,14 +242,12 @@ export async function POST(req: Request) {
         { _id: carryPlan.fromEmiId },
         {
           $set: {
-            amount: carryPlan.source.amount,
-            principal: carryPlan.source.principal,
-            interest: carryPlan.source.interest,
+            // The decided schedule stays exactly as it was; only the state and
+            // the recorded move change.
             penalty: carryPlan.source.penalty,
-            paidAmount: carryPlan.source.amount,
             status: carryPlan.source.status,
             paidOn: today,
-            carriedForward: carryPlan.totalCarried,
+            carriedForward: carryPlan.source.carriedForward,
             paymentId: payment._id,
           },
         }
@@ -241,10 +256,10 @@ export async function POST(req: Request) {
         { _id: carryPlan.toEmiId },
         {
           $set: {
-            amount: carryPlan.target.amount,
-            principal: carryPlan.target.principal,
-            interest: carryPlan.target.interest,
-            penalty: carryPlan.target.penalty,
+            "carriedIn.amount": carryPlan.target.carriedInAmount,
+            "carriedIn.principal": carryPlan.target.carriedInPrincipal,
+            "carriedIn.interest": carryPlan.target.carriedInInterest,
+            "carriedIn.penalty": carryPlan.target.carriedInPenalty,
           },
         }
       ),

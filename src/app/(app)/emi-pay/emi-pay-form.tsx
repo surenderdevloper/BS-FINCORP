@@ -5,6 +5,7 @@ import { Badge, Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { WhatsAppShare } from "@/components/whatsapp-share";
+import { EmiAmount } from "@/components/emi-amount";
 import { formatDate, inr, APP_TIME_ZONE } from "@/lib/money";
 import { buildPaymentConfirmationMessage } from "@/lib/whatsapp";
 import { CUSTOMERS_LIST_CACHE_KEY, cachedGet, invalidateCached } from "@/lib/client-fetch";
@@ -175,6 +176,7 @@ export function EmiPayForm({
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const selectedRows = (loan?.emis ?? []).filter((e) => selected.includes(e._id));
+  const carriedInTotal = selectedRows.reduce((n, e) => n + e.carriedIn, 0);
   const emiTotal = selectedRows.reduce((n, e) => n + e.remaining, 0);
   const penaltyTotal = selectedRows.reduce((n, e) => n + e.penalty, 0);
   const discountValue = discount.trim() === "" ? 0 : Math.max(0, Number(discount) || 0);
@@ -334,11 +336,17 @@ export function EmiPayForm({
                         <td className="whitespace-nowrap px-3 py-2.5 text-zinc-600">{formatDate(e.dueDate)}</td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right text-zinc-600">{inr(e.principal)}</td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-right text-zinc-600">{inr(e.interest)}</td>
-                        <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium text-zinc-900">
-                          {e.status === "partial" ? inr(e.remaining) : inr(e.amount)}
-                          {e.status === "partial" && (
-                            <span className="block text-[10px] font-normal text-amber-600">
-                              {inr(e.paidAmount)} paid
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                          <EmiAmount
+                            amount={e.amount}
+                            carriedIn={e.carriedIn}
+                            totalDue={e.totalDue}
+                            status={e.status}
+                            remaining={e.remaining}
+                          />
+                          {e.status === "paid" && e.carriedForward > 0 && (
+                            <span className="block text-[10px] font-normal text-zinc-500">
+                              {inr(e.paidAmount)} collected
                             </span>
                           )}
                         </td>
@@ -375,7 +383,12 @@ export function EmiPayForm({
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div>
                       <p className="text-xs text-zinc-500">EMI Amount</p>
-                      <p className="font-semibold text-zinc-900">{inr(emiTotal)}</p>
+                      <p className="font-semibold text-zinc-900">
+                        {inr(selectedRows.reduce((n, e) => n + e.amount, 0))}
+                      </p>
+                      {carriedInTotal > 0 && (
+                        <p className="text-[10px] text-sky-700">+ {inr(carriedInTotal)} carried in</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-zinc-500">Due Date</p>
@@ -394,7 +407,9 @@ export function EmiPayForm({
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-zinc-200 pt-3">
                     <span className="text-xs text-zinc-500">
-                      {inr(emiTotal)} + {inr(penaltyTotal)} − {inr(discountValue)}
+                      {inr(emiTotal)}
+                      {carriedInTotal > 0 ? " (incl. carried in)" : ""} + {inr(penaltyTotal)} −{" "}
+                      {inr(discountValue)}
                       {advance > 0 ? ` − ${inr(advance)} advance` : ""}
                     </span>
                     <span className="text-right">
@@ -601,11 +616,17 @@ export function EmiPayForm({
                   </div>
                 )}
                 {receipt.carriedForward > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-zinc-500">
-                      Carried Forward{receipt.carriedToEmiNo ? ` to EMI ${receipt.carriedToEmiNo}` : ""}
-                    </dt>
-                    <dd className="text-zinc-800">{inr(receipt.carriedForward)}</dd>
+                  <div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-zinc-500">
+                        Balance carried to{" "}
+                        {receipt.carriedToEmiNo ? `EMI ${receipt.carriedToEmiNo}` : "next EMI"}
+                      </dt>
+                      <dd className="text-zinc-800">{inr(receipt.carriedForward)}</dd>
+                    </div>
+                    <dd className="text-[11px] leading-snug text-zinc-500">
+                      This instalment is settled; the unpaid part is added to the next EMI.
+                    </dd>
                   </div>
                 )}
               </dl>

@@ -122,7 +122,12 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
             $sum: {
               $cond: [
                 { $gt: ["$amount", 0] },
-                { $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] },
+                {
+                  $subtract: [
+                    { $add: ["$amount", { $ifNull: ["$carriedIn.amount", 0] }] },
+                    { $ifNull: ["$paidAmount", 0] },
+                  ],
+                },
                 0,
               ],
             },
@@ -169,11 +174,22 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
 
   const overdueRows: OverdueRow[] = [];
   const reminders: ReminderRow[] = [];
+  const dueOf = (emi: {
+    amount: number;
+    paidAmount?: number | null;
+    carriedIn?: { amount?: number | null } | null;
+  }) =>
+    Math.max(0, emi.amount + (emi.carriedIn?.amount ?? 0) - (emi.paidAmount ?? 0));
   for (const emi of overdueEmisRows) {
     const loan = loanMap.get(emi.loanId.toString());
     if (!loan) continue;
     const customer = customerMap.get(loan.customerId.toString());
-    const late = await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, today, penaltyRule);
+    const late = await computePenaltyForEmi(
+      emi.dueDate.toISOString(),
+      emi.amount + (emi.carriedIn?.amount ?? 0),
+      today,
+      penaltyRule
+    );
     overdueRows.push({
       emiId: emi._id.toString(),
       customerId: loan.customerId.toString(),
@@ -182,7 +198,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       loanNo: loan.loanNo,
       vehicle: loan.vehicle?.name ?? "",
       dueDate: emi.dueDate.toISOString(),
-      amount: Math.max(0, emi.amount - (emi.paidAmount ?? 0)),
+      amount: dueOf(emi),
       daysLate: late.daysLate,
       penalty: (emi.penalty ?? 0) > 0 ? (emi.penalty ?? 0) : late.penalty,
     });
@@ -202,7 +218,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
       loanNo: loan.loanNo,
       vehicle: loan.vehicle?.name ?? "",
       dueDate: due.toISOString(),
-      amount: Math.max(0, emi.amount - (emi.paidAmount ?? 0)),
+      amount: dueOf(emi),
       daysLeft: Math.max(0, Math.ceil((due.getTime() - startToday.getTime()) / DAY_MS)),
     });
   }

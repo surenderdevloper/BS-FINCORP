@@ -11,12 +11,17 @@ export interface EmiRow {
   loanNo: string;
   emiNo: number;
   dueDate: string;
+  /** Decided instalment amount (principal + interest), never rewritten. */
   amount: number;
   principal: number;
   interest: number;
+  /** Balance of earlier EMIs carried into this one (carry-forward). */
+  carriedIn: number;
+  /** `amount + carriedIn` — what must actually be collected this month. */
+  totalDue: number;
   /** Amount collected towards this EMI. */
   paidAmount: number;
-  /** `amount - paidAmount`, clamped at 0. */
+  /** `totalDue - paidAmount`, clamped at 0. */
   remaining: number;
   status: "pending" | "partial" | "paid";
   paidOn?: string;
@@ -123,6 +128,7 @@ export interface RawEmi {
   paidOn?: Date;
   penalty?: number;
   carriedForward?: number;
+  carriedIn?: { amount?: number; principal?: number; interest?: number; penalty?: number };
 }
 
 interface RawLoan {
@@ -172,8 +178,14 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
   };
 
   for (const emi of rawEmis) {
-    const paidAmount = emi.status === "paid" ? emi.amount : Math.max(0, emi.paidAmount ?? 0);
-    const remaining = Math.max(0, emi.amount - paidAmount);
+    const carriedIn = Math.max(0, emi.carriedIn?.amount ?? 0);
+    const totalDue = emi.amount + carriedIn;
+    const storedPaid = Math.max(0, emi.paidAmount ?? 0);
+    // Legacy paid EMIs may carry no paidAmount at all — the stored state is
+    // still authoritative, so a settled EMI with a carry-forward keeps the
+    // money it actually collected while a legacy paid one reads as fully paid.
+    const paidAmount = emi.status === "paid" ? (storedPaid > 0 ? storedPaid : totalDue) : storedPaid;
+    const remaining = emi.status === "paid" ? 0 : Math.max(0, totalDue - storedPaid);
 
     // Penalty is frozen once charged (stored); otherwise computed live for
     // overdue outstanding EMIs.
@@ -182,7 +194,7 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
       if ((emi.penalty ?? 0) > 0) {
         penalty = emi.penalty ?? 0;
       } else if (emi.dueDate < todayStart) {
-        penalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), emi.amount, today)).penalty;
+        penalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), totalDue, today)).penalty;
       }
     }
 
@@ -195,6 +207,8 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
       amount: emi.amount,
       principal: emi.principal,
       interest: emi.interest,
+      carriedIn,
+      totalDue,
       paidAmount,
       remaining,
       status: emi.status,
@@ -205,7 +219,7 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
 
     if (emi.status === "paid") {
       totals.paidCount++;
-      totals.paidAmount += emi.amount;
+      totals.paidAmount += paidAmount;
     } else {
       if (emi.status === "partial") totals.partialCount++;
       totals.pendingCount++;

@@ -10,6 +10,9 @@ const emi = (over: Partial<AllocEmi> = {}): AllocEmi => ({
   paidAmount: over.paidAmount ?? 0,
   status: over.status ?? "pending",
   penalty: over.penalty ?? 0,
+  carriedInAmount: over.carriedInAmount ?? 0,
+  carriedInPrincipal: over.carriedInPrincipal ?? 0,
+  carriedInInterest: over.carriedInInterest ?? 0,
 });
 
 const none = () => 0;
@@ -83,4 +86,30 @@ test("multi-EMI collection pays oldest first and can leave the last partial", ()
   assert.equal(r.emis[0].status, "paid");
   assert.equal(r.emis[1].status, "partial");
   assert.equal(r.emis[1].paidAmount, 382);
+});
+
+test("an EMI carrying a balance from earlier EMIs collects decided + carried", () => {
+  // Decided 2817 + 1034 carried in = 3851 payable this month.
+  const carried = emi({
+    amount: 2817,
+    principal: 2167,
+    interest: 650,
+    carriedInAmount: 1034,
+    carriedInPrincipal: 795,
+    carriedInInterest: 239,
+  });
+
+  const full = allocatePayment({ emis: [carried], cash: 3851, discount: 0, advance: 0, penaltyFor: none });
+  assert.equal(full.emis[0].status, "paid");
+  assert.equal(full.emis[0].paidAmount, 3851);
+  // The split uses the full payable mix, so principal and interest stay true
+  // to the loan instead of the carried-in part being read as interest.
+  assert.equal(full.principal, 2962);
+  assert.equal(full.interest, 889);
+
+  const partial = allocatePayment({ emis: [carried], cash: 2000, discount: 0, advance: 0, penaltyFor: none });
+  assert.equal(partial.emis[0].status, "partial");
+  assert.equal(partial.principal, 1538);
+  assert.equal(partial.interest, 462);
+  assert.equal(partial.emis[0].paidAmount, 2000);
 });
