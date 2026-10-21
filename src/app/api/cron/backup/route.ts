@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     for (const tenantId of activeTenants) {
       try {
         const backup = await exportForTenant(tenantId);
-        const key = `${tenantId}/${date}.json`;
+        const key = `bs-fincorp/${tenantId}/${date}.json`;
         await uploadBackupToR2(key, JSON.stringify(backup, null, 2));
         results.push({ tenantId, key, total: backup.total, status: "ok" });
       } catch (err) {
