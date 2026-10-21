@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const tenants = await Tenant.find({}).distinct("slug");
+    const tenants = await Tenant.find({}).distinct("tenantId");
     const activeTenants = (tenants as string[]).filter((t) => t && typeof t === "string");
 
     const date = new Date().toISOString().slice(0, 10);
