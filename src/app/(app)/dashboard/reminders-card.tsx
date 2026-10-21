@@ -110,7 +110,7 @@ export function RemindersCard({
         </p>
       ) : (
         <div>
-          <ul className="max-h-[22rem] divide-y divide-zinc-50 overflow-y-auto p-5 xl:hidden">
+          <ul className="max-h-[22rem] divide-y divide-zinc-200 overflow-y-auto p-5 xl:hidden">
             {reminders.map((row) => (
               <li key={row.emiId} className="space-y-2.5 py-3 first:pt-0 last:pb-0">
                 <div className="flex items-start justify-between gap-2">
