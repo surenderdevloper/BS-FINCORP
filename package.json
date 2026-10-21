@@ -15,6 +15,7 @@
     "demo": "node scripts/dev-demo.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1154.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.1",
     "jose": "^6.2.12",
