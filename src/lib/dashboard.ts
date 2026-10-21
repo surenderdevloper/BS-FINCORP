@@ -137,7 +137,6 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     }),
     Emi.find({ status: { $ne: "paid" }, dueDate: { $lt: startToday }, loanId: { $in: activeLoanIds } })
       .sort({ dueDate: 1 })
-      .limit(10)
       .lean(),
     Emi.find({
       status: { $ne: "paid" },
@@ -235,7 +234,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     pendingAmount,
     totalCollection,
     upcomingEmis,
-    overdueRows: overdueRows.sort((a, b) => b.daysLate - a.daysLate).slice(0, 10),
+    overdueRows: overdueRows.sort((a, b) => b.daysLate - a.daysLate),
     todayRows,
     reminders: reminders.sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 10),
   };
