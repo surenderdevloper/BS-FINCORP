@@ -220,6 +220,7 @@ function TenantsTab({
   const [q, setQ] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [restoreFor, setRestoreFor] = useState<TenantRow | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -348,6 +349,7 @@ function TenantsTab({
                     onArchive={() => archive(t, false)}
                     onRestore={() => archive(t, true)}
                     onReset={() => resetPassword(t)}
+                    onRestoreBackup={() => setRestoreFor(t)}
                     onSaved={async () => {
                       setEditing(null);
                       flash(`Saved "${t.businessName}".`);
@@ -363,6 +365,19 @@ function TenantsTab({
       </Card>
 
       <CreateTenantCard onCreated={load} onError={onError} flash={flash} />
+
+      {restoreFor && (
+        <RestoreBackupModal
+          tenant={restoreFor}
+          onClose={() => setRestoreFor(null)}
+          onSuccess={(msg) => {
+            flash(msg);
+            setRestoreFor(null);
+            void load();
+          }}
+          onError={onError}
+        />
+      )}
     </div>
   );
 }
@@ -391,6 +406,7 @@ function TenantTableRow({
   onArchive,
   onRestore,
   onReset,
+  onRestoreBackup,
   onSaved,
   onError,
 }: {
@@ -402,6 +418,7 @@ function TenantTableRow({
   onArchive: () => void;
   onRestore: () => void;
   onReset: () => void;
+  onRestoreBackup: () => void;
   onSaved: () => void;
   onError: (message: string) => void;
 }) {
@@ -425,6 +442,9 @@ function TenantTableRow({
             </Button>
             <Button variant="ghost" size="sm" disabled={busy} onClick={onReset}>
               Reset pw
+            </Button>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={onRestoreBackup}>
+              Restore Backup
             </Button>
             {row.archived ? (
               <Button variant="secondary" size="sm" disabled={busy} onClick={onRestore}>
@@ -1167,5 +1187,76 @@ function AuditTab({ onError }: { onError: (message: string) => void }) {
         </div>
       )}
     </Card>
+  );
+}
+
+function RestoreBackupModal({
+  tenant,
+  onClose,
+  onSuccess,
+  onError,
+}: {
+  tenant: TenantRow;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [purge, setPurge] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  async function submit() {
+    if (!file) {
+      onError("Select a backup JSON file");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("purge", purge ? "true" : "false");
+      const res = await fetch(`/api/superadmin/tenants/${encodeURIComponent(tenant.tenantId)}/restore`, {
+        method: "POST",
+        body: fd,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Restore failed");
+      const c = body.results || {};
+      const total = Object.values(c).reduce((a: number, b: any) => a + (b?.inserted || 0), 0);
+      onSuccess(`Restored ${total} records for ${tenant.businessName}`);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Restore failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader title={`Restore Backup - ${tenant.businessName}`} subtitle={tenant.tenantId} />
+        <div className="space-y-3 p-4">
+          <input
+            type="file"
+            accept="application/json,.json"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="w-full text-sm"
+          />
+          <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <input type="checkbox" checked={purge} onChange={(e) => setPurge(e.target.checked)} />
+            Purge existing data for this tenant first (recommended)
+          </label>
+          <p className="text-xs text-zinc-500">Use a backup JSON downloaded from R2 or manual backup.</p>
+        </div>
+        <div className="flex justify-end gap-2 px-4 pb-4">
+          <Button variant="ghost" onClick={onClose} disabled={uploading}>
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={uploading || !file}>
+            {uploading ? "Restoring…" : "Restore"}
+          </Button>
+        </div>
+      </Card>
+    </div>
   );
 }
