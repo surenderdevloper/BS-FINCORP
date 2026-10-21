@@ -259,8 +259,12 @@ export async function POST(req: Request) {
             "carriedIn.amount": carryPlan.target.carriedInAmount,
             "carriedIn.principal": carryPlan.target.carriedInPrincipal,
             "carriedIn.interest": carryPlan.target.carriedInInterest,
-            "carriedIn.penalty": carryPlan.target.carriedInPenalty,
+            // Penalty never sits in carriedIn: it folds into the regular
+            // penalty field so payment allocation, close-loan and the
+            // dashboard all see the amount that is still owed.
+            "carriedIn.penalty": 0,
           },
+          $inc: { penalty: carryPlan.target.penaltyToCharge },
         }
       ),
     ]);

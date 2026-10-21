@@ -52,7 +52,7 @@ test("shortfall moves to the next instalment and settles the current month", () 
   assert.equal(second.amount, 1000);
   assert.equal(plan.target.carriedInAmount, 400);
   assert.equal(plan.target.carriedInPrincipal + plan.target.carriedInInterest, 400);
-  assert.equal(emiTotalDue({ ...second, ...plan.target }), 1400);
+  assert.equal(emiTotalDue({ ...second, carriedInAmount: plan.target.carriedInAmount }), 1400);
 
   // The customer's total obligation is unchanged.
   const totalBefore = first.amount + second.amount;
@@ -82,7 +82,19 @@ test("penalty still due travels with the balance", () => {
   assert.equal(plan.penaltyCarried, 50);
   assert.equal(plan.totalCarried, 450);
   assert.equal(plan.source.penalty, 0);
-  assert.equal(plan.target.carriedInPenalty, 50);
+  // The moved penalty is charged on the target's regular penalty field (all
+  // collectors read it there), and the source's move line shows the full 450.
+  assert.equal(plan.target.penaltyToCharge, 50);
+  assert.equal(plan.source.carriedForward, 450);
+});
+
+test("penalty left in the target's legacy carriedIn bucket is folded in, not dropped", () => {
+  const first = emi({ _id: "e1", emiNo: 1, status: "partial", paidAmount: 600, penalty: 50 });
+  const second = emi({ _id: "e2", emiNo: 2, amount: 1000, principal: 800, interest: 200, carriedInPenalty: 20 });
+
+  const plan = planCarryForward([first], [first, second]);
+  assert.ok(plan);
+  assert.equal(plan.target.penaltyToCharge, 70);
 });
 
 test("a balance already carried into the source travels on as well", () => {

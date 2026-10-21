@@ -42,6 +42,10 @@ paymentSchema.index({ loanId: 1 });
 
 if (multiTenantEnabled()) {
   paymentSchema.index({ tenantId: 1, receiptNo: 1 }, { unique: true });
+  // Today's-collection range scans and the Collections report filter by
+  // tenant + createdAt; without the prefix the range walk reads every other
+  // tenant's payments and discards them.
+  paymentSchema.index({ tenantId: 1, createdAt: -1 });
 } else {
   paymentSchema.index({ receiptNo: 1 }, { unique: true });
 }

@@ -76,7 +76,7 @@ export async function PUT(req: Request, ctx: RouteContext) {
     : {};
   const vehicleName = body.vehicle?.name?.trim();
   if (!vehicleName) financialErrors.vehicleName = "Vehicle name is required.";
-  if (fin && !fin.startDate) financialErrors.startDate = "Start date is required.";
+  if (fin && !parseCalendarDate(fin.startDate)) financialErrors.startDate = "Start date is required (YYYY-MM-DD).";
   if (Object.keys(financialErrors).length) {
     return NextResponse.json({ error: "Please fix the highlighted fields.", fieldErrors: financialErrors }, { status: 400 });
   }

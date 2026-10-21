@@ -267,6 +267,7 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
     }
     if (!vehicle.name.trim()) errors.vehicleName = "Vehicle name is required.";
     Object.entries(finError).forEach(([k, v]) => (errors[k] = v));
+    if (!financial.startDate) errors.startDate = "Start date is required.";
 
     if (Object.keys(errors).length) {
       setFieldErrors(errors);

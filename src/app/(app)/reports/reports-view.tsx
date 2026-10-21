@@ -5,7 +5,7 @@ import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
-import { cachedGet, peekCached } from "@/lib/client-fetch";
+import { cachedGet, peekCached, seedCached } from "@/lib/client-fetch";
 import { inr } from "@/lib/money";
 import type { ReportData, ReportType } from "@/lib/reports";
 
@@ -47,6 +47,17 @@ export function ReportsView({
       const params = new URLSearchParams({ type, to });
       if (from) params.set("from", from);
       const url = `/api/reports?${params.toString()}`;
+      // The server already rendered this exact report into the page — seed the
+      // client cache so the fetch below is a cache hit instead of running the
+      // same loan/payment queries a second time on every visit.
+      if (
+        initialData &&
+        type === initialRange.type &&
+        from === initialRange.from &&
+        to === initialRange.to
+      ) {
+        seedCached(url, initialData);
+      }
       // Show the previously loaded report instantly (same tab, same range)
       // while a fresh copy is fetched in the background.
       const cached = peekCached<ReportData>(url);
@@ -103,7 +114,14 @@ export function ReportsView({
             {TYPES.map((t) => (
               <button
                 key={t.value}
-                onClick={() => setType(t.value)}
+                onClick={() => {
+                  setType(t.value);
+                  // Keep the selected report in the URL so a refresh (or a
+                  // copied link) opens the same tab the user picked.
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", t.value);
+                  window.history.replaceState(window.history.state, "", url);
+                }}
                 className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   type === t.value ? "bg-white text-emerald-700 shadow-sm" : "text-zinc-600 hover:text-zinc-900"
                 }`}

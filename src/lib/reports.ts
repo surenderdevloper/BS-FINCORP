@@ -45,6 +45,7 @@ export async function buildReport(input: {
 
   if (type === "collections") {
     const payments = await Payment.find({ type: { $ne: "NOC_REPRINT" }, createdAt: { $gte: start, $lte: end } })
+      .select("receiptNo createdAt loanNo customerName amount principal interest penalty mode")
       .sort({ createdAt: -1 })
       .lean()
       .exec();
@@ -79,6 +80,9 @@ export async function buildReport(input: {
   const isClosed = type === "loans-closed";
   const query: Record<string, unknown> = { status: isClosed ? "closed" : "active" };
   const loans = (await Loan.find(query)
+    .select(
+      "loanNo status customerId financial.loanAmount financial.startDate financial.tenureMonths vehicle.name paymentPlan.monthlyEmi"
+    )
     .sort({ createdAt: -1 })
     .lean()
     .exec()) as unknown as RawLoanLean[];

@@ -7,6 +7,7 @@ import { CompanySetting } from "@/models/CompanySetting";
 import { withTenant } from "@/lib/tenant-route";
 import { calcLoanSummary, generateSchedule } from "@/lib/emi";
 import { validateCustomerShape, validateFinancialShape } from "@/lib/validators";
+import { parseCalendarDate } from "@/lib/dates";
 import { sanitizeSearch } from "@/lib/search";
 import { listLoans } from "@/lib/loans";
 import { invalidateCustomersListCache } from "@/lib/customers";
@@ -19,9 +20,11 @@ export async function GET(req: Request) {
   const statusParam = url.searchParams.get("status");
   const status = statusParam === "active" || statusParam === "closed" ? statusParam : undefined;
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50), 1), 200);
+  // `picker=1`: dropdowns that only render loanNo/customer — skip the EMI scan.
+  const stats = url.searchParams.get("picker") !== "1";
 
   await dbConnect();
-  const loans = await listLoans({ search, status, limit });
+  const loans = await listLoans({ search, status, limit, stats });
   return NextResponse.json({ loans });
   });
 }
@@ -49,10 +52,19 @@ export async function POST(req: Request) {
     tenureMonths: payload.financial?.tenureMonths,
     emiDay: payload.financial?.emiDay,
   });
+  // Strict calendar validation: without this a missing/garbage startDate used
+  // to reach Loan.create as an Invalid Date and fail with a 500.
+  const startDate = parseCalendarDate(payload.financial?.startDate);
 
   if (Object.keys(customerErrors).length || Object.keys(financialErrors).length) {
     return NextResponse.json(
       { error: "Please fix the highlighted fields.", fieldErrors: { ...customerErrors, ...financialErrors } },
+      { status: 400 }
+    );
+  }
+  if (!startDate) {
+    return NextResponse.json(
+      { error: "Please fix the highlighted fields.", fieldErrors: { startDate: "Start date is required (YYYY-MM-DD)." } },
       { status: 400 }
     );
   }
@@ -168,7 +180,7 @@ export async function POST(req: Request) {
         interestType: payload.financial.interestType,
         tenureMonths: payload.financial.tenureMonths,
         emiDay: payload.financial.emiDay,
-        startDate: new Date(`${payload.financial.startDate}T00:00:00Z`),
+        startDate,
         firstDueDate: schedule[0] ? new Date(schedule[0].dueDate) : undefined,
       },
       paymentPlan: {

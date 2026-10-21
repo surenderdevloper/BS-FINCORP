@@ -2,7 +2,7 @@ import type { Types } from "mongoose";
 import { Loan } from "@/models/Loan";
 import { Emi } from "@/models/Emi";
 import { Customer } from "@/models/Customer";
-import { computePenaltyForEmi } from "@/models/PenaltyRule";
+import { computePenaltyForEmi, getPenaltyRuleObj, type PenaltyRuleType } from "@/models/PenaltyRule";
 import { startOfToday } from "@/lib/dates";
 
 export interface EmiRow {
@@ -166,6 +166,9 @@ interface RawLoan {
 export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promise<{ emis: EmiRow[]; totals: LoanDetail["totals"] }> {
   const todayStart = startOfToday(today);
   const emis: EmiRow[] = [];
+  // Loaded at most once per call — only when an overdue EMI actually needs a
+  // live penalty computed (stored penalties short-circuit above it).
+  let rule: PenaltyRuleType | undefined;
   const totals: LoanDetail["totals"] = {
     paidCount: 0,
     partialCount: 0,
@@ -194,7 +197,8 @@ export async function buildEmiRows(rawEmis: RawEmi[], today = new Date()): Promi
       if ((emi.penalty ?? 0) > 0) {
         penalty = emi.penalty ?? 0;
       } else if (emi.dueDate < todayStart) {
-        penalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), totalDue, today)).penalty;
+        if (!rule) rule = await getPenaltyRuleObj();
+        penalty = (await computePenaltyForEmi(emi.dueDate.toISOString(), totalDue, today, rule)).penalty;
       }
     }
 
@@ -320,12 +324,17 @@ export async function getLoanDetail(loanNo: string, today = new Date()): Promise
 /**
  * Lists loans with live EMI statistics. Searching matches the loan number,
  * customer name, mobile or Aadhaar.
+ *
+ * Pass `stats: false` for dropdown pickers: the stats fields come back as 0
+ * and the EMI scan for the matched loans (plus the per-EMI penalty maths) is
+ * skipped entirely — pickers only render identity fields.
  */
 export async function listLoans(input: {
   search?: string;
   status?: "active" | "closed";
   limit?: number;
   today?: Date;
+  stats?: boolean;
 }): Promise<LoanSummary[]> {
   const { search, status, limit = 20, today = new Date() } = input;
 
@@ -362,7 +371,12 @@ export async function listLoans(input: {
   );
 
   const loanIds = loans.map((l) => l._id);
-  const rawEmis = (await Emi.find({ loanId: { $in: loanIds } }).lean().exec()) as unknown as RawEmi[];
+  // Picker mode: nobody reads the stats — skip pulling every EMI of up to
+  // `limit` loans (the biggest cost in this function by far).
+  const rawEmis: RawEmi[] =
+    input.stats === false
+      ? []
+      : ((await Emi.find({ loanId: { $in: loanIds } }).lean().exec()) as unknown as RawEmi[]);
   const emisByLoan = new Map<string, RawEmi[]>();
   for (const emi of rawEmis) {
     const key = emi.loanId.toString();

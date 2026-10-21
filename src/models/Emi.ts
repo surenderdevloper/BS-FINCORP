@@ -1,4 +1,5 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { multiTenantEnabled } from "@/lib/tenant";
 import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const emiSchema = new mongoose.Schema(
@@ -43,6 +44,14 @@ emiSchema.index({ loanId: 1, dueDate: 1 });
 emiSchema.index({ status: 1, dueDate: 1 });
 emiSchema.index({ loanId: 1, emiNo: 1 });
 emiSchema.index({ loanNo: 1 });
+
+// Tenant-prefixed variants of the hot lookups: in multi-tenant mode every
+// query carries tenantId, so an index that does not lead with it cannot be
+// used as a range scan (dashboard overdue counts, per-loan EMI pages).
+if (multiTenantEnabled()) {
+  emiSchema.index({ tenantId: 1, status: 1, dueDate: 1 });
+  emiSchema.index({ tenantId: 1, loanId: 1, dueDate: 1 });
+}
 
 export type EmiType = InferSchemaType<typeof emiSchema>;
 

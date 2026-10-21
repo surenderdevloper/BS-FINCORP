@@ -10,6 +10,8 @@ import { User } from "@/models/User";
 import { CompanySetting } from "@/models/CompanySetting";
 import { PenaltyRule } from "@/models/PenaltyRule";
 import { CustomerDocument } from "@/models/CustomerDocument";
+import { invalidateCustomersListCache } from "@/lib/customers";
+import { invalidatePenaltyRuleCache } from "@/models/PenaltyRule";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -180,6 +182,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ tenantId: 
         targetId: tenantId,
         details: `Restored backup ${file.name} (purge=${purge}, source=${sourceTenantId ?? "unknown"}, crossTenant=${sourceTenantId ? sourceTenantId !== tenantId : false})`,
       });
+
+      // The restore replaced business data wholesale — drop the in-memory
+      // caches so the pre-restore view is not served for another TTL window.
+      invalidateCustomersListCache();
+      invalidatePenaltyRuleCache();
 
       return NextResponse.json(
         { ok: true, tenantId, sourceTenantId, crossTenant: sourceTenantId ? sourceTenantId !== tenantId : false, results },

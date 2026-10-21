@@ -53,9 +53,16 @@ loanSchema.index({ customerId: 1 });
 loanSchema.index({ status: 1, createdAt: -1 });
 loanSchema.index({ "financial.startDate": 1 });
 loanSchema.index({ closedAt: 1 });
+// Reports and dashboard lists sort the whole collection by creation time —
+// without this MongoDB falls back to an in-memory blocking sort.
+loanSchema.index({ createdAt: -1 });
 
 if (multiTenantEnabled()) {
   loanSchema.index({ tenantId: 1, loanNo: 1 }, { unique: true });
+  loanSchema.index({ tenantId: 1, createdAt: -1 });
+  // Dashboard active-loan queries and the loan reports filter tenant+status
+  // and sort by createdAt — one index serves both predicates and the sort.
+  loanSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 } else {
   loanSchema.index({ loanNo: 1 }, { unique: true });
 }

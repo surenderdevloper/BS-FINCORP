@@ -191,7 +191,7 @@ export function EditCustomerForm({
 
   const loadList = useCallback(async (q: string) => {
     try {
-      const params = new URLSearchParams({ limit: "50" });
+      const params = new URLSearchParams({ limit: "50", picker: "1" });
       if (q.trim()) params.set("search", q.trim());
       const res = await fetch(`/api/loans?${params.toString()}`, { cache: "no-store" });
       if (!res.ok) return;

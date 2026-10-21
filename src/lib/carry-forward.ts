@@ -13,7 +13,9 @@
  *   balance is added to its separate `carriedIn` bucket, so the payable for
  *   that month becomes `amount + carriedIn.amount`;
  * - any penalty still due on the source EMI travels with the balance, because
- *   it was already charged.
+ *   it was already charged. It lands in the target's regular `penalty` field
+ *   (never in `carriedIn`) so every collector — payment allocation, close
+ *   loan, dashboard — sees the amount that is still owed.
  *
  * Because both EMIs keep their schedule, the customer's total obligation never
  * changes — the balance only moves.
@@ -35,6 +37,7 @@ export interface CarryEmi {
   carriedInAmount?: number;
   carriedInPrincipal?: number;
   carriedInInterest?: number;
+  /** Legacy bucket written by earlier releases; folded into `penalty` on the next carry. */
   carriedInPenalty?: number;
 }
 
@@ -58,6 +61,7 @@ export interface CarryForwardPlan {
   source: {
     status: "paid";
     penalty: 0;
+    /** Total moved out of this EMI (base balance + penalty), for display. */
     carriedForward: number;
   };
   /** New carry-in bucket for the receiving EMI (its own amount is unchanged). */
@@ -65,7 +69,13 @@ export interface CarryForwardPlan {
     carriedInAmount: number;
     carriedInPrincipal: number;
     carriedInInterest: number;
-    carriedInPenalty: number;
+    /**
+     * Penalty to add to the receiving EMI's regular `penalty` field: the
+     * source's still-due penalty plus any penalty that earlier carries left
+     * in the target's legacy `carriedIn.penalty` bucket. Penalty never lives
+     * in `carriedIn` — all collectors read the regular `penalty` field.
+     */
+    penaltyToCharge: number;
   };
 }
 
@@ -133,13 +143,13 @@ export function planCarryForward(
     source: {
       status: "paid",
       penalty: 0,
-      carriedForward: baseCarried,
+      carriedForward: baseCarried + penaltyCarried,
     },
     target: {
       carriedInAmount: carriedInOf(target) + baseCarried,
       carriedInPrincipal: carriedInPrincipalOf(target) + principalMoved,
       carriedInInterest: carriedInInterestOf(target) + interestMoved,
-      carriedInPenalty: carriedInPenaltyOf(target) + penaltyCarried,
+      penaltyToCharge: carriedInPenaltyOf(target) + penaltyCarried,
     },
   };
 }

@@ -1,4 +1,5 @@
 import mongoose, { type InferSchemaType } from "mongoose";
+import { multiTenantEnabled } from "@/lib/tenant";
 import { tenantPlugin } from "@/lib/tenant-plugin";
 
 const userSchema = new mongoose.Schema(
@@ -18,6 +19,12 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.plugin(tenantPlugin);
+
+// The superadmin panel counts users per tenant with a raw driver query —
+// without this the count is a full collection scan.
+if (multiTenantEnabled()) {
+  userSchema.index({ tenantId: 1 });
+}
 
 export type UserType = InferSchemaType<typeof userSchema>;
 

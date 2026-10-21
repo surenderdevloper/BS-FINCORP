@@ -31,6 +31,23 @@ export function peekCached<T>(url: string): { data: T } | undefined {
   return entry ? { data: entry.data } : undefined;
 }
 
+/**
+ * Stores a payload in the cache without any network activity. Used to seed the
+ * cache with the copy the server already rendered into the page (e.g. the full
+ * customers list embedded in the RSC payload), so the first `cachedGet` after
+ * hydration is a cache hit instead of downloading the same megabytes again.
+ *
+ * Never overwrites an existing entry — a client-held copy may be fresher — and
+ * marks the entry as freshly revalidated so `cachedGet` does not immediately
+ * kick off a background refresh of data the server just rendered.
+ */
+export function seedCached<T>(url: string, data: T): void {
+  if (memory.has(url)) return;
+  const at = Date.now();
+  memory.set(url, { data, at });
+  lastRevalidateAt.set(url, at);
+}
+
 export type CacheInvalidator = string | RegExp | ((url: string) => boolean);
 
 /**

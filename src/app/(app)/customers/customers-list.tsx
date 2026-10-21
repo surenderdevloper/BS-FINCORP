@@ -7,7 +7,7 @@ import { Badge, Button, Card } from "@/components/ui";
 import { Input } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
-import { cachedGet, peekCached } from "@/lib/client-fetch";
+import { cachedGet, peekCached, seedCached } from "@/lib/client-fetch";
 import { formatDate, inr } from "@/lib/money";
 import type { CustomerWithLoans } from "@/lib/customers";
 
@@ -24,6 +24,12 @@ export function CustomersList({ initialCustomers }: { initialCustomers: Customer
   const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
+    // The server already rendered the full list into this page — hand that copy
+    // to the client cache so the fetch below is a cache hit instead of a second
+    // full download of the same payload. Empty server renders (DB unreachable)
+    // are not seeded: the fetch below has to run in that case.
+    if (initialCustomers.length) seedCached(FULL_LIST_URL, { customers: initialCustomers });
+
     // Full list: reuse whatever we already have instantly (server-rendered
     // payload or a previous fetch), then refresh quietly in the background.
     // No loading indicator when data is already on screen.
