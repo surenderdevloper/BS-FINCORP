@@ -1204,10 +1204,33 @@ function RestoreBackupModal({
   const [file, setFile] = useState<File | null>(null);
   const [purge, setPurge] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [sourceTenantId, setSourceTenantId] = useState<string | null>(null);
+  const [confirmedCross, setConfirmedCross] = useState(false);
+
+  const crossTenant = !!sourceTenantId && sourceTenantId !== tenant.tenantId;
+
+  async function pickFile(next: File | null) {
+    setFile(next);
+    setSourceTenantId(null);
+    setConfirmedCross(false);
+    if (!next) return;
+    try {
+      const parsed = JSON.parse(await next.text());
+      const id = parsed?.tenantId;
+      setSourceTenantId(typeof id === "string" && id ? id : null);
+    } catch {
+      onError("Invalid JSON file");
+      setFile(null);
+    }
+  }
 
   async function submit() {
     if (!file) {
       onError("Select a backup JSON file");
+      return;
+    }
+    if (crossTenant && !confirmedCross) {
+      onError("Please confirm the cross-tenant restore first");
       return;
     }
     setUploading(true);
@@ -1215,15 +1238,23 @@ function RestoreBackupModal({
       const fd = new FormData();
       fd.append("file", file);
       fd.append("purge", purge ? "true" : "false");
+      fd.append("force", crossTenant && confirmedCross ? "true" : "false");
       const res = await fetch(`/api/superadmin/tenants/${encodeURIComponent(tenant.tenantId)}/restore`, {
         method: "POST",
         body: fd,
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        crossTenant?: boolean;
+        sourceTenantId?: string;
+        results?: Record<string, { requested: number; inserted: number }>;
+      };
       if (!res.ok) throw new Error(body.error || "Restore failed");
       const c = body.results || {};
-      const total = Object.values(c).reduce((a: number, b: any) => a + (b?.inserted || 0), 0);
-      onSuccess(`Restored ${total} records for ${tenant.businessName}`);
+      const total = Object.values(c).reduce((acc, item) => acc + (item?.inserted || 0), 0);
+      onSuccess(
+        `Restored ${total} records for ${tenant.businessName}${body.crossTenant ? ` (from backup of ${body.sourceTenantId})` : ""}`,
+      );
     } catch (err) {
       onError(err instanceof Error ? err.message : "Restore failed");
     } finally {
@@ -1239,9 +1270,33 @@ function RestoreBackupModal({
           <input
             type="file"
             accept="application/json,.json"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            onChange={(e) => void pickFile(e.target.files?.[0] || null)}
             className="w-full text-sm"
           />
+          {sourceTenantId && (
+            <p className="text-xs text-zinc-500">
+              Backup belongs to tenant: <span className="font-mono text-zinc-700">{sourceTenantId}</span>
+            </p>
+          )}
+          {crossTenant && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+              <p className="font-semibold">Cross-tenant restore</p>
+              <p className="mt-1">
+                Ye backup <span className="font-mono">{sourceTenantId}</span> ka hai.{" "}
+                <span className="font-mono">{tenant.tenantId}</span> mein restore karne par har record ka tenantId{" "}
+                <span className="font-mono">{tenant.tenantId}</span> set ho jayega.
+              </p>
+              <label className="mt-2 flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={confirmedCross}
+                  onChange={(e) => setConfirmedCross(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>Main confirm karta hoon ki data is tenant mein daalna hai.</span>
+              </label>
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm text-zinc-700">
             <input type="checkbox" checked={purge} onChange={(e) => setPurge(e.target.checked)} />
             Purge existing data for this tenant first (recommended)
@@ -1252,7 +1307,7 @@ function RestoreBackupModal({
           <Button variant="ghost" onClick={onClose} disabled={uploading}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={uploading || !file}>
+          <Button onClick={submit} disabled={uploading || !file || (crossTenant && !confirmedCross)}>
             {uploading ? "Restoring…" : "Restore"}
           </Button>
         </div>
