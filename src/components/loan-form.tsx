@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader } from "@/components/ui";
 import { Field, Input, Select, SectionHeading } from "@/components/form";
@@ -80,6 +80,17 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
   const typeOptions: LoanTypeOption[] = loanTypes && loanTypes.length ? loanTypes : FALLBACK_LOAN_TYPES.map((name) => ({ name }));
 
   const [tab, setTab] = useState(0);
+  const tabPanelRefs = useRef<(HTMLElement | null)[]>([null, null, null, null]);
+  const prevTabRef = useRef(tab);
+
+  useEffect(() => {
+    if (prevTabRef.current === tab) return;
+    prevTabRef.current = tab;
+    const panel = tabPanelRefs.current[tab];
+    if (!panel) return;
+    const first = panel.querySelector<HTMLElement>("input:not([type='hidden']), select, textarea");
+    first?.focus();
+  }, [tab]);
   const [customer, setCustomer] = useState(emptyCustomer);
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
@@ -414,7 +425,11 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
 
           <div className="space-y-6 p-4 sm:p-6">
             {tab === 0 && (
-              <section>
+              <section
+                ref={(el) => {
+                  tabPanelRefs.current[0] = el;
+                }}
+              >
                 <SectionHeading
                   step={1}
                   title="Customer Details"
@@ -582,7 +597,11 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
             )}
 
             {tab === 1 && (
-              <section>
+              <section
+                ref={(el) => {
+                  tabPanelRefs.current[1] = el;
+                }}
+              >
                 <SectionHeading
                   step={2}
                   title="Vehicle Details"
@@ -650,7 +669,11 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
             )}
 
             {tab === 2 && (
-              <section>
+              <section
+                ref={(el) => {
+                  tabPanelRefs.current[2] = el;
+                }}
+              >
                 <SectionHeading
                   step={3}
                   title="Loan Financial Details"
@@ -784,7 +807,11 @@ export function LoanForm({ loanTypes }: { loanTypes?: LoanTypeOption[] }) {
             )}
 
             {tab === 3 && (
-              <section>
+              <section
+                ref={(el) => {
+                  tabPanelRefs.current[3] = el;
+                }}
+              >
                 <SectionHeading
                   step={4}
                   title="Guarantor Details"
