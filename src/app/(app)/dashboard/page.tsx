@@ -82,7 +82,7 @@ export default async function DashboardPage() {
     { label: "Closed Loans", value: String(data.closedLoans), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
     { label: "Pending EMIs", value: String(data.pendingEmis), tone: "amber" as const, icon: <Icon name="calendar" />, href: "/emi-pay" },
     { label: "Overdue EMIs", value: String(data.overdueEmis), tone: "red" as const, icon: <Icon name="alert" />, href: "/emi-pay" },
-    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/emi-pay" },
+    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
     { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" />, href: "/reports?tab=loans-active" },
     { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" />, href: "/emi-pay" },
     { label: "Total Collection", value: inr(data.totalCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },

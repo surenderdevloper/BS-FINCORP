@@ -7,7 +7,6 @@ import { Icon } from "@/components/icons";
 import { downloadExcel } from "@/lib/excel";
 import { cachedGet, peekCached } from "@/lib/client-fetch";
 import { inr } from "@/lib/money";
-import { isoDateIST } from "@/lib/dates";
 import type { ReportData, ReportType } from "@/lib/reports";
 
 const TYPES: { value: ReportType; label: string }[] = [
@@ -15,10 +14,6 @@ const TYPES: { value: ReportType; label: string }[] = [
   { value: "loans-closed", label: "Closed Loans" },
   { value: "collections", label: "Collections" },
 ];
-
-// Current business day (IST) as a yyyy-mm-dd string, so the default range
-// always matches the running day regardless of the server's timezone.
-const today = () => isoDateIST(new Date());
 
 // Columns holding money values (formatted with ₹, right-aligned) vs. plain
 // numeric columns that must stay centered and unformatted (e.g. tenure).
@@ -34,9 +29,9 @@ export function ReportsView({
   initialData: ReportData | null;
   initialRange: { type: ReportType; from: string; to: string };
 }) {
-  const [type, setType] = useState<ReportType>("loans-active");
-  const [from, setFrom] = useState(() => today());
-  const [to, setTo] = useState(() => today());
+  const [type, setType] = useState<ReportType>(initialRange.type);
+  const [from, setFrom] = useState(() => initialRange.from);
+  const [to, setTo] = useState(() => initialRange.to);
   const [data, setData] = useState<ReportData | null>(initialData);
   const [loading, setLoading] = useState(initialData === null);
   const [error, setError] = useState<string | null>(null);

@@ -32,7 +32,7 @@ export function RemindersCard({
 }) {
   function actions(row: ReminderRow) {
     return (
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
+      <div className="flex flex-wrap items-center justify-start gap-1.5 sm:justify-end">
         <SmsComposer
           type="upcoming"
           customerName={row.customerName}
@@ -110,24 +110,24 @@ export function RemindersCard({
         </p>
       ) : (
         <div>
-          <ul className="max-h-[280px] divide-y divide-zinc-50 overflow-y-auto xl:hidden">
+          <ul className="max-h-[22rem] divide-y divide-zinc-50 overflow-y-auto xl:hidden">
             {reminders.map((row) => (
-              <li key={row.emiId} className="space-y-2 py-3 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-medium text-zinc-900">
+              <li key={row.emiId} className="space-y-2.5 py-3 first:pt-0 last:pb-0">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900">
                     {row.customerName || "—"}
                     <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
                   </span>
                   <Badge tone={row.daysLeft <= 1 ? "red" : "amber"}>{daysLabel(row.daysLeft)}</Badge>
                 </div>
-                <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
-                  <span className="min-w-0 truncate">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-zinc-500">
+                  <span className="min-w-0 flex-1 truncate">
                     {row.vehicle || "—"} · EMI #{row.emiNo} · Due {formatDate(row.dueDate)}
                   </span>
                   <span className="shrink-0 font-semibold text-zinc-900">{inr(row.amount)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-500">{row.mobile || "—"}</span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-xs text-zinc-500">{row.mobile || "—"}</span>
                   {actions(row)}
                 </div>
               </li>
