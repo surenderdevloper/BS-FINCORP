@@ -24,6 +24,11 @@ export interface SessionUser {
   sid?: string;
   /** True when the tenant's plan is suspended (multi-tenant mode only). */
   suspended?: boolean;
+  /**
+   * The tenant's subscription expiry date, read on every request so the app can
+   * warn before the plan lapses (multi-tenant mode only).
+   */
+  subscriptionExpiresAt?: Date | null;
 }
 
 /** Coerce an arbitrary stored value to a known role, defaulting to "admin". */
@@ -147,6 +152,7 @@ async function readSessionUncached(): Promise<SessionUser | null> {
     // waiting for the session token to expire. Developers/superadmins (no
     // tenant) and single-tenant deployments are never suspended.
     user.suspended = false;
+    user.subscriptionExpiresAt = null;
     if (multiTenantEnabled() && user.tenantId) {
       // Tenant is a global registry collection (not plugin-scoped).
       const tenant = await Tenant.findOne({ tenantId: user.tenantId })
@@ -159,6 +165,7 @@ async function readSessionUncached(): Promise<SessionUser | null> {
       const expired = tenant?.expiresAt ? new Date(tenant.expiresAt).getTime() < now : false;
       user.suspended =
         tenant?.planStatus === "suspended" || tenant?.archived === true || expired;
+      user.subscriptionExpiresAt = tenant?.expiresAt ? new Date(tenant.expiresAt) : null;
     }
   } catch {
     return null;

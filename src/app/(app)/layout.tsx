@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
-import { AppShell } from "@/components/app-shell";
+import { AppShell, type SubscriptionAlert } from "@/components/app-shell";
 import { isSuperadmin, isSuspended, readSession } from "@/lib/auth";
 import { multiTenantEnabled, runForSession } from "@/lib/tenant";
+import { buildSubscriptionNotice } from "@/lib/subscription-notice";
+import { formatDate } from "@/lib/money";
 import { getCompanySetting } from "@/models/CompanySetting";
 import { getAppConfig } from "@/models/AppConfig";
 
@@ -53,6 +55,11 @@ export default async function AppLayout({
     // Feature flags are optional; default to everything enabled.
   }
 
+  const expiresAt = session.subscriptionExpiresAt ?? null;
+  const notice = expiresAt ? buildSubscriptionNotice(expiresAt) : null;
+  const subscription: SubscriptionAlert | null =
+    notice && expiresAt ? { ...notice, expiresOn: formatDate(expiresAt) } : null;
+
   return (
     <AppShell
       userName={session.name}
@@ -60,6 +67,7 @@ export default async function AppLayout({
       isDeveloper={session.role === "developer"}
       features={features}
       maintenance={maintenance}
+      subscription={subscription}
     >
       {children}
     </AppShell>
