@@ -71,7 +71,7 @@ const PRICING: {
 }[] = [
   {
     term: "3 Months",
-    price: "₹349",
+    price: "₹450",
     trial: "3-day free trial",
     perks: [
       "All modules included",
@@ -83,7 +83,7 @@ const PRICING: {
   },
   {
     term: "6 Months",
-    price: "₹649",
+    price: "₹750",
     trial: "7-day free trial",
     badge: "Most Popular",
     highlight: true,
@@ -97,7 +97,7 @@ const PRICING: {
   },
   {
     term: "1 Year",
-    price: "₹1,299",
+    price: "₹1,499",
     trial: "7-day free trial",
     badge: "Best Value",
     perks: [
@@ -109,6 +109,37 @@ const PRICING: {
     ],
   },
 ];
+
+const PUBLIC_DEMO_URL = (process.env.PUBLIC_DEMO_URL ?? "").trim().replace(/\/+$/, "");
+const DEMO_LOGIN_URL = PUBLIC_DEMO_URL ? `${PUBLIC_DEMO_URL}/api/auth/demo` : null;
+
+function DemoButton({ className }: { className: string }) {
+  const content = (
+    <>
+      <Icon name="view" size={18} />
+      View Live Demo
+    </>
+  );
+
+  if (DEMO_LOGIN_URL) {
+    return (
+      <a href={DEMO_LOGIN_URL} rel="nofollow" className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled
+      title="The separate demo deployment has not been configured yet."
+      className={className}
+    >
+      {content}
+    </button>
+  );
+}
 
 export default function WelcomePage() {
   return (
@@ -143,7 +174,7 @@ export default function WelcomePage() {
             href="/login"
             className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
           >
-            Login
+            Client Login
             <Icon name="chevron" size={16} />
           </Link>
         </div>
@@ -171,9 +202,10 @@ export default function WelcomePage() {
                 href="/login"
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
               >
-                <Icon name="view" size={18} />
-                View Live Demo
+                Client Login
+                <Icon name="chevron" size={18} />
               </Link>
+              <DemoButton className="inline-flex h-12 items-center gap-2 rounded-xl border border-emerald-200 bg-white px-6 text-sm font-semibold text-emerald-700 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60" />
               <a
                 href="#features"
                 className="inline-flex h-12 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-6 text-sm font-semibold text-zinc-700 transition-colors hover:border-emerald-300 hover:text-emerald-700"
