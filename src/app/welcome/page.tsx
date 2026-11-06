@@ -71,7 +71,7 @@ const PRICING: {
 }[] = [
   {
     term: "3 Months",
-    price: "₹450",
+    price: "₹449",
     trial: "3-day free trial",
     perks: [
       "All modules included",
@@ -83,7 +83,7 @@ const PRICING: {
   },
   {
     term: "6 Months",
-    price: "₹750",
+    price: "₹749",
     trial: "7-day free trial",
     badge: "Most Popular",
     highlight: true,
