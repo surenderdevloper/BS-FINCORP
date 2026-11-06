@@ -7,15 +7,22 @@ import { getCompanySetting } from "@/models/CompanySetting";
 export const dynamic = "force-dynamic";
 
 async function getBranding() {
+  const envName = process.env.NEXT_PUBLIC_APP_NAME || "Gigabyte Brothers";
   try {
     await dbConnect();
     const company = await runUnscoped(() => getCompanySetting());
+    const dbName = company?.companyName;
+    const isOldBrand =
+      !dbName ||
+      dbName.toLowerCase().includes("bs fincorp") ||
+      dbName.toLowerCase().includes("bs_fincorp") ||
+      dbName === "Gigabyte Finance Manager";
     return {
-      logo: company.logo ?? "",
-      companyName: company.companyName ?? "Gigabyte Finance Manager",
+      logo: isOldBrand ? "" : (company.logo ?? ""),
+      companyName: envName || (isOldBrand ? "Gigabyte Brothers" : dbName),
     };
   } catch {
-    return { logo: "", companyName: "Gigabyte Finance Manager" };
+    return { logo: "", companyName: envName };
   }
 }
 

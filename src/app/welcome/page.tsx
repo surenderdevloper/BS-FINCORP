@@ -149,7 +149,7 @@ export default function WelcomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-xs font-extrabold tracking-tight text-white">
-              GFM
+              GB
             </span>
             <span className="text-base font-extrabold tracking-wide text-zinc-900 sm:text-lg">
               <span className="sm:hidden">GFM</span>
@@ -496,7 +496,7 @@ export default function WelcomePage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-zinc-500 sm:flex-row">
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-xs font-extrabold text-white">
-              GFM
+              GB
             </span>
             <span className="font-bold text-zinc-800">Gigabyte Finance Manager</span>
             <span className="hidden sm:inline">— by Gigabyte Brothers, Sri Ganganagar.</span>

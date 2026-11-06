@@ -10,17 +10,23 @@ export const dynamic = "force-dynamic";
 
 async function getBranding() {
   const envLogo = process.env.CLIENT_LOGO_URL ?? "";
-  const envName = process.env.NEXT_PUBLIC_APP_NAME ?? "";
+  const envName = process.env.NEXT_PUBLIC_APP_NAME || "Gigabyte Brothers";
   try {
     await dbConnect();
     // No tenant yet on the login page: branding falls back to the global settings.
     const company = await runUnscoped(() => getCompanySetting());
+    const dbName = company?.companyName;
+    const isOldBrand =
+      !dbName ||
+      dbName.toLowerCase().includes("bs fincorp") ||
+      dbName.toLowerCase().includes("bs_fincorp") ||
+      dbName === "Gigabyte Finance Manager";
     return {
-      logo: envLogo || (company.logo ?? ""),
-      companyName: envName || company.companyName || "Gigabyte Finance Manager",
+      logo: envLogo || (isOldBrand ? "" : (company.logo ?? "")),
+      companyName: envName || (isOldBrand ? "Gigabyte Brothers" : dbName),
     };
   } catch {
-    return { logo: envLogo, companyName: envName || "Gigabyte Finance Manager" };
+    return { logo: envLogo, companyName: envName };
   }
 }
 

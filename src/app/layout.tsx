@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const appTitle = process.env.NEXT_PUBLIC_APP_NAME || "Gigabyte Finance Manager";
+const appTitle = process.env.NEXT_PUBLIC_APP_NAME || "Gigabyte Brothers";
 
 export const metadata: Metadata = {
   title: {
