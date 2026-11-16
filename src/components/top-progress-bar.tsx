@@ -1,24 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export function TopProgressBar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const barRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (loading) {
-      setProgress(100);
-      const timer = setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 250);
-      return () => clearTimeout(timer);
+    const el = barRef.current;
+    if (!el) return;
+    if (el.dataset.active === "true") {
+      el.style.width = "100%";
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        el.style.opacity = "0";
+        el.dataset.active = "false";
+        setTimeout(() => {
+          el.style.width = "0%";
+          el.style.opacity = "1";
+        }, 300);
+      }, 150);
     }
-  }, [pathname, searchParams]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -37,10 +45,18 @@ export function TopProgressBar() {
       ) {
         const currentUrl = window.location.pathname + window.location.search;
         if (href !== currentUrl) {
-          setLoading(true);
-          setProgress(25);
-          setTimeout(() => setProgress((p) => (p === 25 ? 65 : p)), 100);
-          setTimeout(() => setProgress((p) => (p === 65 ? 85 : p)), 300);
+          const el = barRef.current;
+          if (el) {
+            el.dataset.active = "true";
+            el.style.opacity = "1";
+            el.style.width = "25%";
+            setTimeout(() => {
+              if (el.dataset.active === "true") el.style.width = "65%";
+            }, 100);
+            setTimeout(() => {
+              if (el.dataset.active === "true") el.style.width = "85%";
+            }, 300);
+          }
         }
       }
     };
@@ -49,23 +65,16 @@ export function TopProgressBar() {
     return () => document.removeEventListener("click", handleClick, { capture: true });
   }, []);
 
-  if (!loading && progress === 0) return null;
-
   return (
     <div
       className="pointer-events-none fixed inset-x-0 top-0 z-50 h-[3px] bg-transparent"
       aria-hidden="true"
     >
       <div
-        className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.7)]"
-        style={{
-          width: `${progress}%`,
-          opacity: progress === 100 ? 0 : 1,
-          transition:
-            progress === 100
-              ? "width 150ms ease-out, opacity 250ms ease-out 100ms"
-              : "width 300ms ease-out",
-        }}
+        ref={barRef}
+        data-active="false"
+        className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.7)] transition-all duration-300 ease-out"
+        style={{ width: "0%", opacity: 0 }}
       />
     </div>
   );

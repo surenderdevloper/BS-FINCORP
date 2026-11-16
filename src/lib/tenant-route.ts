@@ -6,7 +6,6 @@ import {
   runForSession,
   runUnscoped,
 } from "@/lib/tenant";
-import { persistentRateLimit } from "@/lib/rate-limit";
 import { hasDeveloperAccess } from "@/lib/developer-access";
 
 const API_RATE_LIMIT = 120;
