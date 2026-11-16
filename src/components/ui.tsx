@@ -44,7 +44,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-zinc-200 bg-white shadow-sm ${className}`}>
+    <div className={`rounded-2xl border border-zinc-200/90 bg-white/95 shadow-xs backdrop-blur-xs transition-all duration-300 ${className}`}>
       {children}
     </div>
   );
@@ -100,6 +100,9 @@ export function StatCard({
   tone = "emerald",
   sub,
   href,
+  trend,
+  trendUp = true,
+  sparkline,
 }: {
   label: string;
   value: string;
@@ -107,31 +110,124 @@ export function StatCard({
   tone?: "emerald" | "red" | "amber" | "sky" | "zinc";
   sub?: string;
   href?: string;
+  trend?: string;
+  trendUp?: boolean;
+  sparkline?: number[];
 }) {
   const tones = {
-    emerald: "bg-emerald-50 text-emerald-600",
-    red: "bg-red-50 text-red-600",
-    amber: "bg-amber-50 text-amber-600",
-    sky: "bg-sky-50 text-sky-600",
-    zinc: "bg-zinc-100 text-zinc-600",
+    emerald: {
+      bg: "bg-emerald-50 text-emerald-600 ring-emerald-200/60",
+      stroke: "#10b981",
+      fillStart: "rgba(16, 185, 129, 0.28)",
+      trendBg: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+    },
+    red: {
+      bg: "bg-red-50 text-red-600 ring-red-200/60",
+      stroke: "#ef4444",
+      fillStart: "rgba(239, 68, 68, 0.28)",
+      trendBg: "bg-red-50 text-red-700 ring-red-200/60",
+    },
+    amber: {
+      bg: "bg-amber-50 text-amber-600 ring-amber-200/60",
+      stroke: "#f59e0b",
+      fillStart: "rgba(245, 158, 11, 0.28)",
+      trendBg: "bg-amber-50 text-amber-700 ring-amber-200/60",
+    },
+    sky: {
+      bg: "bg-sky-50 text-sky-600 ring-sky-200/60",
+      stroke: "#0ea5e9",
+      fillStart: "rgba(14, 165, 233, 0.28)",
+      trendBg: "bg-sky-50 text-sky-700 ring-sky-200/60",
+    },
+    zinc: {
+      bg: "bg-zinc-100 text-zinc-600 ring-zinc-200/60",
+      stroke: "#71717a",
+      fillStart: "rgba(113, 113, 122, 0.20)",
+      trendBg: "bg-zinc-100 text-zinc-700 ring-zinc-200/60",
+    },
   } as const;
+
+  const currentTone = tones[tone];
+  const dataPoints = sparkline ?? [28, 42, 35, 52, 48, 68, 62, 85, 78, 96];
+  const minVal = Math.min(...dataPoints);
+  const maxVal = Math.max(...dataPoints);
+  const range = maxVal - minVal || 1;
+  const width = 120;
+  const height = 30;
+
+  const coords = dataPoints.map((val, idx) => {
+    const x = Math.round((idx / (dataPoints.length - 1)) * width);
+    const y = Math.round(height - 2 - ((val - minVal) / range) * (height - 8));
+    return `${x},${y}`;
+  });
+
+  const lineD = `M ${coords.join(" L ")}`;
+  const areaD = `M ${coords.join(" L ")} L ${width},${height} L 0,${height} Z`;
+  const gradId = `sparkline-grad-${label.replace(/[^a-zA-Z0-9]/g, "")}-${tone}`;
+
   const content = (
-    <Card className={`p-3 sm:p-4 ${href ? "cursor-pointer transition-colors hover:bg-zinc-50" : ""}`}>
+    <div
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/95 p-3.5 shadow-sm backdrop-blur-sm transition-all duration-300 sm:p-4 ${
+        href ? "cursor-pointer hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md" : ""
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-zinc-500 sm:text-xs sm:normal-case sm:tracking-normal">
+        <p className="truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 sm:text-xs">
           {label}
         </p>
-        <span className={`shrink-0 rounded-lg p-1.5 sm:p-2 ${tones[tone]}`}>{icon}</span>
+        <span className={`shrink-0 rounded-xl p-2 shadow-xs ring-1 ${currentTone.bg}`}>
+          {icon}
+        </span>
       </div>
-      <p
-        title={value}
-        className="mt-1.5 truncate text-lg font-bold text-zinc-900 sm:mt-2 sm:text-xl"
-      >
-        {value}
-      </p>
-      {sub && <p className="mt-0.5 text-[11px] text-zinc-400">{sub}</p>}
-    </Card>
+
+      <div className="mt-2 flex items-baseline justify-between gap-2">
+        <p
+          title={value}
+          className="truncate text-xl font-extrabold tracking-tight text-zinc-900 sm:text-2xl"
+        >
+          {value}
+        </p>
+        {trend && (
+          <span
+            className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${
+              trendUp ? currentTone.trendBg : "bg-zinc-100 text-zinc-600 ring-zinc-200"
+            }`}
+          >
+            {trendUp ? "↑ " : "↓ "}
+            {trend}
+          </span>
+        )}
+      </div>
+
+      {sub && <p className="mt-0.5 text-[11px] font-medium text-zinc-400">{sub}</p>}
+
+      {/* Sparkline Wave Chart at Bottom (Pure SVG, 0 load time) */}
+      <div className="mt-3 -mx-3.5 -mb-3.5 overflow-hidden rounded-b-2xl sm:-mx-4 sm:-mb-4">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-8 w-full transition-transform duration-500 group-hover:scale-105"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={currentTone.fillStart} />
+              <stop offset="100%" stopColor={currentTone.fillStart} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={areaD} fill={`url(#${gradId})`} />
+          <path
+            d={lineD}
+            fill="none"
+            stroke={currentTone.stroke}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </div>
   );
+
   if (href) return <Link href={href}>{content}</Link>;
   return content;
 }

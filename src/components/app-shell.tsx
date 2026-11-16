@@ -48,29 +48,33 @@ export function AppShell({
   return (
     <FeatureProvider features={features}>
       <TopProgressBar />
-      <div className="flex min-h-screen bg-zinc-100">
-      {/* Desktop sidebar */}
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-zinc-200 bg-white md:block">
-        <SidebarContent branding={branding} />
+      <div className="flex min-h-screen bg-zinc-100/90">
+      {/* Desktop curved floating sidebar (from Video 2) */}
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 p-3 md:block">
+        <div className="h-full w-full overflow-hidden rounded-3xl border border-zinc-200/90 bg-white/95 shadow-xl shadow-zinc-950/5 backdrop-blur-xl">
+          <SidebarContent branding={branding} />
+        </div>
       </aside>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer with curved glassmorphic panel */}
       {drawerOpen && (
         <div className="no-print fixed inset-0 z-40 md:hidden">
           <div
-            className="absolute inset-0 bg-zinc-900/50"
+            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 w-64 animate-in bg-white shadow-xl">
-            <SidebarContent
-              branding={branding}
-              onNavigate={() => setDrawerOpen(false)}
-            />
+          <aside className="absolute inset-y-0 left-0 w-72 p-2.5">
+            <div className="h-full w-full overflow-hidden rounded-3xl border border-zinc-200/90 bg-white shadow-2xl">
+              <SidebarContent
+                branding={branding}
+                onNavigate={() => setDrawerOpen(false)}
+              />
+            </div>
           </aside>
         </div>
       )}
 
-      <div className="flex min-h-screen w-full flex-col md:pl-60">
+      <div className="flex min-h-screen w-full flex-col md:pl-64">
         <Topbar
           userName={userName}
           onMenu={() => setDrawerOpen(true)}

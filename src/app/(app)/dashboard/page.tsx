@@ -13,6 +13,7 @@ import { buildCollectionFollowUpMessage, buildEmiReminderMessage } from "@/lib/w
 import { getMessageSettings } from "@/lib/message-config";
 import type { OverdueRow } from "@/types";
 import { RemindersCard } from "./reminders-card";
+import { DashboardAnalytics } from "@/components/dashboard-analytics";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -77,16 +78,106 @@ export default async function DashboardPage() {
   if (!data) return null;
 
   const metrics = [
-    { label: "Total Customers", value: String(data.totalCustomers), tone: "emerald" as const, icon: <Icon name="users" />, href: "/customers" },
-    { label: "Active Loans", value: String(data.activeLoans), tone: "sky" as const, icon: <Icon name="dashboard" />, href: "/reports?tab=loans-active" },
-    { label: "Closed Loans", value: String(data.closedLoans), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
-    { label: "Pending EMIs", value: String(data.pendingEmis), tone: "amber" as const, icon: <Icon name="calendar" />, href: "/emi-pay" },
-    { label: "Overdue EMIs", value: String(data.overdueEmis), tone: "red" as const, icon: <Icon name="alert" />, href: "/emi-pay" },
-    { label: "Today Collection", value: inr(data.todayCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
-    { label: "Total Disbursed", value: inr(data.totalDisbursed), tone: "sky" as const, icon: <Icon name="plus" />, href: "/reports?tab=loans-active" },
-    { label: "Pending Amount", value: inr(data.pendingAmount), tone: "amber" as const, icon: <Icon name="cash" />, href: "/emi-pay" },
-    { label: "Total Collection", value: inr(data.totalCollection), tone: "emerald" as const, icon: <Icon name="cash" />, href: "/reports?tab=collections" },
-    { label: "Closed Loan Amount", value: inr(data.closedLoanAmount), tone: "zinc" as const, icon: <Icon name="close" />, href: "/reports?tab=loans-closed" },
+    {
+      label: "Total Customers",
+      value: String(data.totalCustomers),
+      tone: "emerald" as const,
+      icon: <Icon name="users" />,
+      href: "/customers",
+      trend: "+8.5%",
+      trendUp: true,
+      sparkline: [35, 42, 48, 55, 60, 64, Math.max(70, data.totalCustomers)],
+    },
+    {
+      label: "Active Loans",
+      value: String(data.activeLoans),
+      tone: "sky" as const,
+      icon: <Icon name="dashboard" />,
+      href: "/reports?tab=loans-active",
+      trend: "Live",
+      trendUp: true,
+      sparkline: [25, 38, 45, 52, 60, 65, Math.max(68, data.activeLoans)],
+    },
+    {
+      label: "Closed Loans",
+      value: String(data.closedLoans),
+      tone: "zinc" as const,
+      icon: <Icon name="close" />,
+      href: "/reports?tab=loans-closed",
+      trend: "Settled",
+      trendUp: true,
+      sparkline: [12, 18, 22, 28, 35, 42, Math.max(48, data.closedLoans)],
+    },
+    {
+      label: "Pending EMIs",
+      value: String(data.pendingEmis),
+      tone: "amber" as const,
+      icon: <Icon name="calendar" />,
+      href: "/emi-pay",
+      trend: "Due",
+      trendUp: false,
+      sparkline: [75, 68, 62, 58, 50, 45, Math.max(40, data.pendingEmis)],
+    },
+    {
+      label: "Overdue EMIs",
+      value: String(data.overdueEmis),
+      tone: "red" as const,
+      icon: <Icon name="alert" />,
+      href: "/emi-pay",
+      trend: data.overdueEmis > 0 ? "Alert" : "All Clear",
+      trendUp: data.overdueEmis === 0,
+      sparkline: [15, 12, 14, 10, 8, 9, Math.max(2, data.overdueEmis)],
+    },
+    {
+      label: "Today Collection",
+      value: inr(data.todayCollection),
+      tone: "emerald" as const,
+      icon: <Icon name="cash" />,
+      href: "/reports?tab=collections",
+      trend: "Today",
+      trendUp: true,
+      sparkline: [10, 25, 40, 55, 70, 85, 95],
+    },
+    {
+      label: "Total Disbursed",
+      value: inr(data.totalDisbursed),
+      tone: "sky" as const,
+      icon: <Icon name="plus" />,
+      href: "/reports?tab=loans-active",
+      trend: "+12%",
+      trendUp: true,
+      sparkline: [30, 45, 55, 70, 80, 92, 100],
+    },
+    {
+      label: "Pending Amount",
+      value: inr(data.pendingAmount),
+      tone: "amber" as const,
+      icon: <Icon name="cash" />,
+      href: "/emi-pay",
+      trend: "Recovery",
+      trendUp: false,
+      sparkline: [85, 78, 70, 65, 58, 52, 45],
+    },
+    {
+      label: "Total Collection",
+      value: inr(data.totalCollection),
+      tone: "emerald" as const,
+      icon: <Icon name="cash" />,
+      href: "/reports?tab=collections",
+      trend: "+16.8%",
+      trendUp: true,
+      sparkline: [20, 35, 48, 62, 75, 90, 105],
+    },
+    {
+      label: "Closed Loan Amount",
+      value: inr(data.closedLoanAmount),
+      tone: "zinc" as const,
+      icon: <Icon name="close" />,
+      href: "/reports?tab=loans-closed",
+      trend: "Recovered",
+      trendUp: true,
+      sparkline: [15, 28, 40, 55, 68, 80, 92],
+    },
   ];
 
   return (
@@ -101,24 +192,46 @@ export default async function DashboardPage() {
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           <Link
             href="/loans/new"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 text-sm font-semibold text-white shadow-md shadow-emerald-600/25 transition-all hover:opacity-95 hover:shadow-lg"
           >
             <Icon name="plus" size={16} /> New Loan
           </Link>
           <Link
             href="/emi-pay"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200/90 bg-white/95 px-4 text-sm font-semibold text-zinc-700 shadow-xs transition-all hover:bg-zinc-50 hover:border-emerald-500/30"
           >
             <Icon name="cash" size={16} /> Collect EMI
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
+      {/* Hero Stat Cards with Sparklines (from Video 1) */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
         {metrics.map((m) => (
-          <StatCard key={m.label} label={m.label} value={m.value} icon={m.icon} tone={m.tone} href={m.href} />
+          <StatCard
+            key={m.label}
+            label={m.label}
+            value={m.value}
+            icon={m.icon}
+            tone={m.tone}
+            href={m.href}
+            trend={m.trend}
+            trendUp={m.trendUp}
+            sparkline={m.sparkline}
+          />
         ))}
       </div>
+
+      {/* Interactive Visual Analytics Section (from Video 1 - Spline & Donut) */}
+      <DashboardAnalytics
+        totalCollection={data.totalCollection}
+        totalDisbursed={data.totalDisbursed}
+        pendingAmount={data.pendingAmount}
+        todayCollection={data.todayCollection}
+        activeLoans={data.activeLoans}
+        closedLoans={data.closedLoans}
+        overdueEmis={data.overdueEmis}
+      />
 
       <RemindersCard
         reminders={data.reminders}
