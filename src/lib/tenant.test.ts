@@ -2,6 +2,7 @@ import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   currentTenantId,
+  isTenantAdminSession,
   isUnscoped,
   multiTenantEnabled,
   runForSession,
@@ -38,6 +39,13 @@ test("multiTenantEnabled is off by default and truthy only for known flags", () 
     process.env.MULTI_TENANT = value;
     assert.equal(multiTenantEnabled(), false, `expected ${value} to disable`);
   }
+});
+
+test("tenant API access requires a tenant-bound admin session", () => {
+  assert.equal(isTenantAdminSession("admin", "tenant-a"), true);
+  assert.equal(isTenantAdminSession("admin", " "), false);
+  assert.equal(isTenantAdminSession("developer", "tenant-a"), false);
+  assert.equal(isTenantAdminSession("superadmin", null), false);
 });
 
 test("single-tenant mode leaves every helper as a no-op", () => {

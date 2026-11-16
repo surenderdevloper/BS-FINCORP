@@ -25,6 +25,13 @@ export function multiTenantEnabled(): boolean {
   return value === "1" || value === "true" || value === "on" || value === "yes";
 }
 
+export function isTenantAdminSession(
+  role: string,
+  tenantId: string | null | undefined
+): boolean {
+  return role === "admin" && Boolean(tenantId?.trim());
+}
+
 /** Run `fn` with all tenant-scoped database work bound to `tenantId`. */
 export function runWithTenant<T>(tenantId: string, fn: () => T): T {
   return storage.run({ tenantId }, fn);
