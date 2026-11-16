@@ -114,10 +114,35 @@ export async function verifySessionToken(
   }
 }
 
+interface SessionCacheEntry {
+  user: SessionUser;
+  at: number;
+}
+const sessionMemoryCache = new Map<string, SessionCacheEntry>();
+const SESSION_CACHE_TTL_MS = 20_000; // 20s fast in-memory cache across tab switches
+
+export function invalidateSessionMemoryCache(userId?: string): void {
+  if (userId) {
+    for (const [k, v] of sessionMemoryCache.entries()) {
+      if (v.user.id === userId) sessionMemoryCache.delete(k);
+    }
+  } else {
+    sessionMemoryCache.clear();
+  }
+}
+
 async function readSessionUncached(): Promise<SessionUser | null> {
   const store = await cookies();
-  const user = await verifySessionToken(store.get(SESSION_COOKIE)?.value);
+  const token = store.get(SESSION_COOKIE)?.value;
+  const user = await verifySessionToken(token);
   if (!user) return null;
+
+  const cacheKey = `${user.id}:${user.tokenVersion ?? 0}:${user.sid ?? ""}`;
+  const hit = sessionMemoryCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < SESSION_CACHE_TTL_MS) {
+    return { ...hit.user };
+  }
+
   try {
     // Establish the connection before querying. Without this, a cold serverless
     // instance buffers the query (mongoose bufferTimeoutMS) until it throws,
@@ -170,6 +195,7 @@ async function readSessionUncached(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
+  sessionMemoryCache.set(cacheKey, { user: { ...user }, at: Date.now() });
   return user;
 }
 
@@ -184,7 +210,12 @@ export const readSession = cache(readSessionUncached);
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
   store.delete(SESSION_COOKIE);
+  if (token) {
+    const user = await verifySessionToken(token);
+    if (user?.id) invalidateSessionMemoryCache(user.id);
+  }
 }
 
 /**

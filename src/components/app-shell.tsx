@@ -6,6 +6,7 @@ import { Topbar } from "@/components/topbar";
 import { Icon } from "@/components/icons";
 import { SessionTimeout } from "@/components/session-timeout";
 import { FeatureProvider, type AppFeatures } from "@/components/feature-context";
+import { TopProgressBar } from "@/components/top-progress-bar";
 
 export interface CompanyBranding {
   logo: string;
@@ -46,7 +47,8 @@ export function AppShell({
 
   return (
     <FeatureProvider features={features}>
-    <div className="flex min-h-screen bg-zinc-100">
+      <TopProgressBar />
+      <div className="flex min-h-screen bg-zinc-100">
       {/* Desktop sidebar */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-zinc-200 bg-white md:block">
         <SidebarContent branding={branding} />

@@ -35,7 +35,7 @@ export const CompanySetting =
   mongoose.model<CompanySettingType>("CompanySetting", companySettingSchema);
 
 let cache: Invalidatable<CompanySettingType> | null = null;
-const CACHE_TTL_MS = 10_000;
+const CACHE_TTL_MS = 60_000;
 
 type Invalidatable<T> = { value: T; at: number; key: string };
 

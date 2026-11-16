@@ -9,6 +9,7 @@ import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { withTenant } from "@/lib/tenant-route";
 import { startOfToday } from "@/lib/dates";
 import { invalidateCustomersListCache } from "@/lib/customers";
+import { invalidateDashboardCache } from "@/lib/dashboard";
 import { allocatePayment, totalDueFor, type AllocEmi } from "@/lib/payment-allocation";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -144,6 +145,7 @@ export async function POST(req: Request, ctx: RouteContext) {
   await loan.save();
 
   invalidateCustomersListCache();
+  invalidateDashboardCache();
 
   return NextResponse.json({
     loanNo: loan.loanNo,

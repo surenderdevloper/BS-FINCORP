@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import type { CompanyBranding } from "@/components/app-shell";
 
@@ -52,6 +52,7 @@ export function SidebarContent({
   onNavigate?: () => void;
   branding?: CompanyBranding;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const logo = branding?.logo ?? "";
   const companyName = branding?.companyName || "Gigabyte Finance Manager";
@@ -90,6 +91,9 @@ export function SidebarContent({
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      prefetch={false}
+                      onMouseEnter={() => router.prefetch(item.href)}
+                      onTouchStart={() => router.prefetch(item.href)}
                       onClick={onNavigate}
                       className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
                         active

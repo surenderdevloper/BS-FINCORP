@@ -126,7 +126,7 @@ export const DEFAULT_LOAN_TYPES: LoanTypeConfig[] = [
 ];
 
 let cache: { value: AppConfigType; at: number; key: string } | null = null;
-const CACHE_TTL_MS = 10_000;
+const CACHE_TTL_MS = 60_000;
 
 const cacheKey = () => currentTenantId() ?? "global";
 

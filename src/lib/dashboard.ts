@@ -13,10 +13,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // very short window. Switching back to the Dashboard tab then renders almost
 // instantly, and any staleness is at most this TTL (mutations reflect after a
 // few seconds). Mirrors the listCustomers server-cache pattern.
-const DASHBOARD_CACHE_TTL_MS = 10_000;
+const DASHBOARD_CACHE_TTL_MS = 60_000;
 
 let dashboardCache: { value: DashboardData; at: number; day: string; tenant: string } | null = null;
 const dashboardInFlight = new Map<string, Promise<DashboardData>>();
+
+export function invalidateDashboardCache(): void {
+  dashboardCache = null;
+  dashboardInFlight.clear();
+}
 
 // "Today" is the IST business day: IST midnight → next IST midnight. India has
 // no DST, so a day is always exactly 24h. Without this, a payment made just

@@ -11,6 +11,7 @@ import { parseCalendarDate } from "@/lib/dates";
 import { sanitizeSearch } from "@/lib/search";
 import { listLoans } from "@/lib/loans";
 import { invalidateCustomersListCache } from "@/lib/customers";
+import { invalidateDashboardCache } from "@/lib/dashboard";
 import type { LoanFormPayload } from "@/types";
 
 export async function GET(req: Request) {
@@ -211,6 +212,9 @@ export async function POST(req: Request) {
         status: "pending" as const,
       }))
     );
+
+    invalidateCustomersListCache();
+    invalidateDashboardCache();
 
     const result = {
       loanNo,

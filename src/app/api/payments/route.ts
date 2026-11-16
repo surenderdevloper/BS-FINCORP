@@ -9,6 +9,7 @@ import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { withTenant } from "@/lib/tenant-route";
 import { parseCalendarDate } from "@/lib/dates";
 import { invalidateCustomersListCache } from "@/lib/customers";
+import { invalidateDashboardCache } from "@/lib/dashboard";
 import { allocatePayment, totalDueFor, type AllocEmi } from "@/lib/payment-allocation";
 import { planCarryForward, type CarryEmi } from "@/lib/carry-forward";
 
@@ -274,6 +275,7 @@ export async function POST(req: Request) {
   await loan.save();
 
   invalidateCustomersListCache();
+  invalidateDashboardCache();
 
   const emiTotal = finalAlloc.principal + finalAlloc.interest;
 
