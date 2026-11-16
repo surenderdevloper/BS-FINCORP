@@ -90,6 +90,17 @@ export interface TodayCollectionRow {
   paidAt: string;
 }
 
+export interface TrendPoint {
+  label: string;
+  amount: number;
+}
+
+export interface CollectionTrend {
+  week: TrendPoint[];
+  month: TrendPoint[];
+  year: TrendPoint[];
+}
+
 export interface DashboardData {
   totalCustomers: number;
   activeLoans: number;
@@ -106,4 +117,5 @@ export interface DashboardData {
   overdueRows: OverdueRow[];
   todayRows: TodayCollectionRow[];
   reminders: ReminderRow[];
+  collectionTrend?: CollectionTrend;
 }

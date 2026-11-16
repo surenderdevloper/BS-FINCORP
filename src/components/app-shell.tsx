@@ -48,28 +48,24 @@ export function AppShell({
   return (
     <FeatureProvider features={features}>
       <TopProgressBar />
-      <div className="flex min-h-screen bg-zinc-100/90">
-      {/* Desktop curved floating sidebar (from Video 2) */}
-      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 p-3 md:block">
-        <div className="h-full w-full overflow-hidden rounded-3xl border border-zinc-200/90 bg-white/95 shadow-xl shadow-zinc-950/5 backdrop-blur-xl">
-          <SidebarContent branding={branding} />
-        </div>
+      <div className="flex min-h-screen bg-zinc-100">
+      {/* Desktop sidebar - full height, flush & seamless */}
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white md:block">
+        <SidebarContent branding={branding} />
       </aside>
 
-      {/* Mobile drawer with curved glassmorphic panel */}
+      {/* Mobile drawer */}
       {drawerOpen && (
         <div className="no-print fixed inset-0 z-40 md:hidden">
           <div
-            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-xs transition-opacity"
+            className="absolute inset-0 bg-zinc-900/50 backdrop-blur-xs transition-opacity"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 w-72 p-2.5">
-            <div className="h-full w-full overflow-hidden rounded-3xl border border-zinc-200/90 bg-white shadow-2xl">
-              <SidebarContent
-                branding={branding}
-                onNavigate={() => setDrawerOpen(false)}
-              />
-            </div>
+          <aside className="absolute inset-y-0 left-0 w-64 bg-white shadow-2xl">
+            <SidebarContent
+              branding={branding}
+              onNavigate={() => setDrawerOpen(false)}
+            />
           </aside>
         </div>
       )}

@@ -180,10 +180,10 @@ export function StatCard({
         </span>
       </div>
 
-      <div className="mt-2 flex items-baseline justify-between gap-2">
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-1.5 gap-y-1">
         <p
           title={value}
-          className="truncate text-xl font-extrabold tracking-tight text-zinc-900 sm:text-2xl"
+          className="whitespace-nowrap text-[17px] sm:text-lg lg:text-xl font-extrabold tracking-tight text-zinc-900 leading-tight"
         >
           {value}
         </p>

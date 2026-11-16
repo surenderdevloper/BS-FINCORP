@@ -231,6 +231,7 @@ export default async function DashboardPage() {
         activeLoans={data.activeLoans}
         closedLoans={data.closedLoans}
         overdueEmis={data.overdueEmis}
+        collectionTrend={data.collectionTrend}
       />
 
       <RemindersCard

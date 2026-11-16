@@ -242,6 +242,66 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     paidAt: p.createdAt.toISOString(),
   }));
 
+  // Real-time collection trend calculations for the dashboard chart
+  const sevenDaysAgo = new Date(startToday.getTime() - 6 * DAY_MS);
+  const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const [agg7Days, monthPayments, aggMonths] = await Promise.all([
+    Payment.aggregate<{ _id: string; total: number }>([
+      { $match: { createdAt: { $gte: sevenDaysAgo, $lt: endToday }, type: { $ne: "NOC_REPRINT" } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "+05:30" } }, total: { $sum: "$amount" } } },
+    ]),
+    Payment.find({
+      createdAt: { $gte: startOfMonth, $lt: endToday },
+      type: { $ne: "NOC_REPRINT" },
+    })
+      .select("createdAt amount")
+      .lean(),
+    Payment.aggregate<{ _id: string; total: number }>([
+      { $match: { createdAt: { $gte: sixMonthsAgo, $lt: endToday }, type: { $ne: "NOC_REPRINT" } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "+05:30" } }, total: { $sum: "$amount" } } },
+    ]),
+  ]);
+
+  const dayMap = new Map(agg7Days.map((d) => [d._id, d.total]));
+  const weekTrend = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(startToday.getTime() - i * DAY_MS);
+    const dateStr = isoDateIST(d);
+    const label = new Intl.DateTimeFormat("en-IN", { weekday: "short" }).format(d);
+    weekTrend.push({ label, amount: dayMap.get(dateStr) ?? 0 });
+  }
+
+  const weekSums = [0, 0, 0, 0, 0];
+  for (const p of monthPayments) {
+    const dayNum = new Date(p.createdAt).getDate();
+    const wIdx = Math.min(4, Math.floor((dayNum - 1) / 7));
+    weekSums[wIdx] += p.amount;
+  }
+  const monthTrend = [
+    { label: "Week 1", amount: weekSums[0] },
+    { label: "Week 2", amount: weekSums[1] },
+    { label: "Week 3", amount: weekSums[2] },
+    { label: "Week 4", amount: weekSums[3] },
+    { label: "Week 5", amount: weekSums[4] },
+  ];
+
+  const monthMap = new Map(aggMonths.map((m) => [m._id, m.total]));
+  const yearTrend = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = new Intl.DateTimeFormat("en-IN", { month: "short" }).format(d);
+    yearTrend.push({ label, amount: monthMap.get(key) ?? 0 });
+  }
+
+  const collectionTrend = {
+    week: weekTrend,
+    month: monthTrend,
+    year: yearTrend,
+  };
+
   return {
     totalCustomers,
     activeLoans,
@@ -258,6 +318,7 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     overdueRows: overdueRows.sort((a, b) => b.daysLate - a.daysLate),
     todayRows,
     reminders: reminders.sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 10),
+    collectionTrend,
   };
 }
 
