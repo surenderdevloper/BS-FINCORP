@@ -167,20 +167,20 @@ export function StatCard({
 
   const content = (
     <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/95 p-3.5 shadow-sm backdrop-blur-sm transition-all duration-300 sm:p-4 ${
-        href ? "cursor-pointer hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md" : ""
+      className={`relative flex h-full min-h-[142px] sm:min-h-[150px] w-full flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/95 p-3.5 shadow-xs backdrop-blur-sm transition-all duration-300 sm:p-4 ${
+        href ? "cursor-pointer group-hover:-translate-y-1 group-hover:border-emerald-500/40 group-hover:shadow-md" : ""
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 sm:text-xs">
+      <div className="flex h-8 items-start justify-between gap-2">
+        <p className="line-clamp-1 text-[11px] font-bold uppercase tracking-wider text-zinc-500 sm:text-xs">
           {label}
         </p>
-        <span className={`shrink-0 rounded-xl p-2 shadow-xs ring-1 ${currentTone.bg}`}>
+        <span className={`shrink-0 rounded-xl p-1.5 sm:p-2 shadow-xs ring-1 ${currentTone.bg}`}>
           {icon}
         </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-1.5 gap-y-1">
+      <div className="mt-auto pt-2 flex flex-wrap items-baseline justify-between gap-x-1.5 gap-y-1 min-h-[32px]">
         <p
           title={value}
           className="whitespace-nowrap text-[17px] sm:text-lg lg:text-xl font-extrabold tracking-tight text-zinc-900 leading-tight"
@@ -202,10 +202,10 @@ export function StatCard({
       {sub && <p className="mt-0.5 text-[11px] font-medium text-zinc-400">{sub}</p>}
 
       {/* Sparkline Wave Chart at Bottom (Pure SVG, 0 load time) */}
-      <div className="mt-3 -mx-3.5 -mb-3.5 overflow-hidden rounded-b-2xl sm:-mx-4 sm:-mb-4">
+      <div className="mt-2.5 -mx-3.5 -mb-3.5 overflow-hidden rounded-b-2xl sm:-mx-4 sm:-mb-4">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="h-8 w-full transition-transform duration-500 group-hover:scale-105"
+          className="h-7 sm:h-8 w-full transition-transform duration-500 group-hover:scale-105"
           preserveAspectRatio="none"
         >
           <defs>
@@ -228,6 +228,12 @@ export function StatCard({
     </div>
   );
 
-  if (href) return <Link href={href}>{content}</Link>;
+  if (href) {
+    return (
+      <Link href={href} className="group flex h-full flex-col">
+        {content}
+      </Link>
+    );
+  }
   return content;
 }

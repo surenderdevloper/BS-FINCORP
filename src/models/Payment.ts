@@ -10,6 +10,8 @@ const paymentSchema = new mongoose.Schema(
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
     customerName: { type: String, required: true },
     emiIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Emi" }],
+    // Which EMI instalment numbers were paid / touched (e.g. [1] for Pehli EMI, [2] for Dusri EMI).
+    emiNumbers: [{ type: Number }],
     // Actual cash received from the customer. This drives the dashboard
     // collection totals.
     amount: { type: Number, required: true },

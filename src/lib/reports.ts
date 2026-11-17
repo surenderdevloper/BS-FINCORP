@@ -3,6 +3,7 @@ import { Loan } from "@/models/Loan";
 import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
 import { endOfISTDay, isoDateIST, startOfISTDay } from "@/lib/dates";
+import { formatEmiNumbers } from "@/lib/emi-names";
 
 export type ReportType = "loans-active" | "loans-closed" | "collections";
 
@@ -45,7 +46,7 @@ export async function buildReport(input: {
 
   if (type === "collections") {
     const payments = await Payment.find({ type: { $ne: "NOC_REPRINT" }, createdAt: { $gte: start, $lte: end } })
-      .select("receiptNo createdAt loanNo customerName amount principal interest penalty mode")
+      .select("receiptNo createdAt loanNo customerName amount principal interest penalty mode emiNumbers")
       .sort({ createdAt: -1 })
       .lean()
       .exec();
@@ -56,6 +57,7 @@ export async function buildReport(input: {
       totalPenalty += p.penalty ?? 0;
       return {
         "Receipt No": p.receiptNo,
+        "EMI No": p.emiNumbers && p.emiNumbers.length > 0 ? formatEmiNumbers(p.emiNumbers) : "—",
         "Date": p.createdAt ? isoDateIST(p.createdAt) : "",
         "Loan No": p.loanNo,
         "Customer": p.customerName,
@@ -68,7 +70,7 @@ export async function buildReport(input: {
     });
     return {
       title: type,
-      columns: ["Receipt No", "Date", "Loan No", "Customer", "Amount", "Principal", "Interest", "Penalty", "Mode"],
+      columns: ["Receipt No", "EMI No", "Date", "Loan No", "Customer", "Amount", "Principal", "Interest", "Penalty", "Mode"],
       rows,
       summary: { count: payments.length, totalAmount, totalPenalty },
     };

@@ -136,8 +136,10 @@ export default async function ReceiptPage({
               <dd className="text-right font-mono text-zinc-900">{payment.loanNo}</dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-zinc-500">EMIs</dt>
-              <dd className="text-right text-zinc-900">{payment.paidCount}</dd>
+              <dt className="text-zinc-500">EMI No.</dt>
+              <dd className="text-right font-semibold text-emerald-800">
+                {payment.emiDescription || (payment.paidCount > 0 ? `EMI (${payment.paidCount})` : "—")}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-zinc-500">Mode</dt>

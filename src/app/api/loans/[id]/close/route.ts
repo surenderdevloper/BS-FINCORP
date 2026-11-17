@@ -118,6 +118,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     customerId: loan.customerId,
     customerName: customer?.name ?? "",
     emiIds: allocation.emis.map((e) => e._id),
+    emiNumbers: pendingEmis.map((e) => e.emiNo),
     amount: allocation.amount,
     principal: allocation.principal,
     interest: allocation.interest,

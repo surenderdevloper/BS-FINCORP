@@ -12,6 +12,7 @@ import { invalidateCustomersListCache } from "@/lib/customers";
 import { invalidateDashboardCache } from "@/lib/dashboard";
 import { allocatePayment, totalDueFor, type AllocEmi } from "@/lib/payment-allocation";
 import { planCarryForward, type CarryEmi } from "@/lib/carry-forward";
+import { formatEmiNumbers } from "@/lib/emi-names";
 
 interface Payload {
   loanNo: string;
@@ -195,13 +196,23 @@ export async function POST(req: Request) {
   // Allocate receipt number (atomic increment — a genuine write only here).
   const receiptNo = await nextReceiptNumber();
 
+  const touchedEmiSet = new Set(
+    finalAlloc.emis
+      .filter((e) => e.appliedBase > 0 || e.appliedPenalty > 0)
+      .map((e) => e._id)
+  );
+  const emiNumbers = emis
+    .filter((e) => touchedEmiSet.has(e._id.toString()))
+    .map((e) => e.emiNo);
+
   const payment = await Payment.create({
     receiptNo,
     loanId: loan._id,
     loanNo: loan.loanNo,
     customerId: loan.customerId,
     customerName: customer?.name ?? "",
-    emiIds: finalAlloc.emis.filter((e) => e.appliedBase > 0 || e.appliedPenalty > 0).map((e) => e._id),
+    emiIds: Array.from(touchedEmiSet),
+    emiNumbers,
     amount: finalAlloc.amount,
     principal: finalAlloc.principal,
     interest: finalAlloc.interest,
@@ -294,6 +305,8 @@ export async function POST(req: Request) {
         carriedForward: carryPlan?.totalCarried ?? 0,
         carriedToEmiNo: carryPlan?.toEmiNo ?? 0,
         paidCount: finalAlloc.emis.filter((e) => e.appliedBase > 0 || e.appliedPenalty > 0).length,
+        emiNumbers,
+        emiDescription: formatEmiNumbers(emiNumbers),
         mode: payment.mode,
         paidAt: payment.createdAt?.toISOString(),
       },

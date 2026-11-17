@@ -88,6 +88,8 @@ export interface TodayCollectionRow {
   penalty: number;
   mode: string;
   paidAt: string;
+  emiNumbers?: number[];
+  emiDescription?: string;
 }
 
 export interface TrendPoint {

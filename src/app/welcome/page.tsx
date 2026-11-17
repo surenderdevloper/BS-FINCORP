@@ -172,6 +172,7 @@ export default function WelcomePage() {
           </nav>
           <Link
             href="/login"
+            prefetch={true}
             className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
           >
             Client Login
@@ -200,6 +201,7 @@ export default function WelcomePage() {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href="/login"
+                prefetch={true}
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
               >
                 Client Login
@@ -424,6 +426,7 @@ export default function WelcomePage() {
                 </ul>
                 <Link
                   href="/login"
+                  prefetch={true}
                   className={`mt-6 inline-flex h-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors ${
                     p.highlight
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -482,6 +485,7 @@ export default function WelcomePage() {
           <div className="mt-8 text-center">
             <Link
               href="/login"
+              prefetch={true}
               className="inline-flex h-12 items-center gap-2 rounded-xl bg-emerald-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
             >
               <Icon name="view" size={18} />
@@ -508,7 +512,7 @@ export default function WelcomePage() {
             <a href="#pricing" className="font-medium transition-colors hover:text-emerald-700">
               Pricing
             </a>
-            <Link href="/login" className="font-medium transition-colors hover:text-emerald-700">
+            <Link href="/login" prefetch={true} className="font-medium transition-colors hover:text-emerald-700">
               Login
             </Link>
           </div>

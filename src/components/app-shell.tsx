@@ -47,7 +47,6 @@ export function AppShell({
 
   return (
     <FeatureProvider features={features}>
-      <TopProgressBar />
       <div className="flex min-h-screen bg-zinc-100">
       {/* Desktop sidebar - full height, flush & seamless */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white md:block">

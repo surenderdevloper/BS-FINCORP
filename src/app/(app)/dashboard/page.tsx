@@ -349,8 +349,11 @@ export default async function DashboardPage() {
                           {row.customerName}
                           <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
                         </span>
-                        <span className="mt-0.5 flex items-center gap-2 text-[11px] text-zinc-400">
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400">
                           <span className="font-mono">{row.receiptNo}</span>
+                          {row.emiDescription && (
+                            <span className="font-semibold text-emerald-700">· {row.emiDescription}</span>
+                          )}
                           <Badge tone={row.mode === "online" ? "blue" : "zinc"}>
                             {row.mode === "online" ? "Online" : "Cash"}
                           </Badge>
@@ -381,6 +384,7 @@ export default async function DashboardPage() {
                       <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium sm:px-5">Receipt</th>
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium">Customer</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 font-medium">EMI No.</th>
                         <th className="whitespace-nowrap px-3 py-2.5 font-medium">Mode</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Amount</th>
                         <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Time</th>
@@ -397,6 +401,11 @@ export default async function DashboardPage() {
                           <td className="whitespace-nowrap px-3 py-3 font-medium text-zinc-900">
                             {row.customerName}
                             <span className="ml-1.5 text-[11px] font-normal text-zinc-400">{row.loanNo}</span>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3">
+                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+                              {row.emiDescription || "—"}
+                            </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-3">
                             <Badge tone={row.mode === "online" ? "blue" : "zinc"}>

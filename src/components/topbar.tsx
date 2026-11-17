@@ -25,8 +25,7 @@ export function Topbar({
     } catch {
       // Logout should still proceed even if the request failed.
     }
-    router.push("/login");
-    router.refresh();
+    window.location.href = "/login";
   }
 
   return (

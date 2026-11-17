@@ -6,6 +6,7 @@ import { Payment } from "@/models/Payment";
 import { startOfToday } from "@/lib/dates";
 import { currentTenantId } from "@/lib/tenant";
 import { buildEmiRows, type EmiRow, type LoanDetail, type RawEmi } from "@/lib/loans";
+import { formatEmiNumbers } from "@/lib/emi-names";
 
 interface RawLoanLean {
   _id: Types.ObjectId;
@@ -283,6 +284,8 @@ export interface CustomerPaymentRow {
   paidAt: string;
   customerName: string;
   paidCount: number;
+  emiNumbers?: number[];
+  emiDescription?: string;
   discount: number;
   advanceUsed: number;
   advanceAdded: number;
@@ -369,15 +372,24 @@ interface RawPaymentLean {
   type?: string;
   customerName?: string;
   emiIds?: Types.ObjectId[];
+  emiNumbers?: number[];
   receivedBy?: string;
   createdAt: Date;
 }
 
-function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
+function paymentToRow(p: RawPaymentLean, emiLookup?: Map<string, number>): CustomerPaymentRow {
   // Prefer the explicit discount stored on newer payments. Fall back to the
   // derived value for legacy records: (principal + interest + penalty) − amount.
   const derived = Math.max(0, p.principal + p.interest + (p.penalty ?? 0) - p.amount);
   const discount = p.discount != null ? Math.max(0, p.discount) : derived;
+
+  let emiNumbers = p.emiNumbers && p.emiNumbers.length > 0 ? p.emiNumbers : [];
+  if (emiNumbers.length === 0 && p.emiIds && p.emiIds.length > 0 && emiLookup) {
+    emiNumbers = p.emiIds
+      .map((id) => emiLookup.get(id.toString()))
+      .filter((n): n is number => typeof n === "number" && n > 0);
+  }
+
   return {
     _id: p._id.toString(),
     receiptNo: p.receiptNo,
@@ -391,6 +403,8 @@ function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
     paidAt: p.createdAt.toISOString(),
     customerName: p.customerName ?? "",
     paidCount: p.emiIds?.length ?? 0,
+    emiNumbers,
+    emiDescription: formatEmiNumbers(emiNumbers),
     discount,
     advanceUsed: Math.max(0, p.advanceUsed ?? 0),
     advanceAdded: Math.max(0, p.advanceAdded ?? 0),
@@ -401,7 +415,7 @@ function paymentToRow(p: RawPaymentLean): CustomerPaymentRow {
 }
 
 const PAYMENT_RECEIPT_FIELDS =
-  "receiptNo loanNo loanId amount principal interest penalty discount advanceUsed advanceAdded carriedForward carriedToEmiNo mode notes type createdAt customerName emiIds receivedBy";
+  "receiptNo loanNo loanId amount principal interest penalty discount advanceUsed advanceAdded carriedForward carriedToEmiNo mode notes type createdAt customerName emiIds emiNumbers receivedBy";
 
 /** Load a single payment as a receipt row, scoped to its customer. */
 export async function getPaymentReceipt(
@@ -414,7 +428,14 @@ export async function getPaymentReceipt(
     .lean()
     .exec()) as unknown as RawPaymentLean | null;
   if (!p) return null;
-  return paymentToRow(p);
+
+  let emiLookup: Map<string, number> | undefined;
+  if ((!p.emiNumbers || p.emiNumbers.length === 0) && p.emiIds && p.emiIds.length > 0) {
+    const emis = await Emi.find({ _id: { $in: p.emiIds } }).select("_id emiNo").lean();
+    emiLookup = new Map(emis.map((e) => [e._id.toString(), e.emiNo]));
+  }
+
+  return paymentToRow(p, emiLookup);
 }
 
 export async function getCustomerDetail(id: string): Promise<CustomerDetail | null> {
@@ -464,8 +485,10 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
     .sort({ loanId: 1, emiNo: 1 })
     .lean()
     .exec()) as unknown as RawEmi[];
+  const emiLookup = new Map<string, number>();
   const emisByLoan = new Map<string, RawEmi[]>();
   for (const emi of rawEmisAll) {
+    emiLookup.set(emi._id.toString(), emi.emiNo);
     const key = emi.loanId.toString();
     const rows = emisByLoan.get(key);
     if (rows) rows.push(emi);
@@ -488,8 +511,8 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetail | nu
   for (const loan of loans) {
     const { emis, totals: loanTotals } = await buildEmiRows(emisByLoan.get(loan._id.toString()) ?? []);
     const rawPayments = paymentsByLoan.get(loan._id.toString()) ?? [];
-    const payments = rawPayments.filter((p) => p.type !== "NOC_REPRINT").map(paymentToRow);
-    const nocReprints = rawPayments.filter((p) => p.type === "NOC_REPRINT").map(paymentToRow);
+    const payments = rawPayments.filter((p) => p.type !== "NOC_REPRINT").map((p) => paymentToRow(p, emiLookup));
+    const nocReprints = rawPayments.filter((p) => p.type === "NOC_REPRINT").map((p) => paymentToRow(p, emiLookup));
 
     loanDetails.push({
       _id: loan._id.toString(),

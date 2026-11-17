@@ -164,6 +164,7 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                 <thead>
                   <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-600">
                     <th className="py-2 pr-3 font-semibold">Receipt</th>
+                    <th className="py-2 pr-3 font-semibold">EMI No.</th>
                     <th className="py-2 pr-3 font-semibold">Date</th>
                     <th className="py-2 pr-3 text-right font-semibold">Principal</th>
                     <th className="py-2 pr-3 text-right font-semibold">Interest</th>
@@ -178,6 +179,11 @@ function LoanSection({ loan }: { loan: CustomerDetail["loans"][number] }) {
                   {loan.payments.map((p) => (
                     <tr key={p._id} className="border-b border-zinc-100 last:border-0">
                       <td className="py-2 pr-3 font-medium text-zinc-900">{p.receiptNo}</td>
+                      <td className="py-2 pr-3">
+                        <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+                          {p.emiDescription || (p.paidCount > 0 ? `EMI (${p.paidCount})` : "—")}
+                        </span>
+                      </td>
                       <td className="py-2 pr-3 text-zinc-600">{formatDateTime(p.paidAt)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.principal)}</td>
                       <td className="py-2 pr-3 text-right text-zinc-600">{inr(p.interest)}</td>

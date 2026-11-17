@@ -57,6 +57,8 @@ interface ReceiptResult {
   carriedForward: number;
   carriedToEmiNo: number;
   paidCount: number;
+  emiNumbers?: number[];
+  emiDescription?: string;
   mode: string;
   paidAt: string;
 }
@@ -584,8 +586,10 @@ export function EmiPayForm({
                   <dd className="font-mono text-zinc-900">{receipt.loanNo}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-zinc-500">EMIs</dt>
-                  <dd className="text-zinc-900">{receipt.paidCount}</dd>
+                  <dt className="text-zinc-500">EMI No.</dt>
+                  <dd className="font-semibold text-emerald-800">
+                    {receipt.emiDescription || (receipt.paidCount > 0 ? `EMI (${receipt.paidCount})` : "—")}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-zinc-500">Mode</dt>

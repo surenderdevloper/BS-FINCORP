@@ -8,7 +8,14 @@ import { getCompanySetting } from "@/models/CompanySetting";
 
 export const dynamic = "force-dynamic";
 
+let loginBrandingCache: { logo: string; companyName: string; at: number } | null = null;
+const BRANDING_CACHE_TTL_MS = 60_000;
+
 async function getBranding() {
+  if (loginBrandingCache && Date.now() - loginBrandingCache.at < BRANDING_CACHE_TTL_MS) {
+    return { logo: loginBrandingCache.logo, companyName: loginBrandingCache.companyName };
+  }
+
   const envLogo = process.env.CLIENT_LOGO_URL ?? "";
   const envName = process.env.NEXT_PUBLIC_APP_NAME || "Gigabyte Brothers";
   try {
@@ -21,10 +28,12 @@ async function getBranding() {
       dbName.toLowerCase().includes("bs fincorp") ||
       dbName.toLowerCase().includes("bs_fincorp") ||
       dbName === "Gigabyte Finance Manager";
-    return {
-      logo: envLogo || (isOldBrand ? "" : (company.logo ?? "")),
+    const res = {
+      logo: envLogo || (isOldBrand ? "" : (company?.logo ?? "")),
       companyName: envName || (isOldBrand ? "Gigabyte Brothers" : dbName),
     };
+    loginBrandingCache = { ...res, at: Date.now() };
+    return res;
   } catch {
     return { logo: envLogo, companyName: envName };
   }

@@ -39,8 +39,8 @@ export function LoginForm({
         setBusy(false);
         return;
       }
-      router.push(next);
-      router.refresh();
+      // Hard navigation ensures fresh session cookies are loaded and clears stale client cache instantly
+      window.location.href = next;
     } catch {
       setError("Could not reach the server.");
       setBusy(false);

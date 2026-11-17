@@ -5,6 +5,7 @@ import { Payment } from "@/models/Payment";
 import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { isoDateIST, startOfISTDay } from "@/lib/dates";
 import { currentTenantId } from "@/lib/tenant";
+import { formatEmiNumbers } from "@/lib/emi-names";
 import type { DashboardData, OverdueRow, ReminderRow, TodayCollectionRow } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -228,19 +229,38 @@ async function computeDashboardData(today: Date): Promise<DashboardData> {
     });
   }
 
-  const todayRows: TodayCollectionRow[] = todayPayments.map((p) => ({
-    paymentId: p._id.toString(),
-    receiptNo: p.receiptNo,
-    customerId: p.customerId ? p.customerId.toString() : "",
-    customerName: p.customerName,
-    loanNo: p.loanNo,
-    amount: p.amount,
-    settled: (p.principal ?? 0) + (p.interest ?? 0) + (p.penalty ?? 0),
-    advanceUsed: p.advanceUsed ?? 0,
-    penalty: p.penalty,
-    mode: p.mode,
-    paidAt: p.createdAt.toISOString(),
-  }));
+  const unresolvedEmiIds = todayPayments
+    .filter((p) => (!p.emiNumbers || p.emiNumbers.length === 0) && p.emiIds && p.emiIds.length > 0)
+    .flatMap((p) => p.emiIds);
+  let emiNoMap = new Map<string, number>();
+  if (unresolvedEmiIds.length > 0) {
+    const emis = await Emi.find({ _id: { $in: unresolvedEmiIds } }).select("_id emiNo").lean();
+    emiNoMap = new Map(emis.map((e) => [e._id.toString(), e.emiNo]));
+  }
+
+  const todayRows: TodayCollectionRow[] = todayPayments.map((p) => {
+    let emiNumbers = p.emiNumbers && p.emiNumbers.length > 0 ? p.emiNumbers : [];
+    if (emiNumbers.length === 0 && p.emiIds && p.emiIds.length > 0) {
+      emiNumbers = p.emiIds
+        .map((id) => emiNoMap.get(id.toString()))
+        .filter((n): n is number => typeof n === "number" && n > 0);
+    }
+    return {
+      paymentId: p._id.toString(),
+      receiptNo: p.receiptNo,
+      customerId: p.customerId ? p.customerId.toString() : "",
+      customerName: p.customerName,
+      loanNo: p.loanNo,
+      amount: p.amount,
+      settled: (p.principal ?? 0) + (p.interest ?? 0) + (p.penalty ?? 0),
+      advanceUsed: p.advanceUsed ?? 0,
+      penalty: p.penalty,
+      mode: p.mode,
+      paidAt: p.createdAt.toISOString(),
+      emiNumbers,
+      emiDescription: formatEmiNumbers(emiNumbers),
+    };
+  });
 
   // Real-time collection trend calculations for the dashboard chart
   const sevenDaysAgo = new Date(startToday.getTime() - 6 * DAY_MS);
