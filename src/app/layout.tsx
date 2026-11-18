@@ -33,6 +33,9 @@ export const metadata: Metadata = {
   },
   description:
     "Loan and EMI management software — customers, loans, collections, receipts and reports in one app.",
+  icons: {
+    icon: "/api/favicon",
+  },
 };
 
 export const viewport: Viewport = {

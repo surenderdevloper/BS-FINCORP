@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
+import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { dbConnect } from "@/lib/db";
 import { readSession } from "@/lib/auth";
 import { runUnscoped } from "@/lib/tenant";
@@ -49,6 +50,7 @@ export default async function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-4">
+      <DynamicFavicon logo={logo} />
       <Suspense fallback={<div className="text-sm text-zinc-500">Loading…</div>}>
         <LoginForm logo={logo || undefined} companyName={companyName} />
       </Suspense>

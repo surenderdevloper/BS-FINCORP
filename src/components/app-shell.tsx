@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { SessionTimeout } from "@/components/session-timeout";
 import { FeatureProvider, type AppFeatures } from "@/components/feature-context";
 import { TopProgressBar } from "@/components/top-progress-bar";
+import { DynamicFavicon } from "@/components/dynamic-favicon";
 
 export interface CompanyBranding {
   logo: string;
@@ -47,6 +48,7 @@ export function AppShell({
 
   return (
     <FeatureProvider features={features}>
+      <DynamicFavicon logo={branding.logo} />
       <div className="flex min-h-screen bg-zinc-100">
       {/* Desktop sidebar - full height, flush & seamless */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white md:block">
