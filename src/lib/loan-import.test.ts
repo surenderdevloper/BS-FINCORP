@@ -6,6 +6,7 @@ import {
   importNumber,
   importText,
   normalizeHeader,
+  parseLoanImportCsv,
   parseLoanImportSheet,
 } from "./loan-import";
 
@@ -32,6 +33,17 @@ test("normalizeHeader strips case, spaces and punctuation", () => {
   assert.equal(normalizeHeader("Vehicle Price"), "vehicleprice");
   assert.equal(normalizeHeader("  Down-Payment "), "downpayment");
   assert.equal(normalizeHeader(undefined), "");
+});
+
+test("CSV import preserves quoted commas, quotes and line breaks", async () => {
+  const rows = await parseLoanImportCsv(
+    'Customer Name,Address,Notes\r\n"Ramesh Kumar","12, Nehru Road","Said ""hello"""\r\n'
+  );
+  assert.deepEqual(rows, [
+    ["Customer Name", "Address", "Notes"],
+    ["Ramesh Kumar", "12, Nehru Road", 'Said "hello"'],
+    [""],
+  ]);
 });
 
 test("importNumber strips currency symbols, grouping commas and percent signs", () => {

@@ -49,6 +49,7 @@ export function getDefaultMessageTemplates(brand: string, officePhone: string = 
         amount: sampleAmount,
         dueDate: today.toISOString(),
         brandingName: brand,
+        officePhone,
       }),
       duetoday: buildEmiReminderMessage("duetoday", {
         customerName: "Ramesh Kumar",
@@ -56,6 +57,7 @@ export function getDefaultMessageTemplates(brand: string, officePhone: string = 
         amount: sampleAmount,
         dueDate: today.toISOString(),
         brandingName: brand,
+        officePhone,
       }),
       overdue: buildEmiReminderMessage("overdue", {
         customerName: "Ramesh Kumar",
@@ -63,6 +65,7 @@ export function getDefaultMessageTemplates(brand: string, officePhone: string = 
         amount: sampleAmount,
         dueDate: today.toISOString(),
         brandingName: brand,
+        officePhone,
       }),
       payment: buildPaymentConfirmationMessage({
         customerName: "Ramesh Kumar",
@@ -109,6 +112,7 @@ export function getDefaultMessageTemplates(brand: string, officePhone: string = 
         amount: sampleAmount,
         dueDate: today.toISOString(),
         brandingName: brand,
+        officePhone,
       }),
       overdue: buildSmsMessage("overdue", {
         customerName: "Ramesh Kumar",
@@ -116,6 +120,7 @@ export function getDefaultMessageTemplates(brand: string, officePhone: string = 
         amount: sampleAmount,
         dueDate: today.toISOString(),
         brandingName: brand,
+        officePhone,
       }),
     },
   };

@@ -12,6 +12,7 @@ import { PenaltyRule } from "../src/models/PenaltyRule";
 import { generateSchedule } from "../src/lib/emi";
 
 const uri = process.env.MONGODB_URI ?? "mongodb://localhost:27017/bs_fincorp";
+const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
 
 function iso(offsetMonths: number, day: number, hour = 10): Date {
   const d = new Date();
@@ -47,15 +48,18 @@ const customersToSeed = [
 ];
 
 async function main() {
+  if (!seedAdminPassword || seedAdminPassword.length < 12) {
+    throw new Error("Set SEED_ADMIN_PASSWORD to a unique password of at least 12 characters before seeding.");
+  }
   await mongoose.connect(uri);
-  console.log("Connected to", uri);
+  console.log("Connected to MongoDB.");
   const db = mongoose.connection.db;
   if (!db) throw new Error("Could not access the database.");
   await db.dropDatabase();
   console.log("Dropped existing database.");
 
   // Admin user
-  const passwordHash = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD ?? "admin123", 10);
+  const passwordHash = await bcrypt.hash(seedAdminPassword, 10);
   await User.create({
     name: "Admin",
     email: process.env.SEED_ADMIN_EMAIL ?? "admin@bsfincorp.com",
@@ -222,7 +226,7 @@ async function main() {
   console.log("Seeded today's collection sample.");
 
   await mongoose.disconnect();
-  console.log("\nSeeding complete. Login with admin@bsfincorp.com / admin123");
+  console.log("\nSeeding complete.");
 }
 
 main().catch((err) => {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
-import { withTenant } from "@/lib/tenant-route";
-import { hasDeveloperAccess } from "@/lib/developer-access";
+import { withDeveloper } from "@/lib/tenant-route";
+import type { SessionUser } from "@/lib/auth";
 import { isValidHex, DEFAULT_PRIMARY } from "@/lib/brand";
 import { CompanySetting, getCompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
 import {
@@ -58,11 +58,7 @@ function envStatus() {
   return names.map((name) => ({ name, set: Boolean(process.env[name]) }));
 }
 
-export async function GET() {
-  if (!(await hasDeveloperAccess())) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
+async function getDeveloperConfig() {
   await dbConnect();
   const [company, config] = await Promise.all([getCompanySetting(), getAppConfig()]);
 
@@ -130,11 +126,7 @@ export async function GET() {
   });
 }
 
-export async function PUT(req: Request) {
-  if (!(await hasDeveloperAccess())) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
+async function updateDeveloperConfig(req: Request) {
   let body: { section?: string; data?: Record<string, unknown> };
   try {
     body = (await req.json()) as typeof body;
@@ -330,10 +322,7 @@ export async function PUT(req: Request) {
 }
 
 /** Append an audit-log entry (called by the client after a successful save). */
-export async function POST(req: Request) {
-  if (!(await hasDeveloperAccess())) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+async function appendDeveloperAudit(req: Request, session: SessionUser) {
   let body: { summary?: string };
   try {
     body = (await req.json()) as typeof body;
@@ -343,7 +332,6 @@ export async function POST(req: Request) {
   const summary = str(body.summary, 200);
   if (!summary) return NextResponse.json({ error: "Nothing to log." }, { status: 400 });
 
-  return withTenant(async (session) => {
   const by = session?.email ?? "developer";
 
   await dbConnect();
@@ -357,5 +345,16 @@ export async function POST(req: Request) {
   );
   invalidateAppConfigCache();
   return NextResponse.json({ audit: cfg.audit.slice(-30).reverse() });
-  });
+}
+
+export async function GET() {
+  return withDeveloper(async () => getDeveloperConfig());
+}
+
+export async function PUT(req: Request) {
+  return withDeveloper(async () => updateDeveloperConfig(req));
+}
+
+export async function POST(req: Request) {
+  return withDeveloper(async (session) => appendDeveloperAudit(req, session));
 }

@@ -91,7 +91,7 @@ async function main() {
   }
 
   await mongoose.connect(uri);
-  console.log("Connected to", uri);
+  console.log("Connected to MongoDB.");
   const db = mongoose.connection.db;
   if (!db) throw new Error("Could not access the database.");
 

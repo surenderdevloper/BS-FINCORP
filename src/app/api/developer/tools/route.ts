@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
-import { hasDeveloperAccess } from "@/lib/developer-access";
+import { withDeveloper } from "@/lib/tenant-route";
 import { invalidateCompanySettingCache, getCompanySetting } from "@/models/CompanySetting";
 import { invalidatePenaltyRuleCache } from "@/models/PenaltyRule";
 import { invalidateAppConfigCache } from "@/models/AppConfig";
@@ -12,11 +12,7 @@ function dbStateLabel(state: number): string {
   );
 }
 
-export async function POST(req: Request) {
-  if (!(await hasDeveloperAccess())) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
+async function runDeveloperTools(req: Request) {
   let body: { action?: string };
   try {
     body = (await req.json()) as typeof body;
@@ -55,4 +51,8 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+}
+
+export async function POST(req: Request) {
+  return withDeveloper(async () => runDeveloperTools(req));
 }

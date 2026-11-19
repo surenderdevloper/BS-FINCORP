@@ -3,11 +3,13 @@ import { dbConnect } from "@/lib/db";
 import { getCompanySetting } from "@/models/CompanySetting";
 import {
   GENERIC_RESET_MESSAGE,
-  emailResetLimiter,
-  ipResetLimiter,
   createResetForUserIfExists,
+  EMAIL_RATE_LIMIT_MAX,
+  IP_RATE_LIMIT_MAX,
+  RATE_LIMIT_WINDOW_MS,
 } from "@/lib/password-reset";
 import { sendPasswordResetEmail, isSmtpConfigured } from "@/lib/email";
+import { clientKey, persistentRateLimit } from "@/lib/rate-limit";
 
 async function companyName(): Promise<string> {
   try {
@@ -27,17 +29,29 @@ export async function POST(req: Request) {
     // Malformed bodies still get the generic response (no account enumeration).
   }
 
-  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
-  if (email && !emailResetLimiter.allow(email)) {
+  const ip = clientKey(req);
+  const emailLimit = email
+    ? await persistentRateLimit(
+        `password-reset-email:${email}`,
+        EMAIL_RATE_LIMIT_MAX,
+        RATE_LIMIT_WINDOW_MS
+      )
+    : null;
+  if (emailLimit && !emailLimit.ok) {
     return NextResponse.json(
       { message: "Too many requests. Please try again later." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": String(emailLimit.retryAfterSeconds) } }
     );
   }
-  if (!ipResetLimiter.allow(ip)) {
+  const ipLimit = await persistentRateLimit(
+    `password-reset-ip:${ip}`,
+    IP_RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_MS
+  );
+  if (!ipLimit.ok) {
     return NextResponse.json(
       { message: "Too many requests. Please try again later." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
     );
   }
 

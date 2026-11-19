@@ -17,19 +17,24 @@ someone new — only an environment.
 | --- | --- |
 | `MONGODB_URI` | Connection string for the client's database (mandatory). |
 | `AUTH_SECRET` | Strong random value. **Required in production** — the app refuses to start/authenticate without it when deployed. Generate with `openssl rand -hex 32`. |
+| `CRON_SECRET` | Strong random bearer secret required by the scheduled backup endpoint. Set it in the deployment environment so Vercel Cron can authenticate. |
 | `CLIENT_NAME` | Shown in backup files / file names (e.g. `myfirm-backup-2026-10-06.json`). Defaults to `bs-fincorp`. |
 | `NEXT_PUBLIC_APP_NAME` | Optional public app/title name if you don't want the login/browser title to read "BS FINCORP". |
 | `CLIENT_LOGO_URL` | Optional URL used as the login screen logo when the client has a brand asset. |
 | `SEED_ADMIN_EMAIL` | Used only by the seed script to create the first admin. |
-| `SEED_ADMIN_PASSWORD` | First-run temporary password (seed script only). |
+| `SEED_ADMIN_PASSWORD` | First-run temporary password (seed script only); required and at least 12 characters. |
 | `SMTP_*` | Mail settings for the forgot-password flow — set or the feature stays disabled. |
 | `APP_PUBLIC_URL` | Public base URL used in password-reset emails. |
+
+Protected API endpoints enforce tenant/admin or owner roles, and API counters are stored in the
+client's MongoDB so Vercel instances share the same fixed-window rate limits. No external
+rate-limiting service is required.
 
 ## 3. First run (one time, dev only)
 
 ```bash
 MONGODB_URI="<client-db-uri>" SEED_ADMIN_EMAIL="admin@client.com" \
-SEED_ADMIN_PASSWORD="temp-password" npx tsx scripts/seed.ts
+SEED_ADMIN_PASSWORD="<unique-password-12+-chars>" npx tsx scripts/seed.ts
 ```
 
 This creates the admin user, company settings and penalty rules in the client's database.

@@ -6,8 +6,24 @@ import {
   changeUserPassword,
   validateNewPassword,
 } from "@/lib/password-reset";
+import { clientKey, persistentRateLimit } from "@/lib/rate-limit";
+
+const RESET_RATE_LIMIT_MAX = 20;
+const RESET_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(req: Request) {
+  const limit = await persistentRateLimit(
+    `password-reset-complete:${clientKey(req)}`,
+    RESET_RATE_LIMIT_MAX,
+    RESET_RATE_LIMIT_WINDOW_MS
+  );
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
+
   let body: { token?: string; password?: string; confirm?: string };
   try {
     body = (await req.json()) as typeof body;

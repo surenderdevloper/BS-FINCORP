@@ -18,7 +18,7 @@ async function main() {
   }
 
   await mongoose.connect(uri);
-  console.log("Connected to", uri);
+  console.log("Connected to MongoDB.");
 
   const res = await Promise.all([
     Customer.deleteMany({ tenantId }),

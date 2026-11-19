@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { useFeatures } from "@/components/feature-context";
@@ -23,7 +24,7 @@ export interface WhatsAppShareProps {
 }
 
 const primaryButton =
-  "inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
+  "inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 shadow-sm";
 
 export function WhatsAppShare({
   recipientName,
@@ -35,6 +36,7 @@ export function WhatsAppShare({
   triggerVariant = "link",
 }: WhatsAppShareProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [selectedKey, setSelectedKey] = useState("");
   const [message, setMessage] = useState("");
   const features = useFeatures();
@@ -42,6 +44,10 @@ export function WhatsAppShare({
   const number = useMemo(() => toWhatsAppNumber(mobile), [mobile]);
   const displayMobile = number ? `+${number}` : mobile.trim() || "No number on record";
   const name = recipientName.trim() || "—";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const openComposer = () => {
     const first = templates[0];
@@ -54,16 +60,146 @@ export function WhatsAppShare({
 
   useEffect(() => {
     if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeComposer();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   if (!features.whatsapp) return null;
 
   const url = number ? buildWhatsAppUrl(number, message) : null;
+
+  const modalContent = open && mounted && (
+    <div className="fixed inset-0 z-[99999] flex items-start justify-center overflow-y-auto p-3 pt-6 sm:p-4 sm:pt-10">
+      <div
+        className="fixed inset-0 bg-zinc-950/70 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        onClick={closeComposer}
+      />
+      <div className="relative my-0 sm:my-2 flex max-h-[calc(100dvh-3rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-2xl z-10 animate-in zoom-in-95 duration-150">
+        {/* Modal Header - Fixed at Top */}
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3 sm:px-5 bg-white">
+          <div className="min-w-0">
+            <h2 className="break-words text-sm font-bold text-zinc-900">{title}</h2>
+            {subtitle && <p className="mt-0.5 break-words text-xs text-zinc-500">{subtitle}</p>}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Badge tone="green">WhatsApp</Badge>
+            <button
+              type="button"
+              onClick={closeComposer}
+              aria-label="Close"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="min-w-0 flex-1 overflow-y-auto space-y-3.5 p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3.5 py-2.5 ring-1 ring-zinc-200">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-zinc-900">{name}</p>
+              <p className="truncate text-xs text-zinc-500">{displayMobile}</p>
+            </div>
+            {number ? (
+              <Badge tone="green">valid</Badge>
+            ) : (
+              <Badge tone="red">no number</Badge>
+            )}
+          </div>
+
+          {templates.length > 1 && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-zinc-600">Message template</p>
+              <div className="flex flex-wrap gap-1.5">
+                {templates.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => {
+                      setSelectedKey(t.key);
+                      setMessage(t.message);
+                    }}
+                    className={`inline-flex h-7 items-center rounded-lg px-2.5 text-xs font-medium transition-colors ${
+                      selectedKey === t.key
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <label htmlFor="whatsapp-message" className="text-xs font-medium text-zinc-600">
+                Message (editable)
+              </label>
+              <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
+                {message.length} chars
+              </span>
+            </div>
+            <textarea
+              id="whatsapp-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className="w-full resize-y rounded-xl border border-zinc-300 bg-white px-3 py-2 text-xs sm:text-sm leading-relaxed text-zinc-900 shadow-xs transition-colors focus:border-emerald-500 focus:outline-2 focus:outline-emerald-600 font-sans"
+            />
+          </div>
+
+          <p className="w-full whitespace-normal break-words rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-200/80 [overflow-wrap:anywhere]">
+            Open WhatsApp → the chat opens with this text. Nothing is sent automatically; you press
+            send inside WhatsApp. Attach any PDF/statement yourself from your phone or computer.
+          </p>
+
+          {!number && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-700 ring-1 ring-red-200">
+              No valid 10-digit mobile number on record. Add a number to open the WhatsApp chat.
+            </p>
+          )}
+        </div>
+
+        {/* Sticky Action Footer - Fixed at Bottom */}
+        <div className="flex shrink-0 flex-col gap-2 border-t border-zinc-100 bg-zinc-50/90 px-4 py-3 sm:px-5 backdrop-blur-xs">
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={primaryButton}
+              onClick={closeComposer}
+            >
+              <Icon name="whatsapp" size={16} /> Open WhatsApp
+            </a>
+          ) : (
+            <button type="button" className={`${primaryButton} cursor-not-allowed opacity-60`} disabled>
+              <Icon name="whatsapp" size={16} /> Open WhatsApp
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={closeComposer}
+            className="inline-flex h-8 w-full items-center justify-center rounded-lg text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -90,127 +226,7 @@ export function WhatsAppShare({
         </button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-xs transition-opacity" onClick={closeComposer} />
-          <div className="relative my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-2xl">
-            {/* Modal Header */}
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3 sm:px-5 bg-white">
-              <div className="min-w-0">
-                <h2 className="break-words text-sm font-semibold text-zinc-900">{title}</h2>
-                {subtitle && <p className="mt-0.5 break-words text-xs text-zinc-500">{subtitle}</p>}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Badge tone="green">WhatsApp</Badge>
-                <button
-                  type="button"
-                  onClick={closeComposer}
-                  aria-label="Close"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
-                >
-                  <Icon name="close" size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable Content Body */}
-            <div className="min-w-0 flex-1 overflow-y-auto space-y-3.5 p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3.5 py-2.5 ring-1 ring-zinc-200">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-zinc-900">{name}</p>
-                  <p className="truncate text-xs text-zinc-500">{displayMobile}</p>
-                </div>
-                {number ? (
-                  <Badge tone="green">valid</Badge>
-                ) : (
-                  <Badge tone="red">no number</Badge>
-                )}
-              </div>
-
-              {templates.length > 1 && (
-                <div>
-                  <p className="mb-1.5 text-xs font-medium text-zinc-600">Message template</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {templates.map((t) => (
-                      <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => {
-                          setSelectedKey(t.key);
-                          setMessage(t.message);
-                        }}
-                        className={`inline-flex h-7 items-center rounded-lg px-2.5 text-xs font-medium transition-colors ${
-                          selectedKey === t.key
-                            ? "bg-emerald-600 text-white shadow-xs"
-                            : "border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50"
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <label htmlFor="whatsapp-message" className="text-xs font-medium text-zinc-600">
-                    Message (editable)
-                  </label>
-                  <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
-                    {message.length} chars
-                  </span>
-                </div>
-                <textarea
-                  id="whatsapp-message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={4}
-                  className="w-full resize-y rounded-xl border border-zinc-300 bg-white px-3 py-2 text-xs sm:text-sm leading-relaxed text-zinc-900 shadow-xs transition-colors focus:border-emerald-500 focus:outline-2 focus:outline-emerald-600"
-                />
-              </div>
-
-              <p className="w-full whitespace-normal break-words rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-200/80 [overflow-wrap:anywhere]">
-                Open WhatsApp → the chat opens with this text. Nothing is sent automatically; you press
-                send inside WhatsApp. Attach any PDF/statement yourself from your phone or computer.
-              </p>
-
-              {!number && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-700 ring-1 ring-red-200">
-                  No valid 10-digit mobile number on record. Add a number to open the WhatsApp chat.
-                </p>
-              )}
-            </div>
-
-            {/* Sticky Action Footer */}
-            <div className="flex shrink-0 flex-col gap-2 border-t border-zinc-100 bg-zinc-50/90 px-4 py-3 sm:px-5 backdrop-blur-xs">
-              {url ? (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={primaryButton}
-                  onClick={closeComposer}
-                >
-                  <Icon name="whatsapp" size={16} /> Open WhatsApp
-                </a>
-              ) : (
-                <button type="button" className={`${primaryButton} cursor-not-allowed opacity-60`} disabled>
-                  <Icon name="whatsapp" size={16} /> Open WhatsApp
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={closeComposer}
-                className="inline-flex h-8 w-full items-center justify-center rounded-lg text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {mounted && open ? createPortal(modalContent, document.body) : null}
     </>
   );
 }

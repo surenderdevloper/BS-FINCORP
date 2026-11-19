@@ -19,6 +19,7 @@ export function RemindersCard({
   reminders,
   count,
   brandingName = "",
+  officePhone = "",
   waUpcoming = "",
   waDuetoday = "",
   smsUpcoming = "",
@@ -26,6 +27,7 @@ export function RemindersCard({
   reminders: ReminderRow[];
   count: number;
   brandingName?: string;
+  officePhone?: string;
   waUpcoming?: string;
   waDuetoday?: string;
   smsUpcoming?: string;
@@ -42,6 +44,7 @@ export function RemindersCard({
           dueDate={row.dueDate}
           template={smsUpcoming}
           brandingName={brandingName}
+          officePhone={officePhone}
         />
         <WhatsAppShare
           recipientName={row.customerName}
@@ -60,6 +63,7 @@ export function RemindersCard({
                   amount: row.amount,
                   dueDate: row.dueDate,
                   brandingName,
+                  officePhone,
                 },
                 waUpcoming
               ),
@@ -75,6 +79,7 @@ export function RemindersCard({
                   amount: row.amount,
                   dueDate: row.dueDate,
                   brandingName,
+                  officePhone,
                 },
                 waDuetoday
               ),

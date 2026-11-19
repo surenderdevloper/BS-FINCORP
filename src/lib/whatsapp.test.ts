@@ -88,3 +88,16 @@ test("statement and custom chat messages fall back safely on an empty name", () 
   assert.match(buildStatementMessage({ customerName: "", loanCount: 1, totalPaid: 0, outstanding: 0 }), /नमस्ते ग्राहक/);
   assert.match(buildCustomChatMessage(""), /नमस्ते ग्राहक/);
 });
+
+test("brand signoff includes contact number under BS FINCORP", () => {
+  const msg = buildEmiReminderMessage("upcoming", {
+    customerName: "Aadu Ram",
+    loanNo: "GFM-0038",
+    amount: 2922,
+    dueDate: "2026-11-20T00:00:00.000Z",
+    brandingName: "BS FINCORP",
+    officePhone: "9828295643, 8890732992",
+  });
+  assert.match(msg, /- BS FINCORP/);
+  assert.match(msg, /Contact: 9828295643, 8890732992/);
+});

@@ -2,16 +2,13 @@ import { cookies } from "next/headers";
 import { signDeveloperAccessToken, verifyDeveloperAccessToken } from "@/lib/auth";
 
 /**
- * Secret-URL access for the Developer Console.
+ * Secret-key access for the Developer Console.
  *
- * There is no role or password involved: set the `DEVELOPER_KEY` environment
- * variable to a long random string, then open
+ * A signed-in developer must enter the `DEVELOPER_KEY` environment value,
+ * which is submitted in a POST body and exchanged for a signed access cookie.
  *
- *     /developer?key=<DEVELOPER_KEY>
- *
- * once. A signed, httpOnly cookie is stored (30 days) so the console keeps
- * working at the plain `/developer` URL without the key. Clearing the cookie or
- * unsetting `DEVELOPER_KEY` locks it again.
+ * The cookie lasts 30 days. Clearing it or unsetting `DEVELOPER_KEY` locks
+ * access again.
  *
  * When `DEVELOPER_KEY` is unset the console is disabled entirely — the route and
  * its API respond as if they do not exist.

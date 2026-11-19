@@ -55,6 +55,13 @@ export interface WaEmiReminderInput {
   amount: number;
   dueDate: string;
   brandingName?: string;
+  officePhone?: string;
+}
+
+function brandSignoff(brandingName?: string, officePhone?: string): string[] {
+  const b = branding(brandingName);
+  const phone = officePhone?.trim() || (b.toUpperCase().includes("BS FINCORP") ? "9828295643, 8890732992" : "");
+  return phone ? [`- ${b}`, `Contact: ${phone}`] : [`- ${b}`];
 }
 
 /** Hindi EMI reminder for an upcoming, due-today or overdue installment. */
@@ -71,12 +78,13 @@ export function buildEmiReminderMessage(
       loan: input.loanNo,
       date: input.dueDate,
       brand: branding(input.brandingName),
+      phone: input.officePhone,
     });
   }
   const name = customerName(input.customerName);
   const amount = inr(input.amount);
   const date = formatMessageDate(input.dueDate);
-  const b = branding(input.brandingName);
+  const signoff = brandSignoff(input.brandingName, input.officePhone);
   const loan = input.loanNo.trim();
 
   if (kind === "upcoming") {
@@ -85,7 +93,7 @@ export function buildEmiReminderMessage(
       `आपके लोन ${loan} की EMI ${amount} दिनांक ${date} को देय है।`,
       `कृपया समय पर भुगतान करें।`,
       ``,
-      `- ${b}`,
+      ...signoff,
     ].join("\n");
   }
   if (kind === "duetoday") {
@@ -94,7 +102,7 @@ export function buildEmiReminderMessage(
       `आपके लोन ${loan} की EMI ${amount} आज दिनांक ${date} को देय है।`,
       `कृपया आज ही भुगतान करें।`,
       ``,
-      `- ${b}`,
+      ...signoff,
     ].join("\n");
   }
   return [
@@ -102,7 +110,7 @@ export function buildEmiReminderMessage(
     `आपके लोन ${loan} की EMI ${amount} दिनांक ${date} को देय थी, जो अब बकाया है।`,
     `कृपया शीघ्र भुगतान करें।`,
     ``,
-    `- ${b}`,
+    ...signoff,
   ].join("\n");
 }
 

@@ -166,20 +166,21 @@ export function ReportsView({
       {/* Filter and Tab Controller Card */}
       <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/95 p-4 shadow-sm backdrop-blur-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Segmented Tab Switcher */}
-          <div className="flex items-center gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1.5 shadow-xs">
+          {/* Segmented Tab Switcher - Grid layout: no horizontal scrolling on mobile or desktop */}
+          <div className="grid w-full grid-cols-2 gap-1.5 rounded-xl bg-zinc-100 p-1.5 shadow-xs sm:grid-cols-4 lg:w-auto">
             {TYPES.map((t) => {
               const active = type === t.value;
               return (
                 <button
                   key={t.value}
+                  type="button"
                   onClick={() => {
                     setType(t.value);
                     const url = new URL(window.location.href);
                     url.searchParams.set("tab", t.value);
                     window.history.replaceState(window.history.state, "", url);
                   }}
-                  className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-bold transition-all duration-200 sm:text-sm ${
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-200 sm:gap-2 sm:px-3.5 sm:text-sm ${
                     active
                       ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/20"
                       : "text-zinc-600 hover:bg-white/60 hover:text-zinc-900"
@@ -190,7 +191,7 @@ export function ReportsView({
                     size={15}
                     className={active ? "text-white" : "text-zinc-400"}
                   />
-                  {t.label}
+                  <span className="truncate">{t.label}</span>
                 </button>
               );
             })}
@@ -426,6 +427,28 @@ export function ReportsView({
                 >
                   <Icon name="alert" size={12} />
                   Only With Penalty
+                </button>
+              </div>
+            )}
+
+            {/* Active Filters Clear Button & Filtered Count Indicator */}
+            {(searchQuery.trim() ||
+              (type === "penalties" && penaltyStatusFilter !== "all") ||
+              (type === "collections" && onlyWithPenalty)) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                <span className="font-medium text-zinc-500">
+                  Showing <strong className="text-zinc-900">{filteredRows.length}</strong> of {data?.rows.length ?? 0}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setPenaltyStatusFilter("all");
+                    setOnlyWithPenalty(false);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900"
+                >
+                  <Icon name="close" size={11} /> Reset filters
                 </button>
               </div>
             )}

@@ -18,6 +18,10 @@ The download is a plain JSON export (`exportedAt`, `app`, `counts`, `collections
 intended as a file-based safety net. For databases hosted on MongoDB Atlas, Atlas also
 offers automated nightly snapshots which are the recommended first line of defence.
 
+The scheduled Vercel backup endpoint requires `CRON_SECRET` to be set in the deployment
+environment. Vercel Cron must send it as `Authorization: Bearer <CRON_SECRET>`; requests
+without the configured bearer token are rejected.
+
 ## Recommended schedule
 
 | What | How often |

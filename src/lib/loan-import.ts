@@ -490,17 +490,25 @@ export function parseLoanImportSheet(
   return { records };
 }
 
+export async function parseLoanImportCsv(contents: string): Promise<unknown[][]> {
+  const Papa = (await import("papaparse")).default;
+  const result = Papa.parse<unknown[]>(contents, { skipEmptyLines: false });
+  if (result.errors.length) throw new Error("The CSV file could not be parsed.");
+  return result.data;
+}
+
 export async function downloadLoanTemplate(): Promise<void> {
-  const XLSX = await import("xlsx");
-  const workbook = XLSX.utils.book_new();
-
-  const sheet = XLSX.utils.aoa_to_sheet([LOAN_IMPORT_COLUMNS]);
-  sheet["!cols"] = LOAN_IMPORT_COLUMNS.map((column) => ({ wch: Math.max(column.length + 2, 14) }));
-  XLSX.utils.book_append_sheet(workbook, sheet, "Loans");
-
-  const help = XLSX.utils.aoa_to_sheet([["Column", "Required", "Notes"], ...LOAN_IMPORT_HELP]);
-  help["!cols"] = [{ wch: 22 }, { wch: 11 }, { wch: 74 }];
-  XLSX.utils.book_append_sheet(workbook, help, "Help");
-
-  XLSX.writeFile(workbook, `loan-import-template-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const { downloadWorkbook } = await import("@/lib/excel");
+  await downloadWorkbook("loan-import-template", [
+    {
+      name: "Loans",
+      rows: [LOAN_IMPORT_COLUMNS],
+      widths: LOAN_IMPORT_COLUMNS.map((column) => Math.max(column.length + 2, 14)),
+    },
+    {
+      name: "Help",
+      rows: [["Column", "Required", "Notes"], ...LOAN_IMPORT_HELP],
+      widths: [22, 11, 74],
+    },
+  ]);
 }

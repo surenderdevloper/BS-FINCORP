@@ -8,6 +8,7 @@ import { inr } from "@/lib/money";
 import { CUSTOMERS_LIST_CACHE_KEY, invalidateCached } from "@/lib/client-fetch";
 import {
   downloadLoanTemplate,
+  parseLoanImportCsv,
   parseLoanImportSheet,
   type LoanImportRecord,
 } from "@/lib/loan-import";
@@ -60,12 +61,16 @@ export function LoanExcelImport({ loanTypes }: { loanTypes?: LoanTypeOption[] })
     setParseError("");
     setFileName(file.name);
     try {
-      const buffer = await file.arrayBuffer();
-      const XLSX = await import("xlsx");
-      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!sheet) throw new Error("Missing sheet");
-      const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, defval: "" });
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      let aoa: unknown[][];
+      if (extension === "csv") {
+        aoa = await parseLoanImportCsv(await file.text());
+      } else if (extension === "xlsx") {
+        const { readSheet } = await import("read-excel-file/browser");
+        aoa = await readSheet(file);
+      } else {
+        throw new Error("Unsupported spreadsheet format.");
+      }
       const parsed = parseLoanImportSheet(aoa, loanTypes);
       if (parsed.headerError) {
         setRecords([]);
@@ -78,7 +83,7 @@ export function LoanExcelImport({ loanTypes }: { loanTypes?: LoanTypeOption[] })
     } catch {
       setRecords([]);
       setStep("idle");
-      setParseError("Could not read this file. Please choose a valid .xlsx, .xls or .csv file.");
+      setParseError("Could not read this file. Please choose a valid .xlsx or .csv file.");
     }
   }
 
@@ -131,7 +136,7 @@ export function LoanExcelImport({ loanTypes }: { loanTypes?: LoanTypeOption[] })
       <input
         ref={fileInput}
         type="file"
-        accept=".xlsx,.xls,.csv"
+        accept=".xlsx,.csv"
         className="hidden"
         onChange={handleFile}
       />
@@ -147,7 +152,7 @@ export function LoanExcelImport({ loanTypes }: { loanTypes?: LoanTypeOption[] })
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-zinc-900">Import loans from Excel</h2>
                 <p className="mt-0.5 truncate text-xs text-zinc-500">
-                  {fileName || "Upload an .xlsx, .xls or .csv file"}
+                  {fileName || "Upload an .xlsx or .csv file"}
                 </p>
               </div>
               <button

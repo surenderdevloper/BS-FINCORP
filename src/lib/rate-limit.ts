@@ -1,16 +1,5 @@
-/**
- * Minimal in-memory fixed-window rate limiter. Good enough to blunt password
- * guessing on a single warm serverless instance. It is intentionally
- * dependency-free and best-effort: cold starts reset the counters, but the
- * window still slows repeated attempts within a burst.
- */
-
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
-
-const buckets = new Map<string, Bucket>();
+import { createHash } from "node:crypto";
+import { dbConnect } from "@/lib/db";
 
 export interface RateLimitResult {
   ok: boolean;
@@ -18,33 +7,68 @@ export interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
-/**
- * Record an attempt for `key`. When the number of attempts within `windowMs`
- * exceeds `max`, further calls are rejected until the window elapses.
- */
-export function rateLimit(key: string, max: number, windowMs: number): RateLimitResult {
-  const now = Date.now();
-  const existing = buckets.get(key);
+interface PersistentBucket {
+  _id: string;
+  count: number;
+  expiresAt: Date;
+}
 
-  if (!existing || existing.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { ok: true, remaining: max - 1, retryAfterSeconds: 0 };
+let ttlIndexPromise: Promise<string> | undefined;
+
+function bucketId(key: string, windowStart: number): string {
+  const hash = createHash("sha256").update(key).digest("hex");
+  return `${hash}:${windowStart}`;
+}
+
+async function getPersistentCollection() {
+  const connection = await dbConnect();
+  const database = connection.db;
+  if (!database) throw new Error("Could not access the database for API rate limiting.");
+  const collection = database.collection<PersistentBucket>("api_rate_limits");
+  if (!ttlIndexPromise) {
+    ttlIndexPromise = collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }).catch((error) => {
+      ttlIndexPromise = undefined;
+      throw error;
+    });
   }
+  await ttlIndexPromise;
+  return collection;
+}
 
-  existing.count += 1;
-  if (existing.count > max) {
+/**
+ * Persist fixed-window counters in MongoDB so limits are shared across serverless
+ * instances. Only a one-way hash of the supplied key is stored.
+ */
+export async function persistentRateLimit(
+  key: string,
+  max: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const now = Date.now();
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const id = bucketId(key, windowStart);
+  const collection = await getPersistentCollection();
+  await collection.updateOne(
+    { _id: id },
+    { $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date(windowStart + windowMs) } },
+    { upsert: true }
+  );
+  const bucket = await collection.findOne({ _id: id }, { projection: { count: 1 } });
+  if (!bucket) throw new Error("API rate-limit counter could not be read after update.");
+  if (bucket.count > max) {
     return {
       ok: false,
       remaining: 0,
-      retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
+      retryAfterSeconds: Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)),
     };
   }
-  return { ok: true, remaining: max - existing.count, retryAfterSeconds: 0 };
+  return { ok: true, remaining: max - bucket.count, retryAfterSeconds: 0 };
 }
 
-/** Clear a bucket, e.g. after a successful login. */
-export function rateLimitReset(key: string): void {
-  buckets.delete(key);
+export async function persistentRateLimitReset(key: string, windowMs: number): Promise<void> {
+  const windowStart = Math.floor(Date.now() / windowMs) * windowMs;
+  const collection = await getPersistentCollection();
+  await collection.deleteOne({ _id: bucketId(key, windowStart) });
 }
 
 /** Best-effort client identifier derived from proxy headers. */

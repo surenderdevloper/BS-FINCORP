@@ -10,9 +10,16 @@ export interface SmsMessageInput {
   amount: number;
   dueDate: string;
   brandingName?: string;
+  officePhone?: string;
 }
 
 export const SMS_BRANDING = "Gigabyte Finance Manager";
+
+function brandSignoff(brandingName?: string, officePhone?: string): string[] {
+  const b = brandingName?.trim() || SMS_BRANDING;
+  const phone = officePhone?.trim() || (b.toUpperCase().includes("BS FINCORP") ? "9828295643, 8890732992" : "");
+  return phone ? [`- ${b}`, `Contact: ${phone}`] : [`- ${b}`];
+}
 
 /**
  * Normalize an Indian mobile number to a 10-digit national number.
@@ -53,12 +60,13 @@ export function buildSmsMessage(
       loan: input.loanNo,
       date: input.dueDate,
       brand: input.brandingName?.trim() || SMS_BRANDING,
+      phone: input.officePhone,
     });
   }
   const name = input.customerName.trim() || "ग्राहक";
   const amount = inr(input.amount);
   const date = formatSmsDate(input.dueDate);
-  const brand = input.brandingName?.trim() || SMS_BRANDING;
+  const signoff = brandSignoff(input.brandingName, input.officePhone);
   const loan = input.loanNo.trim();
   if (type === "upcoming") {
     return [
@@ -66,7 +74,7 @@ export function buildSmsMessage(
       `आपके लोन ${loan} की EMI ${amount} दिनांक ${date} को देय है।`,
       `कृपया समय पर भुगतान करें।`,
       ``,
-      `- ${brand}`,
+      ...signoff,
     ].join("\n");
   }
   return [
@@ -74,7 +82,7 @@ export function buildSmsMessage(
     `आपके लोन ${loan} की EMI ${amount} दिनांक ${date} को देय थी, जो अब बकाया है।`,
     `कृपया शीघ्र भुगतान करें।`,
     ``,
-    `- ${brand}`,
+    ...signoff,
   ].join("\n");
 }
 

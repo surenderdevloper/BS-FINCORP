@@ -12,6 +12,7 @@ import {
 import { runUnscoped } from "@/lib/tenant";
 import { revokeUserSessions } from "@/lib/sessions";
 import { recordAudit } from "@/lib/audit";
+import { persistentRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,13 @@ export async function POST(req: Request) {
   const session = await readSession();
   if (!session || !isSuperadmin(session)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const limit = await persistentRateLimit(`superadmin-password:${session.id}`, 10, 15 * 60 * 1000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
   }
 
   let body: { currentPassword?: string; newPassword?: string } = {};

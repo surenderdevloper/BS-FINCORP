@@ -5,7 +5,7 @@ import { User } from "@/models/User";
 import { signSessionToken, sessionCookieOptions, SESSION_COOKIE, normalizeRole } from "@/lib/auth";
 import { clientIp, parseDevice, startSession } from "@/lib/sessions";
 import { runUnscoped } from "@/lib/tenant";
-import { clientKey, rateLimit, rateLimitReset } from "@/lib/rate-limit";
+import { clientKey, persistentRateLimit, persistentRateLimitReset } from "@/lib/rate-limit";
 
 const MAX_ATTEMPTS = 10;
 const WINDOW_MS = 10 * 60 * 1000;
@@ -20,8 +20,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    const limit = rateLimit(`login:${clientKey(req)}:${email}`, MAX_ATTEMPTS, WINDOW_MS);
-    if (!limit.ok) {
+    const emailLimitKey = `login-email:${email}`;
+    const ipLimitKey = `login-ip:${clientKey(req)}`;
+    const [emailLimit, ipLimit] = await Promise.all([
+      persistentRateLimit(emailLimitKey, MAX_ATTEMPTS, WINDOW_MS),
+      persistentRateLimit(ipLimitKey, MAX_ATTEMPTS * 5, WINDOW_MS),
+    ]);
+    const limit = !emailLimit.ok ? emailLimit : ipLimit;
+    if (!emailLimit.ok || !ipLimit.ok) {
       return NextResponse.json(
         { error: "Too many login attempts. Please try again later." },
         { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    rateLimitReset(`login:${clientKey(req)}:${email}`);
+    await persistentRateLimitReset(emailLimitKey, WINDOW_MS);
 
     // Register this device so the superadmin panel can show where the account is
     // signed in (and sign a specific device out later). The session id goes into

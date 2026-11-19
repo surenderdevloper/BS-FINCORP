@@ -61,22 +61,37 @@ export const SMS_TEMPLATES_META: { key: string; label: string; hint: string }[] 
 
 /** Replace `{token}` placeholders in a template string with real values. */
 export function renderTemplate(template: string, vars: TemplateVars): string {
+  const brand = vars.brand?.trim() || "";
+  const defaultPhone = brand.toUpperCase().includes("BS FINCORP") ? "9828295643, 8890732992" : "";
+  const phone = vars.phone?.trim() || defaultPhone;
   const map: Record<string, string> = {
     name: vars.name?.trim() || "ग्राहक",
     amount: inr(vars.amount ?? 0),
     loan: vars.loan?.trim() || "",
     date: formatMessageDate(vars.date),
-    brand: vars.brand?.trim() || "",
-    phone: vars.phone?.trim() || "",
+    brand,
+    phone,
     receipt: vars.receipt?.trim() || "",
     total_loan: vars.totalLoan != null ? String(vars.totalLoan) : "",
     total_paid: vars.totalPaid != null ? inr(vars.totalPaid) : "",
     outstanding: vars.outstanding != null ? inr(vars.outstanding) : "",
   };
-  return template.replace(/\{([a-z_]+)\}/gi, (whole, key: string) => {
+  let rendered = template.replace(/\{([a-z_]+)\}/gi, (whole, key: string) => {
     const k = key.toLowerCase();
     return k in map ? map[k] : whole;
   });
+
+  // If message includes brand signoff (e.g. "- BS FINCORP") but didn't include the contact number:
+  if (
+    phone &&
+    rendered.toUpperCase().includes("BS FINCORP") &&
+    !rendered.toLowerCase().includes("contact") &&
+    !rendered.includes(phone)
+  ) {
+    rendered = rendered.replace(/(-?\s*BS\s*FINCORP)/i, `$1\nContact: ${phone}`);
+  }
+
+  return rendered;
 }
 
 /**

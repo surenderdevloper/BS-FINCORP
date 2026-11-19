@@ -13,6 +13,8 @@ business. Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 - **New Loan** — multi-section form (Customer / Vehicle / Financial / Guarantor), existing-customer
   search, live **EMI Calculator** (flat or reducing-balance), EMI day scheduling, automatic
   loan-number generation, and transactional-ish creation of customer + loan + EMI schedule.
+- **Loan import** — import loan data from `.xlsx` and `.csv` files, with a downloadable `.xlsx`
+  template. Legacy `.xls` files are not supported.
 - **Core calculations** — flat / reducing-balance EMI, per-day late-fee penalty engine with
   configurable grace days, and penalty cap.
 
@@ -38,15 +40,17 @@ and starts the dev server. Data is lost on exit.
    strong random `AUTH_SECRET`.
 2. Seed the database:
    ```bash
-   npm run seed
+   SEED_ADMIN_EMAIL="admin@yourdomain.com" SEED_ADMIN_PASSWORD="<unique-password-12+-chars>" npm run seed
    ```
 3. Run the app:
    ```bash
    npm run dev
    ```
 
-Login: `admin@bsfincorp.com` / `admin123` (overridable via `SEED_ADMIN_EMAIL` /
-`SEED_ADMIN_PASSWORD`).
+The seed script requires an explicitly provided `SEED_ADMIN_PASSWORD` of at least 12 characters.
+The demo credentials above are only for the disposable in-memory demo and must never be reused
+for a real database or deployment. Keep `.env` files local: `.gitignore` excludes `.env*`.
+`npm run seed` drops the target database before reseeding.
 
 > Mongo Atlas free tiers (M0/M2/M5) do not support multi-document transactions, so writes use
 > manual compensation rollback. Upgrade to a dedicated cluster for stronger atomicity.

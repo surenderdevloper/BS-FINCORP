@@ -35,7 +35,13 @@ export default async function DashboardPage() {
   const officePhone = msgs.officePhone;
 
   function overdueTemplates(row: OverdueRow) {
-    const base = { customerName: row.customerName, loanNo: row.loanNo, amount: row.amount, brandingName };
+    const base = {
+      customerName: row.customerName,
+      loanNo: row.loanNo,
+      amount: row.amount,
+      brandingName,
+      officePhone,
+    };
     return [
       {
         key: "overdue",
@@ -238,6 +244,7 @@ export default async function DashboardPage() {
         reminders={data.reminders}
         count={data.upcomingEmis}
         brandingName={brandingName}
+        officePhone={officePhone}
         waUpcoming={msgs.wa.upcoming}
         waDuetoday={msgs.wa.duetoday}
         smsUpcoming={msgs.sms.upcoming}
@@ -301,6 +308,7 @@ export default async function DashboardPage() {
                             dueDate={row.dueDate}
                             template={msgs.sms.overdue}
                             brandingName={brandingName}
+                            officePhone={officePhone}
                           />
                           <WhatsAppShare
                             recipientName={row.customerName}

@@ -20,7 +20,7 @@ process.env.MONGODB_URI = mongod.getUri("bs_fincorp");
 process.env.AUTH_SECRET =
   process.env.AUTH_SECRET || crypto.randomBytes(32).toString("hex");
 
-console.log(">> MongoDB (in-memory) listening on", process.env.MONGODB_URI);
+console.log(">> Started an in-memory MongoDB for this demo.");
 
 function run(cmd, args, env) {
   return new Promise((resolve, reject) => {

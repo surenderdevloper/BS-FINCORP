@@ -19,10 +19,11 @@ export default async function AppLayout({
   if (isSuspended(session)) {
     redirect("/account-suspended");
   }
-  // A superadmin has no tenant: browsing the tenant app would run unscoped and
-  // expose every tenant's data. Send them to their own panel instead.
-  if (multiTenantEnabled() && isSuperadmin(session)) {
-    redirect("/superadmin-panel");
+  // Global roles must never render tenant pages without an explicit tenant
+  // context, where model queries would otherwise be unscoped.
+  if (multiTenantEnabled()) {
+    if (isSuperadmin(session)) redirect("/superadmin-panel");
+    if (session.role === "developer") redirect("/developer");
   }
 
   let branding = { logo: "", companyName: "Gigabyte Finance Manager" };

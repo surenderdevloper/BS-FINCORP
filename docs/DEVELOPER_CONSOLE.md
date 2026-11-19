@@ -30,14 +30,15 @@ DEVELOPER_KEY=your-long-random-string
 
 ## 2. Open the console (one time per device)
 
-While logged in to the app, open:
+Sign in with the developer account and open:
 
 ```
-https://<your-app-domain>/developer?key=<DEVELOPER_KEY>
+https://<your-app-domain>/developer
 ```
 
-That verifies the key and stores a signed, httpOnly cookie for 30 days, then
-redirects you to the clean `/developer` URL. After that you can bookmark:
+Enter the key into the console unlock form. It is sent in a POST body (not the
+URL) and exchanged for a signed, httpOnly cookie that lasts 30 days. After that
+you can bookmark:
 
 ```
 https://<your-app-domain>/developer

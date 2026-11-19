@@ -10,6 +10,7 @@ import { PenaltyRule } from "@/models/PenaltyRule";
 import { CustomerDocument } from "@/models/CustomerDocument";
 import { Tenant } from "@/models/Tenant";
 import { uploadBackupToR2 } from "@/lib/backup-r2";
+import { clientKey, persistentRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -63,10 +64,18 @@ export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization") || "";
     const cronSecret = process.env.CRON_SECRET;
-    const vercelCron = req.headers.get("x-vercel-cron") === "1";
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && !vercelCron) {
+    if (!cronSecret) {
+      return NextResponse.json({ error: "Cron authentication is not configured." }, { status: 503 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const limit = await persistentRateLimit(`cron-backup:${clientKey(req)}`, 5, 60 * 60 * 1000);
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+      );
     }
 
     await dbConnect();
