@@ -20,7 +20,7 @@ export default async function ReportsPage({
   const params = await searchParams;
   const requested = params?.tab;
   const type: ReportType =
-    requested === "loans-closed" || requested === "collections" || requested === "loans-active"
+    requested === "loans-closed" || requested === "collections" || requested === "penalties" || requested === "loans-active"
       ? requested
       : "loans-active";
   const today = isoDateIST(new Date());

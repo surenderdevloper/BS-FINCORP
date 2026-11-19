@@ -79,31 +79,35 @@ export function SmsComposer({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-zinc-900/50" onClick={closeComposer} />
-          <Card className="relative w-full max-w-md">
-            <CardHeader
-              title="SMS EMI Reminder"
-              subtitle={`Loan ${loanNo} · ${type === "overdue" ? "Overdue" : "Upcoming"} installment`}
-              action={
-                <div className="flex items-center gap-2">
-                  <Badge tone={type === "overdue" ? "red" : "amber"}>
-                    {type === "overdue" ? "Overdue" : "Upcoming"}
-                  </Badge>
-                  <button
-                    type="button"
-                    onClick={closeComposer}
-                    aria-label="Close"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
-                  >
-                    <Icon name="close" size={16} />
-                  </button>
-                </div>
-              }
-            />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-xs transition-opacity" onClick={closeComposer} />
+          <div className="relative my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3 sm:px-5 bg-white">
+              <div className="min-w-0">
+                <h2 className="break-words text-sm font-semibold text-zinc-900">SMS EMI Reminder</h2>
+                <p className="mt-0.5 break-words text-xs text-zinc-500">
+                  Loan {loanNo} · {type === "overdue" ? "Overdue" : "Upcoming"} installment
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge tone={type === "overdue" ? "red" : "amber"}>
+                  {type === "overdue" ? "Overdue" : "Upcoming"}
+                </Badge>
+                <button
+                  type="button"
+                  onClick={closeComposer}
+                  aria-label="Close"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            </div>
 
-            <div className="min-w-0 space-y-4 p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3.5 py-3 ring-1 ring-zinc-200">
+            {/* Scrollable Content Body */}
+            <div className="min-w-0 flex-1 overflow-y-auto space-y-3.5 p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3.5 py-2.5 ring-1 ring-zinc-200">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-zinc-900">{customerName.trim() || "—"}</p>
                   <p className="truncate text-xs text-zinc-500">{displayMobile}</p>
@@ -134,12 +138,12 @@ export function SmsComposer({
                   id={`sms-message-${loanNo}`}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  rows={5}
-                  className="w-full resize-y rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-zinc-900 shadow-sm transition-colors focus:border-emerald-500 focus:outline-2 focus:outline-emerald-600"
+                  rows={4}
+                  className="w-full resize-y rounded-xl border border-zinc-300 bg-white px-3 py-2 text-xs sm:text-sm leading-relaxed text-zinc-900 shadow-xs transition-colors focus:border-emerald-500 focus:outline-2 focus:outline-emerald-600"
                 />
               </div>
 
-              <p className="w-full whitespace-normal break-words rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-200 [overflow-wrap:anywhere]">
+              <p className="w-full whitespace-normal break-words rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-200/80 [overflow-wrap:anywhere]">
                 Amount is the pending amount for this single installment only, not the total loan balance.
                 You send the SMS yourself from your own phone.
               </p>
@@ -150,24 +154,38 @@ export function SmsComposer({
                   the SMS link.
                 </p>
               )}
-
-              <div className="space-y-2">
-                {mobileDigits ? (
-                  <button
-                    type="button"
-                    onClick={() => url && (window.location.href = url)}
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                  >
-                    <Icon name="chat" size={16} /> Open Messages
-                  </button>
-                ) : (
-                  <Button variant="primary" size="md" className="w-full" disabled>
-                    Open Messages
-                  </Button>
-                )}
-              </div>
             </div>
-          </Card>
+
+            {/* Sticky Action Footer */}
+            <div className="flex shrink-0 flex-col gap-2 border-t border-zinc-100 bg-zinc-50/90 px-4 py-3 sm:px-5 backdrop-blur-xs">
+              {mobileDigits ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (url) {
+                      window.location.href = url;
+                      closeComposer();
+                    }
+                  }}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                >
+                  <Icon name="chat" size={16} /> Open Messages
+                </button>
+              ) : (
+                <Button variant="primary" size="md" className="w-full cursor-not-allowed opacity-60" disabled>
+                  Open Messages
+                </Button>
+              )}
+
+              <button
+                type="button"
+                onClick={closeComposer}
+                className="inline-flex h-8 w-full items-center justify-center rounded-lg text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

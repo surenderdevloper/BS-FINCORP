@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { CompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
 import { PenaltyRule, invalidatePenaltyRuleCache } from "@/models/PenaltyRule";
+import { AppConfig, invalidateAppConfigCache } from "@/models/AppConfig";
 import { getSettingsSnapshot } from "@/lib/settings";
 import { withTenant } from "@/lib/tenant-route";
 
@@ -14,7 +15,13 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   return withTenant(async () => {
-    let body: { section?: "company" | "penalty"; company?: Record<string, unknown>; penalty?: Record<string, unknown> };
+    let body: {
+      section?: "company" | "penalty" | "messages";
+      company?: Record<string, unknown>;
+      penalty?: Record<string, unknown>;
+      waTemplates?: Record<string, unknown>;
+      smsTemplates?: Record<string, unknown>;
+    };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -22,6 +29,34 @@ export async function PUT(req: Request) {
   }
 
   await dbConnect();
+
+  if (body.section === "messages") {
+    const wa = (body.waTemplates ?? {}) as Record<string, unknown>;
+    const sms = (body.smsTemplates ?? {}) as Record<string, unknown>;
+    const set: Record<string, string> = {};
+    for (const key of ["upcoming", "duetoday", "overdue", "payment", "followupFriendly", "followupStatus", "followupContact", "statement", "chat"]) {
+      if (key in wa) {
+        set[`waTemplates.${key}`] = String(wa[key] ?? "").slice(0, 3000).trim();
+      }
+    }
+    for (const key of ["upcoming", "overdue"]) {
+      if (key in sms) {
+        set[`smsTemplates.${key}`] = String(sms[key] ?? "").slice(0, 1000).trim();
+      }
+    }
+    const updated = await AppConfig.findOneAndUpdate(
+      { singleton: "appconfig" },
+      { $set: set, $setOnInsert: { singleton: "appconfig" } },
+      { upsert: true, returnDocument: "after" }
+    );
+    invalidateAppConfigCache();
+    return NextResponse.json({
+      messages: {
+        waTemplates: updated.waTemplates,
+        smsTemplates: updated.smsTemplates,
+      },
+    });
+  }
 
   if (body.section === "penalty" && body.penalty) {
     const p = body.penalty;

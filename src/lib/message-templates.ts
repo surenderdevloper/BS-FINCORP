@@ -42,6 +42,23 @@ export const TEMPLATE_TOKENS = [
   "{outstanding}",
 ] as const;
 
+export const WA_TEMPLATES_META: { key: string; label: string; hint: string }[] = [
+  { key: "upcoming", label: "EMI Upcoming Reminder", hint: "Reminder before an EMI is due" },
+  { key: "duetoday", label: "EMI Due Today", hint: "On the date when EMI is due" },
+  { key: "overdue", label: "EMI Overdue Alert", hint: "After the due date has passed" },
+  { key: "payment", label: "Payment Confirmation", hint: "Instant receipt confirmation when payment is recorded" },
+  { key: "followupFriendly", label: "Follow-up (Friendly)", hint: "Polite reminder for overdue collection" },
+  { key: "followupStatus", label: "Follow-up (Ask Date)", hint: "Asks customer when they can pay" },
+  { key: "followupContact", label: "Follow-up (Call Office)", hint: "Invites customer to call the office" },
+  { key: "statement", label: "Account Statement", hint: "Summary of customer's active loans and outstanding dues" },
+  { key: "chat", label: "Direct Chat Greeting", hint: "Standard initial greeting when opening WhatsApp chat" },
+];
+
+export const SMS_TEMPLATES_META: { key: string; label: string; hint: string }[] = [
+  { key: "upcoming", label: "EMI Upcoming Reminder (SMS)", hint: "SMS reminder sent before an installment is due" },
+  { key: "overdue", label: "EMI Overdue Reminder (SMS)", hint: "SMS reminder sent after an installment is past due" },
+];
+
 /** Replace `{token}` placeholders in a template string with real values. */
 export function renderTemplate(template: string, vars: TemplateVars): string {
   const map: Record<string, string> = {

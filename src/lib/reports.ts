@@ -2,16 +2,24 @@ import type { Types } from "mongoose";
 import { Loan } from "@/models/Loan";
 import { Payment } from "@/models/Payment";
 import { Customer } from "@/models/Customer";
+import { Emi } from "@/models/Emi";
+import { computePenaltyForEmi, getPenaltyRuleObj } from "@/models/PenaltyRule";
 import { endOfISTDay, isoDateIST, startOfISTDay } from "@/lib/dates";
 import { formatEmiNumbers } from "@/lib/emi-names";
 
-export type ReportType = "loans-active" | "loans-closed" | "collections";
+export type ReportType = "loans-active" | "loans-closed" | "collections" | "penalties";
 
 export interface ReportData {
   title: string;
   columns: string[];
   rows: Record<string, string | number>[];
-  summary: { count: number; totalAmount: number; totalPenalty?: number };
+  summary: {
+    count: number;
+    totalAmount: number;
+    totalPenalty?: number;
+    pendingPenalty?: number;
+    collectedPenalty?: number;
+  };
 }
 
 type ReportRow = Record<string, string | number>;
@@ -73,6 +81,150 @@ export async function buildReport(input: {
       columns: ["Receipt No", "EMI No", "Date", "Loan No", "Customer", "Amount", "Principal", "Interest", "Penalty", "Mode"],
       rows,
       summary: { count: payments.length, totalAmount, totalPenalty },
+    };
+  }
+
+  if (type === "penalties") {
+    // 1. Fetch loans to resolve customer, vehicle, and loan details
+    const allLoans = (await Loan.find({})
+      .select("loanNo status customerId vehicle.name paymentPlan.monthlyEmi")
+      .lean()
+      .exec()) as unknown as Array<{
+        _id: Types.ObjectId;
+        loanNo: string;
+        status: string;
+        customerId: Types.ObjectId;
+        vehicle: { name: string };
+        paymentPlan: { monthlyEmi: number };
+      }>;
+
+    const loanMapById = new Map(allLoans.map((l) => [l._id.toString(), l]));
+    const loanMapByNo = new Map(allLoans.map((l) => [l.loanNo, l]));
+
+    // Customer details lookup
+    const customerIds = [...new Set(allLoans.map((l) => l.customerId?.toString()).filter(Boolean))];
+    const customers = await Customer.find({ _id: { $in: customerIds } })
+      .select("name mobile")
+      .lean()
+      .exec();
+    const customerMap = new Map(customers.map((c) => [c._id.toString(), c]));
+
+    const now = new Date();
+    const penaltyRule = await getPenaltyRuleObj();
+
+    // 2. Overdue EMIs with unpaid penalties
+    const activeLoanIds = allLoans.filter((l) => l.status !== "closed").map((l) => l._id);
+    const overdueEmis = await Emi.find({
+      loanId: { $in: activeLoanIds },
+      status: { $ne: "paid" },
+      dueDate: { $lt: now },
+    })
+      .select("loanId loanNo emiNo dueDate amount paidAmount penalty carriedIn")
+      .sort({ dueDate: -1 })
+      .lean()
+      .exec();
+
+    // 3. Payments where penalty was collected
+    const paymentQuery: Record<string, unknown> = {
+      type: { $ne: "NOC_REPRINT" },
+      penalty: { $gt: 0 },
+    };
+    if (from || to) {
+      paymentQuery.createdAt = { $gte: start, $lte: end };
+    }
+    const penaltyPayments = await Payment.find(paymentQuery)
+      .select("receiptNo createdAt loanNo customerName amount penalty emiNumbers")
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    const rows: ReportRow[] = [];
+    let totalPenalty = 0;
+    let pendingPenalty = 0;
+    let collectedPenalty = 0;
+    let totalAmount = 0;
+
+    // Process Overdue / Due Penalties
+    for (const emi of overdueEmis) {
+      const loan = loanMapById.get(emi.loanId.toString());
+      if (!loan) continue;
+      const customer = customerMap.get(loan.customerId?.toString() ?? "");
+      const effectiveAmount = Math.max(0, emi.amount + (emi.carriedIn?.amount ?? 0) - (emi.paidAmount ?? 0));
+
+      const late = await computePenaltyForEmi(
+        emi.dueDate.toISOString(),
+        effectiveAmount,
+        now,
+        penaltyRule
+      );
+      const charge = (emi.penalty ?? 0) > 0 ? (emi.penalty ?? 0) : late.penalty;
+
+      if (charge > 0 || late.daysLate > (penaltyRule?.graceDays ?? 3)) {
+        totalPenalty += charge;
+        pendingPenalty += charge;
+        totalAmount += effectiveAmount;
+        rows.push({
+          "Status": "Pending (Due)",
+          "Loan No": loan.loanNo,
+          "Customer": customer?.name ?? "—",
+          "Mobile": customer?.mobile ?? "—",
+          "Vehicle": loan.vehicle?.name ?? "—",
+          "EMI No": formatEmiNumbers([emi.emiNo]),
+          "Date": isoDateIST(emi.dueDate),
+          "Days Late": late.daysLate,
+          "Amount": effectiveAmount,
+          "Penalty": charge,
+          "Reference": "Overdue EMI",
+        });
+      }
+    }
+
+    // Process Collected Penalties
+    for (const p of penaltyPayments) {
+      const loan = loanMapByNo.get(p.loanNo);
+      const customer = loan ? customerMap.get(loan.customerId?.toString() ?? "") : null;
+      const charge = p.penalty ?? 0;
+      totalPenalty += charge;
+      collectedPenalty += charge;
+      totalAmount += p.amount;
+      rows.push({
+        "Status": "Collected (Paid)",
+        "Loan No": p.loanNo,
+        "Customer": p.customerName || customer?.name || "—",
+        "Mobile": customer?.mobile ?? "—",
+        "Vehicle": loan?.vehicle?.name ?? "—",
+        "EMI No": p.emiNumbers && p.emiNumbers.length > 0 ? formatEmiNumbers(p.emiNumbers) : "—",
+        "Date": p.createdAt ? isoDateIST(p.createdAt) : "",
+        "Days Late": "—",
+        "Amount": p.amount,
+        "Penalty": charge,
+        "Reference": p.receiptNo,
+      });
+    }
+
+    return {
+      title: type,
+      columns: [
+        "Status",
+        "Loan No",
+        "Customer",
+        "Mobile",
+        "Vehicle",
+        "EMI No",
+        "Date",
+        "Days Late",
+        "Amount",
+        "Penalty",
+        "Reference",
+      ],
+      rows,
+      summary: {
+        count: rows.length,
+        totalAmount,
+        totalPenalty,
+        pendingPenalty,
+        collectedPenalty,
+      },
     };
   }
 

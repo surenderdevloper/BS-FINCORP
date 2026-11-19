@@ -10,14 +10,15 @@ import { inr } from "@/lib/money";
 import type { ReportData, ReportType } from "@/lib/reports";
 import { isoDateIST } from "@/lib/dates";
 
-const TYPES: { value: ReportType; label: string; icon: "dashboard" | "close" | "cash" }[] = [
+const TYPES: { value: ReportType; label: string; icon: "dashboard" | "close" | "cash" | "alert" }[] = [
   { value: "loans-active", label: "Active Loans", icon: "dashboard" },
   { value: "loans-closed", label: "Closed Loans", icon: "close" },
   { value: "collections", label: "Collections", icon: "cash" },
+  { value: "penalties", label: "Penalties", icon: "alert" },
 ];
 
-const MONEY_COLUMNS = new Set(["Amount", "Principal", "Interest", "Penalty", "Loan Amount", "Monthly EMI"]);
-const CENTER_COLUMNS = new Set(["Tenure (months)", "EMIs"]);
+const MONEY_COLUMNS = new Set(["Amount", "Principal", "Interest", "Penalty", "Loan Amount", "Monthly EMI", "EMI Amount"]);
+const CENTER_COLUMNS = new Set(["Tenure (months)", "EMIs", "EMI No", "Days Late", "Status"]);
 const alignClass = (c: string) =>
   MONEY_COLUMNS.has(c) ? "text-right" : CENTER_COLUMNS.has(c) ? "text-center" : "";
 
@@ -36,6 +37,8 @@ export function ReportsView({
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [penaltyStatusFilter, setPenaltyStatusFilter] = useState<"all" | "pending" | "collected">("all");
+  const [onlyWithPenalty, setOnlyWithPenalty] = useState(false);
 
   useEffect(() => {
     document.title = "Reports • Financial Ledger";
@@ -81,7 +84,7 @@ export function ReportsView({
     return () => clearTimeout(t);
   }, [load]);
 
-  // Quick date presets for Collections
+  // Quick date presets for Collections and Penalties
   const applyQuickPreset = (preset: "today" | "month" | "30days") => {
     const now = new Date();
     const todayStr = isoDateIST(now);
@@ -99,15 +102,30 @@ export function ReportsView({
     }
   };
 
-  // Instant real-time search across table rows
+  // Instant real-time search & filters across table rows
   const filteredRows = useMemo(() => {
     if (!data?.rows) return [];
-    if (!searchQuery.trim()) return data.rows;
+    let rows = data.rows;
+
+    if (type === "penalties" && penaltyStatusFilter !== "all") {
+      rows = rows.filter((r) => {
+        const s = String(r["Status"] ?? "").toLowerCase();
+        if (penaltyStatusFilter === "pending") return s.includes("pending") || s.includes("due");
+        if (penaltyStatusFilter === "collected") return s.includes("collected") || s.includes("paid");
+        return true;
+      });
+    }
+
+    if (type === "collections" && onlyWithPenalty) {
+      rows = rows.filter((r) => Number(r["Penalty"] ?? 0) > 0);
+    }
+
+    if (!searchQuery.trim()) return rows;
     const q = searchQuery.toLowerCase().trim();
-    return data.rows.filter((row) =>
+    return rows.filter((row) =>
       Object.values(row).some((val) => String(val ?? "").toLowerCase().includes(q))
     );
-  }, [data, searchQuery]);
+  }, [data, searchQuery, type, penaltyStatusFilter, onlyWithPenalty]);
 
   const onExport = async () => {
     if (!data || filteredRows.length === 0) return;
@@ -178,8 +196,8 @@ export function ReportsView({
             })}
           </div>
 
-          {/* Date Selector for Collections */}
-          {type === "collections" ? (
+          {/* Date Selector for Collections and Penalties */}
+          {type === "collections" || type === "penalties" ? (
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
               {/* Quick Presets */}
               <div className="flex items-center gap-1.5">
@@ -247,64 +265,170 @@ export function ReportsView({
         </div>
       )}
 
-      {/* KPI Summary Cards with Gradient Sparklines (from Video 1) */}
+      {/* KPI Summary Cards with Gradient Sparklines */}
       {data && !loading && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-          <StatCard
-            label={
-              type === "collections"
-                ? "Total Receipts"
-                : type === "loans-active"
-                ? "Active Loans"
-                : "Closed Loans"
-            }
-            value={String(data.summary.count)}
-            icon={<Icon name={type === "collections" ? "cash" : "dashboard"} />}
-            tone={type === "collections" ? "emerald" : type === "loans-active" ? "sky" : "zinc"}
-            trend="Count"
-            trendUp={true}
-            sparkline={[15, 22, 28, 38, 45, 55, Math.max(60, data.summary.count)]}
-          />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          {type === "penalties" ? (
+            <>
+              <StatCard
+                label="Total Penalty"
+                value={inr(data.summary.totalPenalty ?? 0)}
+                icon={<Icon name="alert" />}
+                tone="red"
+                trend="Incurred"
+                trendUp={false}
+                sparkline={[14, 20, 28, 35, 42, 55, Math.max(60, data.summary.totalPenalty ?? 0)]}
+              />
+              <StatCard
+                label="Pending / Due"
+                value={inr(data.summary.pendingPenalty ?? 0)}
+                icon={<Icon name="alert" />}
+                tone="amber"
+                trend="Unpaid Late Fee"
+                trendUp={false}
+                sparkline={[10, 15, 22, 30, 38, 48, Math.max(50, data.summary.pendingPenalty ?? 0)]}
+              />
+              <StatCard
+                label="Collected Penalty"
+                value={inr(data.summary.collectedPenalty ?? 0)}
+                icon={<Icon name="cash" />}
+                tone="emerald"
+                trend="Recovered"
+                trendUp={true}
+                sparkline={[8, 14, 20, 26, 34, 45, Math.max(48, data.summary.collectedPenalty ?? 0)]}
+              />
+              <StatCard
+                label="Penalty Cases"
+                value={String(data.summary.count)}
+                icon={<Icon name="users" />}
+                tone="sky"
+                trend="Incidents"
+                trendUp={true}
+                sparkline={[5, 12, 18, 25, 30, 38, Math.max(40, data.summary.count)]}
+              />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label={
+                  type === "collections"
+                    ? "Total Receipts"
+                    : type === "loans-active"
+                    ? "Active Loans"
+                    : "Closed Loans"
+                }
+                value={String(data.summary.count)}
+                icon={<Icon name={type === "collections" ? "cash" : "dashboard"} />}
+                tone={type === "collections" ? "emerald" : type === "loans-active" ? "sky" : "zinc"}
+                trend="Count"
+                trendUp={true}
+                sparkline={[15, 22, 28, 38, 45, 55, Math.max(60, data.summary.count)]}
+              />
 
-          <StatCard
-            label="Total Amount"
-            value={inr(data.summary.totalAmount)}
-            icon={<Icon name="cash" />}
-            tone="emerald"
-            trend={type === "collections" ? "Recovered" : "Portfolio Value"}
-            trendUp={true}
-            sparkline={[25, 40, 52, 68, 80, 95, 110]}
-          />
+              <StatCard
+                label="Total Amount"
+                value={inr(data.summary.totalAmount)}
+                icon={<Icon name="cash" />}
+                tone="emerald"
+                trend={type === "collections" ? "Recovered" : "Portfolio Value"}
+                trendUp={true}
+                sparkline={[25, 40, 52, 68, 80, 95, 110]}
+              />
 
-          {type === "collections" && (
-            <StatCard
-              label="Total Penalty"
-              value={inr(data.summary.totalPenalty ?? 0)}
-              icon={<Icon name="alert" />}
-              tone="red"
-              trend={data.summary.totalPenalty ? "Collected" : "Zero"}
-              trendUp={false}
-              sparkline={[12, 10, 14, 8, 11, 7, Math.max(2, (data.summary.totalPenalty ?? 0) > 0 ? 14 : 2)]}
-            />
+              {type === "collections" && (
+                <StatCard
+                  label="Total Penalty"
+                  value={inr(data.summary.totalPenalty ?? 0)}
+                  icon={<Icon name="alert" />}
+                  tone="red"
+                  trend={data.summary.totalPenalty ? "Collected" : "Zero"}
+                  trendUp={false}
+                  sparkline={[12, 10, 14, 8, 11, 7, Math.max(2, (data.summary.totalPenalty ?? 0) > 0 ? 14 : 2)]}
+                />
+              )}
+            </>
           )}
         </div>
       )}
 
-      {/* Table Card with Real-time Search */}
+      {/* Table Card with Real-time Search and Sub-filters */}
       <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/95 shadow-sm backdrop-blur-sm">
         {/* Table Top Bar */}
         <div className="flex flex-col gap-3 border-b border-zinc-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div>
+          <div className="space-y-1">
             <h2 className="text-sm font-bold text-zinc-900 sm:text-base">
-              {type === "collections" ? "Collection Register" : "Loan Portfolio Ledger"}
+              {type === "collections"
+                ? "Collection Register"
+                : type === "penalties"
+                ? "Penalty Register & Overdue Tracking"
+                : "Loan Portfolio Ledger"}
             </h2>
             <p className="text-xs text-zinc-500">
               {type === "loans-active"
                 ? "Showing all active loans"
                 : type === "loans-closed"
                 ? "Showing all closed/settled loans"
+                : type === "penalties"
+                ? "Customers with late-fee penalty details (both pending dues & collected penalties)"
                 : `Transactions from ${from || "All"} to ${to}`}
             </p>
+            {/* Penalty Status Filter Pills */}
+            {type === "penalties" && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPenaltyStatusFilter("all")}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    penaltyStatusFilter === "all"
+                      ? "bg-zinc-800 text-white shadow-xs"
+                      : "border border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+                  }`}
+                >
+                  All ({data?.rows.length ?? 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPenaltyStatusFilter("pending")}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    penaltyStatusFilter === "pending"
+                      ? "bg-red-600 text-white shadow-xs"
+                      : "border border-zinc-200 bg-zinc-50 text-red-700 hover:bg-red-50"
+                  }`}
+                >
+                  <Icon name="alert" size={11} />
+                  Pending / Due
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPenaltyStatusFilter("collected")}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    penaltyStatusFilter === "collected"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "border border-zinc-200 bg-zinc-50 text-emerald-700 hover:bg-emerald-50"
+                  }`}
+                >
+                  <Icon name="check" size={11} />
+                  Collected (Paid)
+                </button>
+              </div>
+            )}
+            {/* Collections with Penalty quick toggle */}
+            {type === "collections" && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setOnlyWithPenalty((v) => !v)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    onlyWithPenalty
+                      ? "bg-red-600 text-white shadow-xs"
+                      : "border border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  <Icon name="alert" size={12} />
+                  Only With Penalty
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -401,7 +525,11 @@ export function ReportsView({
                           {isStatus ? (
                             <Badge
                               tone={
-                                strVal.toLowerCase() === "active"
+                                strVal.toLowerCase().includes("pending") || strVal.toLowerCase().includes("due")
+                                  ? "red"
+                                  : strVal.toLowerCase().includes("collected") || strVal.toLowerCase().includes("paid")
+                                  ? "green"
+                                  : strVal.toLowerCase() === "active"
                                   ? "green"
                                   : strVal.toLowerCase() === "closed"
                                   ? "blue"
@@ -411,9 +539,17 @@ export function ReportsView({
                               {strVal}
                             </Badge>
                           ) : isMoney ? (
-                            <span className={c === "Penalty" && Number(value) > 0 ? "text-red-600 font-bold" : ""}>
+                            <span className={c === "Penalty" && Number(value) > 0 ? "font-bold text-red-600" : ""}>
                               {inr(Number(value) || 0)}
                             </span>
+                          ) : c === "Loan No" && strVal ? (
+                            <a
+                              href={`/emi-pay?loan=${encodeURIComponent(strVal)}`}
+                              className="font-semibold text-emerald-700 hover:underline"
+                              title="Go to EMI Pay"
+                            >
+                              {strVal}
+                            </a>
                           ) : (
                             strVal || "—"
                           )}

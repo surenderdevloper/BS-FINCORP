@@ -8,7 +8,9 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const typeParam = url.searchParams.get("type") ?? "loans-active";
     const type: ReportType =
-      typeParam === "collections" || typeParam === "loans-closed" ? typeParam : "loans-active";
+      typeParam === "collections" || typeParam === "loans-closed" || typeParam === "penalties"
+        ? typeParam
+        : "loans-active";
 
     await dbConnect();
     const report = await buildReport({
