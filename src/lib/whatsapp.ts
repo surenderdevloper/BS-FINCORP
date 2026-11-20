@@ -14,9 +14,20 @@ export const WHATSAPP_BRANDING = "Gigabyte Finance Manager";
  * number is missing or structurally invalid, so callers never build a link to a
  * wrong recipient.
  */
-export function toWhatsAppNumber(raw: string | null | undefined): string | null {
-  const national = normalizeMobile(raw);
-  return national ? `91${national}` : null;
+export function toWhatsAppNumber(
+  raw: string | null | undefined,
+  dialCode: string = "91"
+): string | null {
+  const cleanDial = dialCode.replace(/\D/g, "") || "91";
+  const national = normalizeMobile(raw, cleanDial);
+  if (!national) return null;
+  if (cleanDial === "91") {
+    return `91${national}`;
+  }
+  if (national.startsWith(cleanDial)) {
+    return national;
+  }
+  return `${cleanDial}${national}`;
 }
 
 /** Format a date for message text as DD/MM/YYYY. */

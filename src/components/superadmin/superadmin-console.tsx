@@ -14,10 +14,24 @@ interface TenantRow {
   expiresAt: string | null;
   archived: boolean;
   notes: string;
+  currency?: string;
+  currencySymbol?: string;
+  countryCode?: string;
+  phoneDialCode?: string;
   expired: boolean;
   daysLeft: number | null;
   counts: { customers: number; loans: number; users: number };
 }
+
+const REGIONAL_PRESETS = [
+  { label: "🇮🇳 India (INR · ₹ · +91)", currency: "INR", symbol: "₹", country: "IN", dial: "91" },
+  { label: "🇰🇪 Kenya (KES · KES · +254)", currency: "KES", symbol: "KES", country: "KE", dial: "254" },
+  { label: "🇳🇬 Nigeria (NGN · ₦ · +234)", currency: "NGN", symbol: "₦", country: "NG", dial: "234" },
+  { label: "🇵🇭 Philippines (PHP · ₱ · +63)", currency: "PHP", symbol: "₱", country: "PH", dial: "63" },
+  { label: "🇦🇪 UAE (AED · AED · +971)", currency: "AED", symbol: "AED", country: "AE", dial: "971" },
+  { label: "🇺🇸 United States / Global (USD · $ · +1)", currency: "USD", symbol: "$", country: "US", dial: "1" },
+  { label: "🇬🇧 United Kingdom (GBP · £ · +44)", currency: "GBP", symbol: "£", country: "GB", dial: "44" },
+];
 
 interface UserRow {
   id: string;
@@ -425,8 +439,18 @@ function TenantTableRow({
     <>
       <tr className="border-b border-zinc-100 last:border-0">
         <td className="px-4 py-3">
-          <div className="font-medium text-zinc-900">{row.businessName}</div>
-          <div className="font-mono text-xs text-zinc-400">{row.tenantId}</div>
+          <div className="flex items-center gap-1.5 font-medium text-zinc-900">
+            <span>{row.businessName}</span>
+            {row.currency && row.currency !== "INR" ? (
+              <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                {row.currency} · {row.currencySymbol}
+              </span>
+            ) : null}
+          </div>
+          <div className="font-mono text-xs text-zinc-400">
+            {row.tenantId}
+            {row.phoneDialCode && row.phoneDialCode !== "91" ? ` · +${row.phoneDialCode}` : ""}
+          </div>
         </td>
         <td className="px-4 py-3 text-zinc-600">{row.planName || "—"}</td>
         <td className="px-4 py-3">{statusBadge(row)}</td>
@@ -492,6 +516,9 @@ function EditTenantForm({
   const [planName, setPlanName] = useState(row.planName);
   const [expiresAt, setExpiresAt] = useState(toDateInput(row.expiresAt));
   const [notes, setNotes] = useState(row.notes);
+  const [currency, setCurrency] = useState(row.currency || "INR");
+  const [currencySymbol, setCurrencySymbol] = useState(row.currencySymbol || "₹");
+  const [phoneDialCode, setPhoneDialCode] = useState(row.phoneDialCode || "91");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -505,6 +532,9 @@ function EditTenantForm({
           planName,
           notes,
           expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+          currency: currency.toUpperCase(),
+          currencySymbol,
+          phoneDialCode: phoneDialCode.replace(/\D/g, "") || "91",
         }),
       });
       onSaved();
@@ -526,12 +556,26 @@ function EditTenantForm({
       <Field label="Plan name">
         <Input value={planName} onChange={(e) => setPlanName(e.target.value)} />
       </Field>
+      <Field label="Currency & Symbol" hint="e.g. INR / ₹ or KES / KES">
+        <div className="flex gap-2">
+          <Input className="w-2/3" value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="INR" />
+          <Input className="w-1/3" value={currencySymbol} onChange={(e) => setCurrencySymbol(e.target.value)} placeholder="₹" />
+        </div>
+      </Field>
+      <Field label="Phone Dial Code" hint="e.g. 91, 254, 1">
+        <Input
+          value={phoneDialCode ? `+${phoneDialCode.replace(/\D/g, "")}` : "+91"}
+          onChange={(e) => setPhoneDialCode(e.target.value.replace(/\D/g, ""))}
+        />
+      </Field>
       <Field label="Expires on" hint="leave empty for no expiry">
         <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
       </Field>
-      <Field label="Notes">
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
+      <div className="sm:col-span-2">
+        <Field label="Notes">
+          <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </Field>
+      </div>
       <div className="flex items-end">
         <Button size="sm" disabled={saving || !businessName} onClick={save}>
           {saving ? "Saving…" : "Save changes"}
@@ -555,7 +599,23 @@ function CreateTenantCard({
   const [adminEmail, setAdminEmail] = useState("");
   const [planName, setPlanName] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [presetIndex, setPresetIndex] = useState(0); // Default: India
+  const [currency, setCurrency] = useState("INR");
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
+  const [countryCode, setCountryCode] = useState("IN");
+  const [phoneDialCode, setPhoneDialCode] = useState("91");
   const [saving, setSaving] = useState(false);
+
+  function handlePresetChange(idx: number) {
+    setPresetIndex(idx);
+    const p = REGIONAL_PRESETS[idx];
+    if (p) {
+      setCurrency(p.currency);
+      setCurrencySymbol(p.symbol);
+      setCountryCode(p.country);
+      setPhoneDialCode(p.dial);
+    }
+  }
 
   async function submit() {
     setSaving(true);
@@ -568,6 +628,10 @@ function CreateTenantCard({
           adminEmail,
           planName,
           expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+          currency: currency.toUpperCase(),
+          currencySymbol,
+          countryCode: countryCode.toUpperCase(),
+          phoneDialCode: phoneDialCode.replace(/\D/g, "") || "91",
         }),
       });
       setTenantId("");
@@ -575,6 +639,11 @@ function CreateTenantCard({
       setAdminEmail("");
       setPlanName("");
       setExpiresAt("");
+      setPresetIndex(0);
+      setCurrency("INR");
+      setCurrencySymbol("₹");
+      setCountryCode("IN");
+      setPhoneDialCode("91");
       flash("Tenant created.");
       await onCreated();
     } catch (err) {
@@ -596,6 +665,30 @@ function CreateTenantCard({
         </Field>
         <Field label="Admin email">
           <Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="owner@acme.com" />
+        </Field>
+        <Field label="Country & Currency" hint="Default: 🇮🇳 India (INR · ₹ · +91)">
+          <Select
+            value={presetIndex}
+            onChange={(e) => handlePresetChange(Number(e.target.value))}
+          >
+            {REGIONAL_PRESETS.map((p, idx) => (
+              <option key={p.country} value={idx}>
+                {p.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Currency & Symbol" hint="e.g. INR / ₹ or KES / KES">
+          <div className="flex gap-2">
+            <Input className="w-2/3" value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="INR" />
+            <Input className="w-1/3" value={currencySymbol} onChange={(e) => setCurrencySymbol(e.target.value)} placeholder="₹" />
+          </div>
+        </Field>
+        <Field label="Phone Dial Code" hint="e.g. 91, 254, 1">
+          <Input
+            value={phoneDialCode ? `+${phoneDialCode.replace(/\D/g, "")}` : "+91"}
+            onChange={(e) => setPhoneDialCode(e.target.value.replace(/\D/g, ""))}
+          />
         </Field>
         <Field label="Plan name">
           <Input value={planName} onChange={(e) => setPlanName(e.target.value)} placeholder="Standard" />

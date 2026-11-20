@@ -26,14 +26,33 @@ function brandSignoff(brandingName?: string, officePhone?: string): string[] {
  * Accepts plain digits, a leading 0, or a +91/91 prefix. Returns null when
  * the number is missing or not structurally valid (10 digits, starts 6-9).
  */
-export function normalizeMobile(raw: string | null | undefined): string | null {
+export function normalizeMobile(
+  raw: string | null | undefined,
+  dialCode: string = "91"
+): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
-  let national: string | null = null;
-  if (digits.length === 10) national = digits;
-  else if (digits.length === 11 && digits.startsWith("0")) national = digits.slice(1);
-  else if (digits.length === 12 && digits.startsWith("91")) national = digits.slice(2);
-  if (national && isValidMobile(national)) return national;
+  const cleanDial = dialCode.replace(/\D/g, "") || "91";
+  if (cleanDial === "91") {
+    let national: string | null = null;
+    if (digits.length === 10) national = digits;
+    else if (digits.length === 11 && digits.startsWith("0")) national = digits.slice(1);
+    else if (digits.length === 12 && digits.startsWith("91")) national = digits.slice(2);
+    if (national && isValidMobile(national, "91")) return national;
+    return null;
+  }
+  let local = digits;
+  if (digits.startsWith(cleanDial) && digits.length > cleanDial.length + 4) {
+    local = digits.slice(cleanDial.length);
+  } else if (digits.startsWith("0") && digits.length >= 8) {
+    local = digits.slice(1);
+  }
+  if (local.length >= 7 && local.length <= 15) {
+    return local;
+  }
+  if (digits.length >= 7 && digits.length <= 15) {
+    return digits;
+  }
   return null;
 }
 

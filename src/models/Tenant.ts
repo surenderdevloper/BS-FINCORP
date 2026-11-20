@@ -22,6 +22,10 @@ const tenantSchema = new mongoose.Schema(
     // excluded from the default panel list and treated as suspended.
     archived: { type: Boolean, default: false },
     notes: { type: String, default: "" },
+    currency: { type: String, default: "INR", trim: true },
+    currencySymbol: { type: String, default: "₹", trim: true },
+    countryCode: { type: String, default: "IN", trim: true },
+    phoneDialCode: { type: String, default: "91", trim: true },
   },
   { timestamps: true }
 );

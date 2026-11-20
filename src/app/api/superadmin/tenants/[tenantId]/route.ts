@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { Tenant } from "@/models/Tenant";
+import { CompanySetting, invalidateCompanySettingCache } from "@/models/CompanySetting";
 import { withSuperadmin } from "@/lib/tenant-route";
 import { recordAudit } from "@/lib/audit";
 
@@ -22,6 +23,10 @@ export async function PATCH(req: Request, ctx: RouteContext) {
       expiresAt?: string | null;
       archived?: boolean;
       notes?: string;
+      currency?: string;
+      currencySymbol?: string;
+      countryCode?: string;
+      phoneDialCode?: string;
     };
     try {
       body = await req.json();
@@ -31,6 +36,11 @@ export async function PATCH(req: Request, ctx: RouteContext) {
 
     const set: Record<string, unknown> = {};
     const fieldErrors: Record<string, string> = {};
+
+    if (body.currency !== undefined) set.currency = String(body.currency).trim().toUpperCase() || "INR";
+    if (body.currencySymbol !== undefined) set.currencySymbol = String(body.currencySymbol).trim();
+    if (body.countryCode !== undefined) set.countryCode = String(body.countryCode).trim().toUpperCase();
+    if (body.phoneDialCode !== undefined) set.phoneDialCode = String(body.phoneDialCode).replace(/\D/g, "") || "91";
 
     if (body.planStatus !== undefined) {
       if (PLAN_STATUSES.includes(body.planStatus as (typeof PLAN_STATUSES)[number])) {
@@ -81,6 +91,22 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     );
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
+    }
+
+    // Sync regional & currency settings to the tenant's CompanySetting record
+    const companyUpdates: Record<string, string> = {};
+    if (set.businessName) companyUpdates.companyName = String(set.businessName);
+    if (set.currency) companyUpdates.currency = String(set.currency);
+    if (set.currencySymbol) companyUpdates.currencySymbol = String(set.currencySymbol);
+    if (set.countryCode) companyUpdates.countryCode = String(set.countryCode);
+    if (set.phoneDialCode) companyUpdates.phoneDialCode = String(set.phoneDialCode);
+
+    if (Object.keys(companyUpdates).length) {
+      await CompanySetting.findOneAndUpdate(
+        { tenantId, singleton: "company" },
+        { $set: companyUpdates }
+      );
+      invalidateCompanySettingCache();
     }
 
     await recordAudit({

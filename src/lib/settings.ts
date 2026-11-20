@@ -15,6 +15,10 @@ export interface CompanySettingsData {
   nextReceiptNo: number;
   loanPrefix: string;
   nextLoanNo: number;
+  currency: string;
+  currencySymbol: string;
+  countryCode: string;
+  phoneDialCode: string;
 }
 
 export interface PenaltySettingsData {
@@ -69,6 +73,10 @@ export async function getSettingsSnapshot(): Promise<SettingsSnapshot> {
       nextReceiptNo: company.nextReceiptNo,
       loanPrefix: company.loanPrefix,
       nextLoanNo: company.nextLoanNo,
+      currency: company.currency || "INR",
+      currencySymbol: company.currencySymbol || "₹",
+      countryCode: company.countryCode || "IN",
+      phoneDialCode: company.phoneDialCode || "91",
     },
     penalty: {
       enabled: penalty?.enabled ?? true,

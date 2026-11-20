@@ -99,6 +99,10 @@ export async function PUT(req: Request) {
           phone: String(c.phone ?? "").trim(),
           email: String(c.email ?? "").trim(),
           logo: typeof c.logo === "string" ? String(c.logo).slice(0, 5_000_000) : "",
+          ...(c.currency !== undefined ? { currency: String(c.currency).trim().toUpperCase() || "INR" } : {}),
+          ...(c.currencySymbol !== undefined ? { currencySymbol: String(c.currencySymbol).trim() || "₹" } : {}),
+          ...(c.countryCode !== undefined ? { countryCode: String(c.countryCode).trim().toUpperCase() || "IN" } : {}),
+          ...(c.phoneDialCode !== undefined ? { phoneDialCode: String(c.phoneDialCode).replace(/\D/g, "") || "91" } : {}),
         },
         $setOnInsert: { singleton: "company" },
       },
@@ -113,6 +117,10 @@ export async function PUT(req: Request) {
         phone: updated.phone,
         email: updated.email,
         logo: updated.logo ?? "",
+        currency: updated.currency ?? "INR",
+        currencySymbol: updated.currencySymbol ?? "₹",
+        countryCode: updated.countryCode ?? "IN",
+        phoneDialCode: updated.phoneDialCode ?? "91",
       },
     });
   }

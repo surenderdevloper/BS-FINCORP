@@ -16,6 +16,10 @@ const companySettingSchema = new mongoose.Schema(
     loanPrefix: { type: String, default: "GFM" },
     nextLoanNo: { type: Number, default: 1 },
     tenantId: { type: String, trim: true },
+    currency: { type: String, default: "INR", trim: true },
+    currencySymbol: { type: String, default: "₹", trim: true },
+    countryCode: { type: String, default: "IN", trim: true },
+    phoneDialCode: { type: String, default: "91", trim: true },
   },
   { timestamps: true }
 );

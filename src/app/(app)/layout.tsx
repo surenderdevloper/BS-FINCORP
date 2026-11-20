@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell, type SubscriptionAlert } from "@/components/app-shell";
+import { CurrencyProvider } from "@/components/currency-context";
 import { isSuperadmin, isSuspended, readSession } from "@/lib/auth";
 import { multiTenantEnabled, runForSession } from "@/lib/tenant";
 import { buildSubscriptionNotice } from "@/lib/subscription-notice";
@@ -27,6 +28,7 @@ export default async function AppLayout({
   }
 
   let branding = { logo: "", companyName: "Gigabyte Finance Manager" };
+  let currencySettings = { currency: "INR", currencySymbol: "₹", phoneDialCode: "91", countryCode: "IN" };
   let features = { whatsapp: true, sms: true };
   let maintenance = { enabled: false, message: "" };
   try {
@@ -39,6 +41,12 @@ export default async function AppLayout({
           logo: company.logo ?? "",
           companyName: company.companyName || "Gigabyte Finance Manager",
         },
+        currencySettings: {
+          currency: company.currency || "INR",
+          currencySymbol: company.currencySymbol || "₹",
+          phoneDialCode: company.phoneDialCode || "91",
+          countryCode: company.countryCode || "IN",
+        },
         features: {
           whatsapp: config.features?.whatsapp ?? true,
           sms: config.features?.sms ?? true,
@@ -50,6 +58,7 @@ export default async function AppLayout({
       };
     });
     branding = tenantSettings.branding;
+    currencySettings = tenantSettings.currencySettings;
     features = tenantSettings.features;
     maintenance = tenantSettings.maintenance;
   } catch {
@@ -62,15 +71,22 @@ export default async function AppLayout({
     notice && expiresAt ? { ...notice, expiresOn: formatDate(expiresAt) } : null;
 
   return (
-    <AppShell
-      userName={session.name}
-      branding={branding}
-      isDeveloper={session.role === "developer"}
-      features={features}
-      maintenance={maintenance}
-      subscription={subscription}
+    <CurrencyProvider
+      currency={currencySettings.currency}
+      currencySymbol={currencySettings.currencySymbol}
+      phoneDialCode={currencySettings.phoneDialCode}
+      countryCode={currencySettings.countryCode}
     >
-      {children}
-    </AppShell>
+      <AppShell
+        userName={session.name}
+        branding={branding}
+        isDeveloper={session.role === "developer"}
+        features={features}
+        maintenance={maintenance}
+        subscription={subscription}
+      >
+        {children}
+      </AppShell>
+    </CurrencyProvider>
   );
 }

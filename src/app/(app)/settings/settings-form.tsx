@@ -23,7 +23,21 @@ const emptyCompany: CompanySettingsData = {
   nextReceiptNo: 1,
   loanPrefix: "GFM",
   nextLoanNo: 1,
+  currency: "INR",
+  currencySymbol: "₹",
+  countryCode: "IN",
+  phoneDialCode: "91",
 };
+
+const COUNTRY_PRESETS = [
+  { label: "🇮🇳 India (INR · ₹ · +91)", currency: "INR", symbol: "₹", country: "IN", dial: "91" },
+  { label: "🇰🇪 Kenya (KES · KES · +254)", currency: "KES", symbol: "KES", country: "KE", dial: "254" },
+  { label: "🇳🇬 Nigeria (NGN · ₦ · +234)", currency: "NGN", symbol: "₦", country: "NG", dial: "234" },
+  { label: "🇵🇭 Philippines (PHP · ₱ · +63)", currency: "PHP", symbol: "₱", country: "PH", dial: "63" },
+  { label: "🇦🇪 UAE (AED · AED · +971)", currency: "AED", symbol: "AED", country: "AE", dial: "971" },
+  { label: "🇺🇸 United States / Global (USD · $ · +1)", currency: "USD", symbol: "$", country: "US", dial: "1" },
+  { label: "🇬🇧 United Kingdom (GBP · £ · +44)", currency: "GBP", symbol: "£", country: "GB", dial: "44" },
+];
 
 const emptyMessages: MessagesSettingsData = {
   waTemplates: {},
@@ -325,6 +339,80 @@ export function SettingsForm({
                 onChange={(e) => setCompany((c) => ({ ...c, email: e.target.value }))}
               />
             </Field>
+
+            {/* Regional & Currency Settings */}
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 sm:col-span-2 space-y-3">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700">
+                  Currency & Regional Format
+                </h3>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Choose your operating currency and country dial code. Existing Indian accounts default to ₹ INR and +91.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-4">
+                <Field label="Country Preset">
+                  <select
+                    className="h-10 w-full rounded-xl border border-zinc-300 bg-white px-3 text-xs font-medium text-zinc-900 shadow-xs focus:border-emerald-500 focus:outline-none"
+                    value={
+                      COUNTRY_PRESETS.find(
+                        (p) =>
+                          p.currency === (company.currency || "INR") &&
+                          p.dial === (company.phoneDialCode || "91")
+                      )?.label || "custom"
+                    }
+                    onChange={(e) => {
+                      const match = COUNTRY_PRESETS.find((p) => p.label === e.target.value);
+                      if (match) {
+                        setCompany((c) => ({
+                          ...c,
+                          currency: match.currency,
+                          currencySymbol: match.symbol,
+                          countryCode: match.country,
+                          phoneDialCode: match.dial,
+                        }));
+                      }
+                    }}
+                  >
+                    {COUNTRY_PRESETS.map((p) => (
+                      <option key={p.label} value={p.label}>
+                        {p.label}
+                      </option>
+                    ))}
+                    <option value="custom">Custom Configuration</option>
+                  </select>
+                </Field>
+
+                <Field label="Currency Code" hint="e.g. INR, USD, KES">
+                  <Input
+                    value={company.currency || "INR"}
+                    onChange={(e) =>
+                      setCompany((c) => ({ ...c, currency: e.target.value.toUpperCase() }))
+                    }
+                  />
+                </Field>
+
+                <Field label="Symbol" hint="e.g. ₹, $, KES, ₦">
+                  <Input
+                    value={company.currencySymbol || "₹"}
+                    onChange={(e) => setCompany((c) => ({ ...c, currencySymbol: e.target.value }))}
+                  />
+                </Field>
+
+                <Field label="Dialing Code" hint="e.g. 91, 254, 1">
+                  <Input
+                    value={company.phoneDialCode ? `+${company.phoneDialCode}` : "+91"}
+                    onChange={(e) =>
+                      setCompany((c) => ({
+                        ...c,
+                        phoneDialCode: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                  />
+                </Field>
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <div className="flex justify-end">
                 <Button onClick={() => void saveCompany()} disabled={saving}>

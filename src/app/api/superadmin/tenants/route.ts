@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { Tenant } from "@/models/Tenant";
+import { CompanySetting } from "@/models/CompanySetting";
 import { withSuperadmin } from "@/lib/tenant-route";
 import { recordAudit } from "@/lib/audit";
 
@@ -54,6 +55,10 @@ export async function GET(req: Request) {
           expiresAt: t.expiresAt ? new Date(t.expiresAt).toISOString() : null,
           archived: t.archived === true,
           notes: t.notes ?? "",
+          currency: t.currency ?? "INR",
+          currencySymbol: t.currencySymbol ?? "₹",
+          countryCode: t.countryCode ?? "IN",
+          phoneDialCode: t.phoneDialCode ?? "91",
           expired,
           daysLeft,
           createdAt: t.createdAt?.toISOString(),
@@ -74,6 +79,10 @@ export async function POST(req: Request) {
       planName?: string;
       expiresAt?: string | null;
       notes?: string;
+      currency?: string;
+      currencySymbol?: string;
+      countryCode?: string;
+      phoneDialCode?: string;
     };
     try {
       body = await req.json();
@@ -114,6 +123,11 @@ export async function POST(req: Request) {
       expiresAt = parsed;
     }
 
+    const currency = (body.currency ?? "INR").trim().toUpperCase() || "INR";
+    const currencySymbol = (body.currencySymbol ?? (currency === "INR" ? "₹" : currency)).trim();
+    const countryCode = (body.countryCode ?? (currency === "INR" ? "IN" : "GLOBAL")).trim().toUpperCase();
+    const phoneDialCode = String(body.phoneDialCode ?? "91").replace(/\D/g, "") || "91";
+
     const tenant = await Tenant.create({
       tenantId,
       businessName,
@@ -122,7 +136,27 @@ export async function POST(req: Request) {
       planStatus: "active",
       expiresAt,
       notes: String(body.notes ?? "").trim().slice(0, 500),
+      currency,
+      currencySymbol,
+      countryCode,
+      phoneDialCode,
     });
+
+    await CompanySetting.findOneAndUpdate(
+      { tenantId, singleton: "company" },
+      {
+        $setOnInsert: {
+          singleton: "company",
+          tenantId,
+          companyName: businessName,
+          currency,
+          currencySymbol,
+          countryCode,
+          phoneDialCode,
+        },
+      },
+      { upsert: true }
+    );
 
     await recordAudit({
       actor: session,
