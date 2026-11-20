@@ -24,12 +24,12 @@ const CONNECTION_OPTIONS = {
 
 export async function dbConnect(): Promise<Connection> {
   const url = requireDbUrl();
-  if (globalThis.__bsFincorpMongoose?.conn) {
+  if (globalThis.__bsFincorpMongoose?.conn && mongoose.connection.readyState === 1) {
     return globalThis.__bsFincorpMongoose.conn;
   }
 
   const state = mongoose.connection.readyState;
-  if (state === 1 || state === 2) {
+  if (state === 1) {
     const conn = mongoose.connection;
     globalThis.__bsFincorpMongoose = { conn, promise: Promise.resolve(conn) };
     return conn;
