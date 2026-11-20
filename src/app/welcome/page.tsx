@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
+
+// Hidden until explicitly requested by user. Code is 100% preserved.
+const SHOW_WELCOME_PAGE = false;
 
 export const metadata: Metadata = {
   title: "Loan & EMI Management Software",
@@ -142,6 +146,10 @@ function DemoButton({ className }: { className: string }) {
 }
 
 export default function WelcomePage() {
+  if (!SHOW_WELCOME_PAGE) {
+    redirect("/login");
+  }
+
   return (
     <div className="min-h-screen bg-white text-zinc-900">
       {/* Nav */}

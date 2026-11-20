@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/money";
 
-const PUBLIC_PATHS = ["/welcome", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = ["/forgot-password", "/reset-password"];
 
 async function isAuthed(request: NextRequest): Promise<boolean> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -27,10 +27,14 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const authed = await isAuthed(request);
 
-  // Landing page → signed-in users go to the dashboard, visitors see the
-  // marketing landing page.
+  // Landing page → signed-in users go to dashboard, unauthenticated visitors go straight to login.
   if (pathname === "/") {
-    return NextResponse.redirect(new URL(authed ? "/dashboard" : "/welcome", request.url));
+    return NextResponse.redirect(new URL(authed ? "/dashboard" : "/login", request.url));
+  }
+
+  // Welcome page is hidden until explicitly requested to be shown.
+  if (pathname === "/welcome") {
+    return NextResponse.redirect(new URL(authed ? "/dashboard" : "/login", request.url));
   }
 
   // Login page → let the page validate the session against the DB. Redirecting
